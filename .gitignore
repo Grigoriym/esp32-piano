@@ -1,0 +1,19 @@
+# Build output
+build/
+cmake-build-*/
+
+# ESP-IDF generated
+sdkconfig
+sdkconfig.old
+managed_components/
+dependencies.lock
+
+# Secrets (WiFi credentials)
+*_secrets.h
+
+# Python / IDE
+__pycache__/
+.idea/
+
+# Claude Code local (machine-specific) settings
+.claude/settings.local.json
