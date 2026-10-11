@@ -1,0 +1,4 @@
+# 4 MB flash on every board here (DevKit and mini); the IDF default assumes 2 MB
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+# One tick = 10 ms, as in the two projects (the encoder check relies on it)
+CONFIG_FREERTOS_HZ=100

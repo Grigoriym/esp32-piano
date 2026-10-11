@@ -60,6 +60,26 @@ milestones.
 - **Measure, don't guess**: the matrix layout, which lines are rows and
   which are columns, and the battery voltage under load get measured with a
   multimeter, not inferred from photos.
+- **Read the meter's display in beep mode, don't only listen**: some lines
+  on the key board run through black printed bars and read ~280-300 Ω,
+  above the beep threshold. A silent pair is not proof of no connection
+  (4-wire wire 3 looked dead until read in Ω).
+- **Photos are not readings**: pad type, pin labels and markings read off
+  a phone photo were wrong twice (carbon vs metal pads, `EF`/`AB` label
+  list). Ask for a sharp straight-on close-up before writing them anywhere.
+- **ESP32 on the toy's lines: toy batteries out.** The chip ran straight from
+  the batteries (up to ~6.4 V fresh); with it removed, the only voltage on
+  the lines is the ESP32's 3.3 V. Firmware only pulls lines low, never
+  drives them high.
+
+## Build
+ESP-IDF project at the repo root (`main/main.c`), `sdkconfig.defaults` taken
+from `../esp32-hw-checks` (4 MB flash, 100 Hz tick). First build in a fresh
+checkout: `. ~/esp/esp-idf/export.sh && idf.py set-target esp32 && idf.py
+build`. Flash and read serial with the `esp32-flash-verify` skill.
+`main/main.c` is the line-pair finder: 17 slot lines + VSS (table in
+`docs/MATRIX.md`), prints `REST` / `DOWN` / `UP` pairs. Builds clean
+(2026-10-11); not run on a board yet. No tests, CI or the four checks yet.
 - Firmware: ESP-IDF in C, like the siblings. No Arduino.
 
 ## Milestones
@@ -82,5 +102,33 @@ milestones.
 4. **Inside the toy**: power, mounting, the case closed, the battery life
    checked.
 
+## Decisions
+- 2026-10-11: the sound chip goes out of the loop. Its upright daughterboard
+  on the main board gets desoldered and kept (bagged, can go back in); the
+  ESP32 drives the key and button lines itself at 3.3 V. Reason: the chip
+  runs straight from the batteries (VDD = battery voltage) and stops working
+  at 3 V, so listening in on it would need dividers on every line.
+  Direction A / B (MIDI or own synth) is still open.
+
 ## Next step
-Milestone 0. Nothing has been opened or tested yet (2026-10-11).
+State on 2026-10-11 (end of session):
+- Milestone 0 done for the piano keys and the 4 volume/tempo buttons
+  (`docs/MATRIX.md`). The 25 front buttons (pads on the main board's copper
+  side) are not mapped: they don't sit between a 4-wire and an 8-wire key
+  wire, nor on `A5` (measured while pressed).
+- Sound chip board (COB, marked `S9105A-1`) desoldered, kept by the user.
+  The toy no longer plays on its own.
+- The user is soldering 18 wires to the slot pads per the wiring table in
+  `docs/MATRIX.md`. Next: they say when the DevKit is on USB; flash
+  `main/main.c`, capture serial, they press keys and buttons one at a time;
+  write the button → line pairs into `docs/MATRIX.md`.
+
+Open items:
+- A small factory bridging wire at the middle pad group (photo 11) was not
+  seen after desoldering (photo 15); asked the user whether it came off,
+  no answer yet. If a scan result looks odd around that group, start there.
+- Homebox entry still says "Opened, works": proposed "Modified: sound chip
+  board desoldered and kept" + the `S9105A-1` marking; waiting for the
+  user's OK. Its "~17 buttons" also disagrees with 25 pads + 4 side buttons;
+  fix once the front buttons are counted.
+- Main board marking `9105C` is read off a photo only.
