@@ -109,6 +109,10 @@ build`. Flash and read serial with the `esp32-flash-verify` skill.
   runs straight from the batteries (VDD = battery voltage) and stops working
   at 3 V, so listening in on it would need dividers on every line.
   Direction A / B (MIDI or own synth) is still open.
+- 2026-10-12: direction A first (BLE-MIDI to a synth on the PC), B (own
+  synth) after A works. This PC: Bluetooth adapter present, bluetoothd built
+  with MIDI support; no synth installed yet (FluidSynth/Qsynth + a
+  soundfont, the user installs with sudo).
 
 ## Next step
 State on 2026-10-12:
@@ -118,8 +122,8 @@ State on 2026-10-12:
 - `main/main.c` is now the matrix scanner (rows `AB0`–`AB7` pulled low,
   columns `EF0`–`EF7` read), prints `DOWN key 14` / `UP ROCK` and `GHOST?`.
   Chord check done (docs/MATRIX.md): ghosting confirmed on 3 corners of a
-  rectangle. Next: decide direction A/B (milestone 1), and with it how to
-  handle ghosts (ignore ambiguous chords in firmware, or 1N4148 per key).
+  rectangle. Next: BLE-MIDI (direction A); ghosts: ignore ambiguous chords in
+  firmware for now, 1N4148 per key if that's not enough.
 - Serial capture: a burst of ~64 `0xFF` bytes often eats the first line
   after an idle pause (host/USB bridge side, not the scan); check `UP` lines.
 - The user desoldered the toy's speaker (easy to put back).
