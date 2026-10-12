@@ -73,14 +73,43 @@ milestones.
   drives them high.
 
 ## Build
-ESP-IDF project at the repo root (`main/main.c`), `sdkconfig.defaults` taken
-from `../esp32-hw-checks` (4 MB flash, 100 Hz tick). First build in a fresh
-checkout: `. ~/esp/esp-idf/export.sh && idf.py set-target esp32 && idf.py
-build`. Flash and read serial with the `esp32-flash-verify` skill.
-`main/main.c` is the line-pair finder: 17 slot lines + VSS (table in
-`docs/MATRIX.md`), prints `REST` / `DOWN` / `UP` pairs. Builds clean
-(2026-10-11); not run on a board yet. No tests, CI or the four checks yet.
+ESP-IDF project at the repo root, `sdkconfig.defaults` from `../esp32-hw-checks`
+(4 MB flash) plus NimBLE (BLE only) and a 1000 Hz tick (the key scan runs
+every 2 ms). First build in a fresh checkout: `. ~/esp/esp-idf/export.sh &&
+idf.py set-target esp32 && idf.py build`. Flash with the `esp32-flash-verify`
+skill. After changing `sdkconfig.defaults`: `rm sdkconfig` and build again.
+- `main/main.c`: matrix scanner (rows `AB0`–`AB7` pulled low one at a time,
+  columns `EF0`–`EF7` read, debounce 3 scans) and the key/button → MIDI
+  mapping (comment at the top). Presses that may be a ghost are held back.
+  The line-pair finder that mapped the grid is in git (`233c8c3`).
+- `main/ble_midi.c`: BLE-MIDI peripheral "Chicco Piano", one notification per
+  MIDI message.
+- `tools/pc_synth.sh`: the PC side. FluidSynth (pipewire, small buffer) plus
+  a once-a-second check that routes the toy's ALSA port to it (the port is
+  recreated on every Bluetooth reconnect). Run it in the background.
+- No tests, CI or the four checks yet.
 - Firmware: ESP-IDF in C, like the siblings. No Arduino.
+
+### Traps found here
+- **BlueZ's default supervision timeout (420 ms) dropped the BLE link** every
+  few seconds (NimBLE disconnect reason `0x208`; bluetoothd then logs
+  "notifications not enabled ... unlikely error" / "Failed to read initial
+  request", which are symptoms, not the cause). Fixed by the toy asking for
+  4 s right after connecting (`ble_gap_update_params`).
+- **DevKit on the USB hub: the link still dropped about once a minute**
+  while playing; on the PC's own port, none in 4 min (2 idle, 2 playing).
+  Keep it off the hub.
+- **Every serial capture resets the board** (CP2102 auto-reset; setting
+  DTR/RTS false before opening didn't prevent it), so it drops the BLE link
+  and the user sees connect/disconnect notifications. With the BLE firmware
+  the captures also came back as repeated stale chunks and half boot lines;
+  ruled out: another process on the port (`fuser` empty), kernel USB errors
+  (none). For key tests read the PC side instead (`aseqdump -p "Chicco
+  Piano"`), no reset. Serial only for boot checks after a flash.
+- Paired with `bluetoothctl` (pair fails with `ConnectionAttemptFailed`, but
+  `trust` + `connect` works and BlueZ creates the MIDI port; no bond needed).
+- FluidSynth fed `noteon` commands on stdin stayed silent; a small `.mid`
+  file played. Default audio output is the user's G733 headset.
 
 ## Milestones
 0. **Teardown and map** (no changes to the toy). Does it work as bought?
@@ -115,21 +144,23 @@ build`. Flash and read serial with the `esp32-flash-verify` skill.
   soundfont, the user installs with sudo).
 
 ## Next step
-State on 2026-10-12:
-- Milestone 2 scan done: the DevKit on the slot lines (`main/main.c`, run on
-  the board) found every key and button, one pair each; full map in
-  `docs/MATRIX.md`. All on `EF0`–`EF7` × `AB0`–`AB7`; `CD0` unused so far.
-- `main/main.c` is now the matrix scanner (rows `AB0`–`AB7` pulled low,
-  columns `EF0`–`EF7` read), prints `DOWN key 14` / `UP ROCK` and `GHOST?`.
-  Chord check done (docs/MATRIX.md): ghosting confirmed on 3 corners of a
-  rectangle. Next: BLE-MIDI (direction A); ghosts: ignore ambiguous chords in
-  firmware for now, 1N4148 per key if that's not enough.
-- Serial capture: a burst of ~64 `0xFF` bytes often eats the first line
-  after an idle pause (host/USB bridge side, not the scan); check `UP` lines.
-- The user desoldered the toy's speaker (easy to put back).
+State on 2026-10-12 (end of session):
+- Milestones 0 and 2 done: every key and button mapped (`docs/MATRIX.md`),
+  scanner with names, chord check (ghosting on 3 corners of a rectangle).
+- Milestone 3, direction A: BLE-MIDI works end to end (toy → Bluetooth →
+  `tools/pc_synth.sh` → headset). The user played the Megalovania opening;
+  latency "fine for now". Key 1 = F3 (53) is inferred from the black-key
+  pattern (3-2-3-2-3 from the left, photo); keys 2 and 9 black confirmed by
+  the user.
+- **Open: some keys don't sound under a normal press.** Scan sweep (serial,
+  keys 1–25 captured): 14, 18, 21, 23 never registered. The user heard
+  silence on 14, 18, 22, 24, 27, 31 (22/24 did register in the scan: count
+  drift or lost MIDI, unresolved). All of them worked in the mapping run.
+  Not the wires: they share lines with working keys. Next: measure key 14's
+  contact (Ω across `EF5`–`AB1`, USB out, normal vs firm press) against key
+  13 (`EF4`–`AB1`); then a sweep read with `aseqdump`, not serial.
+- Earlier weak contacts: chick above WALTZ, key 9 (before the case-squeeze
+  fix).
 
 Open items:
-- Homebox entry still says "Opened, works": proposed "Modified: sound chip
-  board desoldered and kept, speaker desoldered" + the `S9105A-1` marking
-  + 32 keys, 29 buttons; waiting for the user's OK.
 - Main board marking `9105C` is read off a photo only.
