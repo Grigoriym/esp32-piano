@@ -111,24 +111,16 @@ build`. Flash and read serial with the `esp32-flash-verify` skill.
   Direction A / B (MIDI or own synth) is still open.
 
 ## Next step
-State on 2026-10-11 (end of session):
-- Milestone 0 done for the piano keys and the 4 volume/tempo buttons
-  (`docs/MATRIX.md`). The 25 front buttons (pads on the main board's copper
-  side) are not mapped: they don't sit between a 4-wire and an 8-wire key
-  wire, nor on `A5` (measured while pressed).
-- Sound chip board (COB, marked `S9105A-1`) desoldered, kept by the user.
-  The toy no longer plays on its own.
-- The user is soldering 18 wires to the slot pads per the wiring table in
-  `docs/MATRIX.md`. Next: they say when the DevKit is on USB; flash
-  `main/main.c`, capture serial, they press keys and buttons one at a time;
-  write the button → line pairs into `docs/MATRIX.md`.
+State on 2026-10-12:
+- Milestone 2 scan done: the DevKit on the slot lines (`main/main.c`, run on
+  the board) found every key and button, one pair each; full map in
+  `docs/MATRIX.md`. All on `EF0`–`EF7` × `AB0`–`AB7`; `CD0` unused so far.
+- Ghosting confirmed (no diodes). Next: a real matrix scanner (EF/AB grid)
+  printing key/button names, chord check, then decide direction A/B.
+- The user desoldered the toy's speaker (easy to put back).
 
 Open items:
-- A small factory bridging wire at the middle pad group (photo 11) was not
-  seen after desoldering (photo 15); asked the user whether it came off,
-  no answer yet. If a scan result looks odd around that group, start there.
 - Homebox entry still says "Opened, works": proposed "Modified: sound chip
-  board desoldered and kept" + the `S9105A-1` marking; waiting for the
-  user's OK. Its "~17 buttons" also disagrees with 25 pads + 4 side buttons;
-  fix once the front buttons are counted.
+  board desoldered and kept, speaker desoldered" + the `S9105A-1` marking
+  + 32 keys, 29 buttons; waiting for the user's OK.
 - Main board marking `9105C` is read off a photo only.

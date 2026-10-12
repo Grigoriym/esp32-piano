@@ -1,6 +1,6 @@
 # Key matrix map
 
-Status: piano keys measured (2026-10-11): an 8 × 4 grid, every key on exactly one wire of each ribbon. Buttons not mapped yet.
+Status: piano keys measured (2026-10-11) and confirmed on the ESP32 slot lines (2026-10-12): an 8 × 4 grid, `EF0`–`EF7` × `AB0`–`AB3`. All 32 keys and 29 buttons mapped on the slot lines (2026-10-12).
 
 ## What is known
 - 32 piano keys, one rubber dome each. Under each dome, a round bare-metal
@@ -68,6 +68,69 @@ Measured by continuity at the small board's solder points while pressing.
 | Tempo − | `A5` – `E1` |
 | Tempo + | `A5` – `E0` |
 
+On the slot lines (ESP32 scan, 2026-10-12): `A5` is `AB5`, `E0`–`E3` are
+`EF0`–`EF3`. So Volume − = `EF3`+`AB5`, Volume + = `EF2`+`AB5`,
+Tempo − = `EF1`+`AB5`, Tempo + = `EF0`+`AB5`.
+
+### Front buttons (ESP32 scan, 2026-10-12)
+Pressed one at a time by their printed names.
+
+| Button | Lines |
+|---|---|
+| SELECT | `EF4`+`AB7` |
+| RESET | `EF4`+`AB5` |
+| RECORD | `EF5`+`AB5` |
+| REPLAY | `EF6`+`AB5` |
+| BLUES | `EF7`+`AB4` |
+| SAMBA | `EF6`+`AB4` |
+| WALTZ | `EF5`+`AB4` |
+| MARCH | `EF4`+`AB4` |
+| DISCO | `EF3`+`AB4` |
+| NEW AGE | `EF2`+`AB4` |
+| ROCK | `EF1`+`AB4` |
+| SLOW ROCK | `EF0`+`AB4` |
+| DEMO | `EF5`+`AB7` |
+| Dog | `EF0`+`AB7` |
+| Frog | `EF1`+`AB7` |
+| Blue bird | `EF3`+`AB7` |
+| Red bird | `EF2`+`AB7` |
+| Chick, row next to the style buttons, 1st from the BLUES end (above SAMBA) | `EF5`+`AB6` |
+| … 2nd (above WALTZ) | `EF3`+`AB6` |
+| … 3rd (above MARCH/DISCO) | `EF2`+`AB6` |
+| … 4th (above NEW AGE) | `EF7`+`AB6` |
+| Chick, row next to the bottom edge, 1st from the BLUES end | `EF1`+`AB6` |
+| … 2nd | `EF4`+`AB6` |
+| … 3rd | `EF6`+`AB6` |
+| … 4th | `EF0`+`AB6` |
+
+All 25 front buttons are on `EF0`–`EF7` × `AB4`–`AB7` (`AB5` also carries
+the volume/tempo buttons). `CD0` carries nothing found so far. Unused spots:
+`EF7`+`AB5`, `EF6`+`AB7`, `EF7`+`AB7`.
+
+- The 2nd chick of the top row (`EF3`+`AB6`) has a weak contact: it missed
+  twice and registered only on a firm press.
+- Ghosting seen: chick 1 (`EF5`+`AB6`) held together with key 22
+  (`EF5`+`AB2`) also showed `AB2`–`AB6`, which was not pressed. No diodes, so
+  chords need handling in firmware (or diodes) later.
+
+## Keys on the slot lines (ESP32 scan, 2026-10-12)
+Measured with `main/main.c`, toy batteries out, keys pressed one at a time
+left to right (white and black in pitch order). Every key gave exactly one
+pair, no duplicates:
+
+| Keys | 8-wire side | 4-wire side |
+|---|---|---|
+| 1–8 | `EF0`…`EF7` | `AB0` |
+| 9–16 | `EF0`…`EF7` | `AB1` |
+| 17–24 | `EF0`…`EF7` | `AB2` |
+| 25–32 | `EF0`…`EF7` | `AB3` |
+
+Key n = `EF((n−1) mod 8)` + `AB((n−1) div 8)`. So 8-wire wire k is `EF(k−1)`,
+4-wire wire m is `AB(m−1)`.
+
+With the toy lying face down, `EF0`, `EF5` and `AB7` read as connected at
+rest; held up, nothing is: front buttons pressed by the table.
+
 ## Chip slot pads (sound chip board removed 2026-10-11)
 The 24 pads along the empty slot follow the label order top to bottom, on
 both sides of the board. Checked by continuity, batteries out: `VSS` (last
@@ -107,3 +170,7 @@ Pad order on the copper side, top to bottom (same as the printed labels):
 | `VSS` | GND | GND |
 
 Not connected: `CPUVDD`, `VDD`, `OSC`, `RESET`, `AUD1`, `AUD2`.
+
+Route the wires away from the front buttons' pads: wires first laid over
+them got in the way of the presses and some buttons didn't register; the
+user resoldered them along another path (2026-10-12).
