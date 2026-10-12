@@ -115,8 +115,13 @@ State on 2026-10-12:
 - Milestone 2 scan done: the DevKit on the slot lines (`main/main.c`, run on
   the board) found every key and button, one pair each; full map in
   `docs/MATRIX.md`. All on `EF0`–`EF7` × `AB0`–`AB7`; `CD0` unused so far.
-- Ghosting confirmed (no diodes). Next: a real matrix scanner (EF/AB grid)
-  printing key/button names, chord check, then decide direction A/B.
+- `main/main.c` is now the matrix scanner (rows `AB0`–`AB7` pulled low,
+  columns `EF0`–`EF7` read), prints `DOWN key 14` / `UP ROCK` and `GHOST?`.
+  Chord check done (docs/MATRIX.md): ghosting confirmed on 3 corners of a
+  rectangle. Next: decide direction A/B (milestone 1), and with it how to
+  handle ghosts (ignore ambiguous chords in firmware, or 1N4148 per key).
+- Serial capture: a burst of ~64 `0xFF` bytes often eats the first line
+  after an idle pause (host/USB bridge side, not the scan); check `UP` lines.
 - The user desoldered the toy's speaker (easy to put back).
 
 Open items:

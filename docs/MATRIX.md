@@ -113,6 +113,16 @@ the volume/tempo buttons). `CD0` carries nothing found so far. Unused spots:
   (`EF5`+`AB2`) also showed `AB2`–`AB6`, which was not pressed. No diodes, so
   chords need handling in firmware (or diodes) later.
 
+### Chord check (matrix scanner, 2026-10-12)
+`main/main.c` scans rows `AB0`–`AB7` against columns `EF0`–`EF7`.
+- Keys 1 + 9 (same column): both read. 1 + 5 + 8 (same row): all three read,
+  3 of 3 tries.
+- Keys 1 + 2 + 9 (three corners of a rectangle): key 10 reads as pressed too,
+  3 of 3 tries. So any 3 pressed corners of a rectangle fake the 4th.
+- Before that, keys 2 and 9 dropped out of chords while reading fine alone:
+  the closed case was squeezing the ESP32 wires. Fixed by the user; keep the
+  wires clear of the case when closing it.
+
 ## Keys on the slot lines (ESP32 scan, 2026-10-12)
 Measured with `main/main.c`, toy batteries out, keys pressed one at a time
 left to right (white and black in pitch order). Every key gave exactly one

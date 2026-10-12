@@ -1,20 +1,24 @@
 /*
- * esp32-piano: line-pair finder (milestone 0/2).
+ * esp32-piano: key matrix scanner (milestone 2).
  *
- * The toy's sound chip is removed; its 24 slot pads are labelled on the main
- * board (docs/MATRIX.md). 17 of them are wired to the ESP32 below, VSS to GND.
- * Toy batteries out: the only voltage on the lines is the ESP32's 3.3 V.
+ * The toy's keys and buttons sit on an 8 x 8 grid of the sound chip's slot
+ * lines (docs/MATRIX.md): AB0-AB7 are the rows, EF0-EF7 the columns. Toy
+ * batteries out: the only voltage on the lines is the ESP32's 3.3 V.
  *
- * Every line rests as an input with a pull-up. A scan pulls one line low at a
- * time and reads the others: a line that follows it low is connected to it
- * (a pressed key or button, or something on the main board). A line that reads
- * low with nothing driven is connected to GND/VSS. Lines are never driven high.
+ * Every line rests as an input with a pull-up. A scan pulls one AB row low at a
+ * time and reads the EF columns: a column that follows it low has a pressed
+ * key or button at that crossing. Lines are never driven high.
+ *
+ * No diodes in the toy: three pressed corners of a rectangle make the fourth
+ * read as pressed too (ghosting). Such a state is flagged with GHOST?.
  *
  * Output on serial (115200):
- *   REST  <a>-<b>   connections already there at boot, nothing pressed
- *   DOWN  <a>-<b>   a new connection (press)
- *   UP    <a>-<b>   it went away (release)
+ *   DOWN  <name>   (<EFx>+<ABy>)
+ *   UP    <name>
+ *   GHOST? <names>  the pressed set contains a rectangle; one of them may be fake
  * Changes are reported after DEBOUNCE equal scans in a row.
+ *
+ * The line-pair finder that mapped the grid is in git history (233c8c3).
  */
 #include <stdbool.h>
 #include <stdint.h>
@@ -25,131 +29,149 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-typedef struct {
-    const char *name;
-    gpio_num_t gpio;
-    bool input_only; /* GPIO34-39: no output, no internal pull-up (10k external) */
-} line_t;
+#define N_ROWS 8
+#define N_COLS 8
 
-static const line_t LINES[] = {
-    {"EF0", GPIO_NUM_4, false},  {"EF1", GPIO_NUM_5, false},  {"EF2", GPIO_NUM_13, false},
-    {"EF3", GPIO_NUM_14, false}, {"EF4", GPIO_NUM_16, false}, {"EF5", GPIO_NUM_17, false},
-    {"EF6", GPIO_NUM_18, false}, {"EF7", GPIO_NUM_19, false}, {"AB0", GPIO_NUM_21, false},
-    {"AB1", GPIO_NUM_22, false}, {"AB2", GPIO_NUM_23, false}, {"AB3", GPIO_NUM_25, false},
-    {"AB4", GPIO_NUM_26, false}, {"AB5", GPIO_NUM_27, false}, {"AB6", GPIO_NUM_32, false},
-    {"AB7", GPIO_NUM_33, false}, {"CD0", GPIO_NUM_34, true},
+/* Rows AB0-AB7: pulled low one at a time. */
+static const gpio_num_t ROWS[N_ROWS] = {
+    GPIO_NUM_21, GPIO_NUM_22, GPIO_NUM_23, GPIO_NUM_25,
+    GPIO_NUM_26, GPIO_NUM_27, GPIO_NUM_32, GPIO_NUM_33,
 };
-#define N_LINES (sizeof(LINES) / sizeof(LINES[0]))
-#define GND N_LINES /* extra "line": connection to VSS */
-#define N_NODES (N_LINES + 1)
+/* Columns EF0-EF7: read. */
+static const gpio_num_t COLS[N_COLS] = {
+    GPIO_NUM_4,  GPIO_NUM_5,  GPIO_NUM_13, GPIO_NUM_14,
+    GPIO_NUM_16, GPIO_NUM_17, GPIO_NUM_18, GPIO_NUM_19,
+};
+/* CD0 (GPIO34) is wired but carries nothing found so far: not scanned. */
+
+/* NAMES[row][col]; rows AB0-AB3 are the piano keys, key = row * 8 + col + 1. */
+static const char *const BUTTONS[4][N_COLS] = {
+    /* AB4 */ {"SLOW ROCK", "ROCK", "NEW AGE", "DISCO", "MARCH", "WALTZ", "SAMBA", "BLUES"},
+    /* AB5 */ {"TEMPO+", "TEMPO-", "VOLUME+", "VOLUME-", "RESET", "RECORD", "REPLAY", NULL},
+    /* AB6 */ {"chick B4", "chick B1", "chick T3", "chick T2", "chick B2", "chick T1", "chick B3", "chick T4"},
+    /* AB7 */ {"DOG", "FROG", "RED BIRD", "BLUE BIRD", "SELECT", "DEMO", NULL, NULL},
+};
+/* chick T1-T4: row next to the style buttons, from the BLUES end; B1-B4: row
+ * next to the bottom edge, same direction. */
 
 #define SETTLE_US 50 /* pull-up (~45k) against the toy's wiring */
 #define SCAN_PERIOD_MS 10
 #define DEBOUNCE 3
 
-/* conn[i] bit j: node i connected to node j (kept symmetric). */
-typedef uint32_t conn_t[N_NODES];
+typedef uint8_t grid_t[N_ROWS]; /* grid[row] bit col: pressed */
 
-static void line_release(size_t i) {
-    gpio_set_direction(LINES[i].gpio, GPIO_MODE_INPUT);
-    if (!LINES[i].input_only) {
-        gpio_set_pull_mode(LINES[i].gpio, GPIO_PULLUP_ONLY);
+static void cell_name(size_t r, size_t c, char *buf, size_t len) {
+    if (r < 4) {
+        snprintf(buf, len, "key %u", (unsigned)(r * N_COLS + c + 1));
+    } else if (BUTTONS[r - 4][c]) {
+        snprintf(buf, len, "%s", BUTTONS[r - 4][c]);
+    } else {
+        snprintf(buf, len, "?");
     }
 }
 
-static void link(conn_t c, size_t a, size_t b) {
-    c[a] |= 1u << b;
-    c[b] |= 1u << a;
-}
-
-static void scan(conn_t c) {
-    for (size_t i = 0; i < N_NODES; i++) {
-        c[i] = 0;
-    }
-    /* Nothing driven: anything low is tied to GND. */
-    esp_rom_delay_us(SETTLE_US);
-    uint32_t at_rest_low = 0;
-    for (size_t j = 0; j < N_LINES; j++) {
-        if (gpio_get_level(LINES[j].gpio) == 0) {
-            at_rest_low |= 1u << j;
-            link(c, j, GND);
-        }
-    }
-    for (size_t i = 0; i < N_LINES; i++) {
-        if (LINES[i].input_only || (at_rest_low & (1u << i))) {
-            continue; /* can't drive it, or it is already low anyway */
-        }
-        gpio_set_level(LINES[i].gpio, 0);
-        gpio_set_direction(LINES[i].gpio, GPIO_MODE_OUTPUT);
+static void scan(grid_t g) {
+    for (size_t r = 0; r < N_ROWS; r++) {
+        gpio_set_level(ROWS[r], 0);
+        gpio_set_direction(ROWS[r], GPIO_MODE_OUTPUT);
         esp_rom_delay_us(SETTLE_US);
-        for (size_t j = 0; j < N_LINES; j++) {
-            if (j != i && !(at_rest_low & (1u << j)) && gpio_get_level(LINES[j].gpio) == 0) {
-                link(c, i, j);
+        uint8_t bits = 0;
+        for (size_t c = 0; c < N_COLS; c++) {
+            if (gpio_get_level(COLS[c]) == 0) {
+                bits |= 1u << c;
             }
         }
-        line_release(i);
+        g[r] = bits;
+        gpio_set_direction(ROWS[r], GPIO_MODE_INPUT);
     }
 }
 
-static const char *node_name(size_t i) {
-    return i == GND ? "VSS" : LINES[i].name;
-}
-
-static void report(const char *what, const conn_t old_c, const conn_t new_c) {
-    for (size_t a = 0; a < N_NODES; a++) {
-        for (size_t b = a + 1; b < N_NODES; b++) {
-            bool was = old_c[a] & (1u << b);
-            bool is = new_c[a] & (1u << b);
-            if (is && !was) {
-                printf("%s  %s-%s\n", what, node_name(a), node_name(b));
-            } else if (was && !is) {
-                printf("UP    %s-%s\n", node_name(a), node_name(b));
-            }
-        }
-    }
-}
-
-static bool same(const conn_t a, const conn_t b) {
-    for (size_t i = 0; i < N_NODES; i++) {
-        if (a[i] != b[i]) {
+static bool same(const grid_t a, const grid_t b) {
+    for (size_t r = 0; r < N_ROWS; r++) {
+        if (a[r] != b[r]) {
             return false;
         }
     }
     return true;
 }
 
-void app_main(void) {
-    for (size_t i = 0; i < N_LINES; i++) {
-        gpio_reset_pin(LINES[i].gpio);
-        line_release(i);
+/* Two rows sharing two or more pressed columns: a rectangle, a possible ghost. */
+static bool has_rectangle(const grid_t g) {
+    for (size_t a = 0; a < N_ROWS; a++) {
+        for (size_t b = a + 1; b < N_ROWS; b++) {
+            uint8_t common = g[a] & g[b];
+            if (common & (common - 1)) {
+                return true;
+            }
+        }
     }
-    printf("\nesp32-piano line-pair finder: %u lines + VSS\n", (unsigned)N_LINES);
+    return false;
+}
 
-    conn_t stable = {0};
-    conn_t candidate = {0};
-    conn_t now;
+static void report(const grid_t old_g, const grid_t new_g) {
+    char name[16];
+    for (size_t r = 0; r < N_ROWS; r++) {
+        for (size_t c = 0; c < N_COLS; c++) {
+            bool was = old_g[r] & (1u << c);
+            bool is = new_g[r] & (1u << c);
+            if (was == is) {
+                continue;
+            }
+            cell_name(r, c, name, sizeof(name));
+            if (is) {
+                printf("DOWN  %-10s (EF%u+AB%u)\n", name, (unsigned)c, (unsigned)r);
+            } else {
+                printf("UP    %s\n", name);
+            }
+        }
+    }
+    if (has_rectangle(new_g)) {
+        printf("GHOST?");
+        for (size_t r = 0; r < N_ROWS; r++) {
+            for (size_t c = 0; c < N_COLS; c++) {
+                if (new_g[r] & (1u << c)) {
+                    cell_name(r, c, name, sizeof(name));
+                    printf(" [%s]", name);
+                }
+            }
+        }
+        printf("\n");
+    }
+}
+
+void app_main(void) {
+    for (size_t i = 0; i < N_ROWS; i++) {
+        gpio_reset_pin(ROWS[i]);
+        gpio_set_direction(ROWS[i], GPIO_MODE_INPUT);
+        gpio_set_pull_mode(ROWS[i], GPIO_PULLUP_ONLY);
+    }
+    for (size_t i = 0; i < N_COLS; i++) {
+        gpio_reset_pin(COLS[i]);
+        gpio_set_direction(COLS[i], GPIO_MODE_INPUT);
+        gpio_set_pull_mode(COLS[i], GPIO_PULLUP_ONLY);
+    }
+    printf("\nesp32-piano key scanner: %u x %u\n", N_ROWS, N_COLS);
+
+    grid_t stable = {0};
+    grid_t candidate = {0};
+    grid_t now;
     int equal_count = 0;
-    bool first = true;
 
     while (true) {
         scan(now);
         if (same(now, candidate)) {
             equal_count++;
         } else {
-            for (size_t i = 0; i < N_NODES; i++) {
-                candidate[i] = now[i];
+            for (size_t r = 0; r < N_ROWS; r++) {
+                candidate[r] = now[r];
             }
             equal_count = 1;
         }
         if (equal_count == DEBOUNCE && !same(candidate, stable)) {
-            report(first ? "REST " : "DOWN ", stable, candidate);
-            for (size_t i = 0; i < N_NODES; i++) {
-                stable[i] = candidate[i];
+            report(stable, candidate);
+            for (size_t r = 0; r < N_ROWS; r++) {
+                stable[r] = candidate[r];
             }
-        }
-        if (equal_count == DEBOUNCE && first) {
-            first = false;
-            printf("ready: press one key or button at a time\n");
         }
         vTaskDelay(pdMS_TO_TICKS(SCAN_PERIOD_MS));
     }
