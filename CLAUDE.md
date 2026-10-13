@@ -108,10 +108,11 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - **The four checks** (from mukklet, `FIRMWARE_PLAYBOOK.md`): `tools/test.sh`
   (host tests in `test/`, gcc + ASan/UBSan, Unity from `$IDF_PATH`),
   `tools/format.sh --check`, `tools/lint.sh` (clang-tidy, its own
-  `build/clang` tree), `tools/size_check.sh` (47% flash free on 2026-10-13).
-  Format and lint only see git-tracked files: `git add` new ones first.
-  `.github/workflows/ci.yml` runs them, but the repo has no remote yet, so
-  CI hasn't run anywhere. `tools/piano_bridge.c` is formatted, not
+  `build/clang` tree), `tools/size_check.sh` (46% flash free by CI's count,
+  2026-10-13). Format and lint only see git-tracked files: `git add` new
+  ones first. `.github/workflows/ci.yml` runs them on every push to
+  https://github.com/Grigoriym/esp32-piano (private; the siblings are
+  public). First run green 2026-10-13. `tools/piano_bridge.c` is formatted, not
   linted or tested.
 - Firmware: ESP-IDF in C, like the siblings. No Arduino.
 
