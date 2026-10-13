@@ -115,7 +115,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   ones first. `.github/workflows/ci.yml` runs them on every push to
   https://github.com/Grigoriym/esp32-piano (private; the siblings are
   public). First run green 2026-10-13. `tools/piano_bridge.c` is formatted, not
-  linted or tested.
+  linted or tested. Right after a push, `gh run list -L1` still shows the
+  previous run for a few seconds: wait until the new commit's run is listed
+  before `gh run watch`.
 - Firmware: ESP-IDF in C, like the siblings. No Arduino.
 
 ### Traps found here
