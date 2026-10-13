@@ -14,9 +14,11 @@
  * = F3, TEMPO+/- shift them by an octave. The 8 style buttons pick an
  * instrument, the animals and chicks play drums on channel 10, VOLUME+/- send
  * CC7, RESET sends all notes off and restores the defaults. DEMO is left to
- * the caller (KEYMAP_DEMO). SELECT, RECORD, REPLAY: nothing yet. */
+ * the caller (KEYMAP_DEMO), and so are RECORD and REPLAY (looper.h). SELECT:
+ * nothing yet. */
 #define KEY_CH         0
 #define DRUM_CH        9
+#define LOOP_CH        2  /* the looper's keys (DEMO_CH is 1) */
 #define BASE_NOTE      53 /* key 1 = F3: the black keys start with a group of three */
 #define VELOCITY       100
 #define VOLUME_STEP    16
@@ -26,13 +28,16 @@
 typedef struct {
     int octave;                   /* -MAX_OCTAVE..MAX_OCTAVE */
     int volume;                   /* 0..127 */
+    uint8_t program;              /* the keys' instrument */
     uint8_t key_note[4 * N_COLS]; /* note sent for each held key, so its note off matches */
 } keymap_t;
 
 typedef enum {
     KEYMAP_NONE,
-    KEYMAP_DEMO,  /* DEMO pressed */
-    KEYMAP_RESET, /* RESET pressed (its MIDI is already sent) */
+    KEYMAP_DEMO,   /* DEMO pressed */
+    KEYMAP_RESET,  /* RESET pressed (its MIDI is already sent) */
+    KEYMAP_RECORD, /* RECORD pressed */
+    KEYMAP_REPLAY, /* REPLAY pressed */
 } keymap_action_t;
 
 void keymap_init(keymap_t *k);

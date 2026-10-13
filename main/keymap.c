@@ -57,14 +57,17 @@ static void send_volume(const keymap_t *k, midi_send_fn send, void *ctx)
     snprintf(what, sizeof(what), "volume %d", k->volume);
     midi3(send, ctx, 0xb0 | KEY_CH, 7, (uint8_t)k->volume, what);
     midi3(send, ctx, 0xb0 | DRUM_CH, 7, (uint8_t)k->volume, what);
+    midi3(send, ctx, 0xb0 | LOOP_CH, 7, (uint8_t)k->volume, what);
 }
 
 static void reset(keymap_t *k, midi_send_fn send, void *ctx)
 {
     midi3(send, ctx, 0xb0 | KEY_CH, 123, 0, "all notes off");
     midi3(send, ctx, 0xb0 | DRUM_CH, 123, 0, "all notes off (drums)");
+    midi3(send, ctx, 0xb0 | LOOP_CH, 123, 0, "all notes off (loop)");
     k->octave = 0;
     k->volume = DEFAULT_VOLUME;
+    k->program = 0;
     send_volume(k, send, ctx);
     uint8_t program[2] = {0xc0 | KEY_CH, 0};
     send(program, 2, "program 0", ctx);
@@ -94,7 +97,8 @@ keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_se
     if (!down) return KEYMAP_NONE;
     if (r == 4) {
         snprintf(what, sizeof(what), "program %u", STYLE_PROGRAM[c]);
-        uint8_t msg[2] = {0xc0 | KEY_CH, STYLE_PROGRAM[c]};
+        k->program = STYLE_PROGRAM[c];
+        uint8_t msg[2] = {0xc0 | KEY_CH, k->program};
         send(msg, 2, what, ctx);
     } else if (r == 5 && c <= 1) { /* TEMPO+ / TEMPO- */
         k->octave = clamp(k->octave + (c == 0 ? 1 : -1), -MAX_OCTAVE, MAX_OCTAVE);
@@ -106,6 +110,10 @@ keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_se
     } else if (r == 5 && c == 4) {
         reset(k, send, ctx);
         return KEYMAP_RESET;
+    } else if (r == 5 && c == 5) {
+        return KEYMAP_RECORD;
+    } else if (r == 5 && c == 6) {
+        return KEYMAP_REPLAY;
     } else if (r == 7 && c == 5) {
         return KEYMAP_DEMO;
     }

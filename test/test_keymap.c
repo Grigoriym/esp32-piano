@@ -92,20 +92,26 @@ static void test_reset_restores_the_defaults(void)
     TEST_ASSERT_EQUAL(DEFAULT_VOLUME, k.volume);
     assert_msg(0, 0xb0 | KEY_CH, 123, 0);
     assert_msg(1, 0xb0 | DRUM_CH, 123, 0);
-    assert_msg(4, 0xc0 | KEY_CH, 0, 0);
+    assert_msg(2, 0xb0 | LOOP_CH, 123, 0);
+    assert_msg(5, 0xb0 | LOOP_CH, 7, DEFAULT_VOLUME);
+    assert_msg(6, 0xc0 | KEY_CH, 0, 0);
+    TEST_ASSERT_EQUAL(0, k.program);
 }
 
 static void test_buttons(void)
 {
     keymap_event(&k, 4, 5, true, midi_rec, &rec); /* WALTZ: accordion */
     assert_msg(0, 0xc0, 21, 0);
+    TEST_ASSERT_EQUAL(21, k.program);
     keymap_event(&k, 7, 0, true, midi_rec, &rec); /* DOG: bass drum */
     keymap_event(&k, 7, 0, false, midi_rec, &rec);
     assert_msg(1, 0x90 | DRUM_CH, 36, VELOCITY);
     assert_msg(2, 0x80 | DRUM_CH, 36, 0);
     TEST_ASSERT_EQUAL(KEYMAP_DEMO, keymap_event(&k, 7, 5, true, midi_rec, &rec));
     TEST_ASSERT_EQUAL(KEYMAP_NONE, keymap_event(&k, 7, 5, false, midi_rec, &rec));
-    TEST_ASSERT_EQUAL(KEYMAP_NONE, keymap_event(&k, 5, 5, true, midi_rec, &rec)); /* RECORD */
+    TEST_ASSERT_EQUAL(KEYMAP_RECORD, keymap_event(&k, 5, 5, true, midi_rec, &rec));
+    TEST_ASSERT_EQUAL(KEYMAP_REPLAY, keymap_event(&k, 5, 6, true, midi_rec, &rec));
+    TEST_ASSERT_EQUAL(KEYMAP_NONE, keymap_event(&k, 7, 4, true, midi_rec, &rec)); /* SELECT */
     TEST_ASSERT_EQUAL(3, rec.n);
 }
 

@@ -10,7 +10,8 @@
  * key or button at that crossing. Lines are never driven high.
  *
  * The pure parts, host-tested (tools/test.sh): matrix.c (debounce, ghosts),
- * keymap.c (names, what each key and button plays), demo.c (DEMO button).
+ * keymap.c (names, what each key and button plays), demo.c (DEMO button),
+ * looper.c (RECORD / REPLAY).
  * MIDI goes out as UDP over WiFi to tools/piano_bridge.c (main/midi_link.h).
  *
  * Output on serial (115200):
@@ -33,6 +34,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "keymap.h"
+#include "looper.h"
 #include "matrix.h"
 #include "midi_link.h"
 #include "wifi.h"
@@ -53,6 +55,7 @@ static const gpio_num_t COLS[N_COLS] = {
 
 static keymap_t keymap;
 static demo_t demo;
+static looper_t looper;
 
 static void scan(grid_t g)
 {
@@ -103,12 +106,23 @@ static void send_midi(const uint8_t *msg, size_t len, const char *what, void *ct
     if (what) printf("MIDI  %s%s\n", what, midi_link_connected() ? "" : " (not connected)");
 }
 
+/* What keymap sends: also what the looper records. */
+static void send_key(const uint8_t *msg, size_t len, const char *what, void *ctx)
+{
+    send_midi(msg, len, what, ctx);
+    looper_capture(&looper, esp_timer_get_time(), msg, len, keymap.program);
+}
+
 static void on_cell(size_t r, size_t c, bool down, void *ctx)
 {
-    switch (keymap_event(&keymap, r, c, down, send_midi, NULL)) {
-        case KEYMAP_DEMO: demo_toggle(&demo, esp_timer_get_time(), send_midi, NULL); break;
+    int64_t now = esp_timer_get_time();
+    switch (keymap_event(&keymap, r, c, down, send_key, NULL)) {
+        case KEYMAP_DEMO: demo_toggle(&demo, now, send_midi, NULL); break;
+        case KEYMAP_RECORD: looper_record(&looper, now, send_midi, NULL); break;
+        case KEYMAP_REPLAY: looper_replay(&looper, now, send_midi, NULL); break;
         case KEYMAP_RESET:
-            if (demo.on) demo_toggle(&demo, esp_timer_get_time(), send_midi, NULL);
+            if (demo.on) demo_toggle(&demo, now, send_midi, NULL);
+            looper_clear(&looper, send_midi, NULL);
             break;
         case KEYMAP_NONE: break;
     }
@@ -133,6 +147,7 @@ void app_main(void)
     matrix_t matrix;
     matrix_init(&matrix);
     keymap_init(&keymap);
+    looper_init(&looper);
     grid_t now;
     grid_t prev;
     while (true) {
@@ -141,7 +156,9 @@ void app_main(void)
             report(prev, matrix.stable);
             matrix_sync(&matrix, on_cell, NULL);
         }
-        demo_tick(&demo, esp_timer_get_time(), send_midi, NULL);
+        int64_t t = esp_timer_get_time();
+        demo_tick(&demo, t, send_midi, NULL);
+        looper_tick(&looper, t, send_midi, NULL);
         vTaskDelay(pdMS_TO_TICKS(SCAN_PERIOD_MS));
     }
 }
