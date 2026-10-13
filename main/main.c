@@ -45,7 +45,7 @@ static const gpio_num_t ROWS[N_ROWS] = {
 static const gpio_num_t COLS[N_COLS] = {
     GPIO_NUM_4, GPIO_NUM_5, GPIO_NUM_13, GPIO_NUM_14, GPIO_NUM_16, GPIO_NUM_17, GPIO_NUM_18, GPIO_NUM_19,
 };
-/* CD0 (GPIO34) is wired but carries nothing found so far: not scanned. */
+/* CD0 carries no key or button: not wired (GPIO34 is free). */
 
 #define WIFI_TIMEOUT_MS 10000 /* boot waits this long, then scans anyway */
 #define SETTLE_US       50    /* pull-up (~45k) against the toy's wiring */

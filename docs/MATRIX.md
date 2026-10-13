@@ -176,10 +176,12 @@ Pad order on the copper side, top to bottom (same as the printed labels):
 | `AB5` | 27 | D27 |
 | `AB6` | 32 | D32 |
 | `AB7` | 33 | D33 |
-| `CD0` | 34 | D34, plus a 10 kΩ resistor from D34 to 3V3 (input-only pin, no internal pull-up) |
 | `VSS` | GND | GND |
 
-Not connected: `CPUVDD`, `VDD`, `OSC`, `RESET`, `AUD1`, `AUD2`.
+Not connected: `CD0`, `CPUVDD`, `VDD`, `OSC`, `RESET`, `AUD1`, `AUD2`.
+`CD0` was on D34 with a 10 kΩ pull-up to 3V3 until 2026-10-13; it carried
+no key or button, so the wire, the resistor and the 3V3 jumper came out. D34
+is free.
 
 Route the wires away from the front buttons' pads: wires first laid over
 them got in the way of the presses and some buttons didn't register; the

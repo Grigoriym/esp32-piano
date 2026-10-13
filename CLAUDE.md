@@ -133,13 +133,16 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   board's seating, not the contacts or the firmware.** Pressed, they read
   510–570 Ω across their DevKit pins (key 13, which works, the same), open at
   rest; a hard press always registers. The user moved the board and it
-  changed; they're fixing the position themselves.
+  changed. After the user reseated it, all 32 played with a normal press
+  (2026-10-13); key 20 still felt a bit off but registered.
 - **Every button is live**: a press of VOLUME− (or a style button) during a
   test can make the toy go quiet. RESET restores the defaults.
 - esptool prints `Detected crystal freq 15.44 MHz ... Unsupported crystal`
   on this DevKit; flashing and boot work regardless.
 - FluidSynth fed `noteon` commands on stdin stayed silent; a small `.mid`
-  file played. Default audio output is the user's G733 headset.
+  file played. Audio output: the G733 headset was the default; on 2026-10-13 PipeWire
+  played through the onboard `analog-stereo` sink (27 xruns in `pw-top`; raise
+  `audio.period-size` to 128 if it crackles).
 
 ## Milestones
 0. **Teardown and map** (no changes to the toy). Does it work as bought?
@@ -180,9 +183,11 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 ## Next step
 State on 2026-10-13 (end of session): **MVP done.** Every key and button
 reaches FluidSynth over WiFi, the service starts at login, DEMO plays the
-Megalovania intro. Latency over WiFi not yet asked about.
-- Open: keys 14, 21, 23, 30 need a hard press (key board seating, see
-  Traps); the user is fixing it.
+Megalovania intro. Latency (estimate from parts, 2026-10-13): ~10-20 ms
+key to sound (scan+debounce 4-6, WiFi one way ~3 typ / ~8 worst by ping,
+FluidSynth+PipeWire at 64 samples 3-5); the user finds it fine.
+- Done 2026-10-13: the board was reseated and all 32 keys play with a normal
+  press (key 20 feels a bit off). Recheck if keys go hard again.
 - Ideas the user hasn't picked from yet: RECORD/REPLAY as a looper, SELECT
   (e.g. cycle DEMO songs or a drum pattern), direction B (own synth on the
   I2S amp into the toy's speaker, no PC needed), then milestone 4 (inside
