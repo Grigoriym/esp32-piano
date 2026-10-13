@@ -1,0 +1,15 @@
+# systemd user service: the PC side of the toy (synth + WiFi bridge).
+# Install: ln -s "$PWD/tools/chicco-piano.service" ~/.config/systemd/user/
+#          systemctl --user daemon-reload && systemctl --user enable --now chicco-piano
+# Log:     journalctl --user -u chicco-piano -f
+[Unit]
+Description=Chicco Piano: FluidSynth + WiFi MIDI bridge
+After=pipewire.service
+
+[Service]
+ExecStart=%h/proj/grappim/esp32-piano/tools/pc_synth.sh
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,447 @@
+<title>Chicco Piano Cheat Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one column, the toy's own keyboard drawn at the top as the map everything else points to. */
+:root {
+  --bg: #f6f7fb;
+  --panel: #ffffff;
+  --ink: #1c2240;
+  --muted: #5b6283;
+  --line: #d9dcea;
+  --chick: #f5c518;
+  --chick-ink: #3a2c00;
+  --red: #d8343a;
+  --blue: #2e6bd8;
+  --green: #2f9e57;
+  --white-key: #ffffff;
+  --black-key: #1c2240;
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558;
+    --chick: #f5c518; --chick-ink: #2a2000; --red: #ff6b70; --blue: #77a4ff; --green: #5fd18a;
+    --white-key: #e9ebf5; --black-key: #070914; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558;
+  --chick: #f5c518; --chick-ink: #2a2000; --red: #ff6b70; --blue: #77a4ff; --green: #5fd18a;
+  --white-key: #e9ebf5; --black-key: #070914; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--font-body); }
+.wrap { max-width: 980px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 56px; display: flex; flex-direction: column; gap: 36px; }
+h1, h2 { font-family: var(--font-display); font-weight: 600; text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); }
+h2 { font-size: 1.45rem; }
+p { margin: 0; max-width: 65ch; }
+.lede { color: var(--muted); }
+header { display: flex; flex-direction: column; gap: 8px; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* keyboard */
+.kbd-box { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+#kbd { display: block; min-width: 720px; width: 100%; height: auto; }
+#kbd text { font-family: var(--font-mono); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: .9rem; }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; background: var(--chick); }
+
+/* riff */
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button { font: 600 1rem var(--font-body); color: var(--chick-ink); background: var(--chick); border: 0; border-radius: 999px; padding: 9px 18px; cursor: pointer; }
+button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+.hint { color: var(--muted); font-size: .9rem; }
+.bars { display: flex; flex-direction: column; gap: 10px; min-width: 640px; }
+.bar { display: grid; grid-template-columns: 74px repeat(16, 1fr); gap: 3px; align-items: stretch; cursor: pointer; border-radius: 10px; padding: 4px; }
+.bar:hover, .bar.sel { background: color-mix(in srgb, var(--chick) 18%, transparent); }
+.bar-label { font: 600 .85rem var(--font-body); color: var(--muted); align-self: center; }
+.note { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 5px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 52px; }
+.note.lead { border-color: var(--blue); }
+.note.black { background: var(--black-key); color: var(--white-key); border-color: var(--black-key); }
+.note.on { background: var(--chick); color: var(--chick-ink); border-color: var(--chick); }
+.note b { font: 700 1.15rem var(--font-mono); line-height: 1.1; }
+.note span { font: 500 .72rem var(--font-mono); opacity: .8; }
+.steps { display: grid; grid-template-columns: 74px repeat(16, 1fr); gap: 3px; padding-inline: 4px; color: var(--muted); font: 500 .7rem var(--font-mono); text-align: center; min-width: 640px; }
+.reading { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.reading .seq { font: 700 1.05rem var(--font-mono); word-spacing: .25em; overflow-wrap: anywhere; }
+
+/* buttons */
+.groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.group { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.group h3 { font: 600 1.05rem var(--font-display); margin: 0; display: flex; align-items: center; gap: 8px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+td { padding: 6px 0; border-top: 1px solid var(--line); vertical-align: top; }
+tr:first-child td { border-top: 0; }
+td:first-child { font-weight: 700; padding-right: 12px; white-space: nowrap; }
+td:last-child { color: var(--muted); }
+.note-small { color: var(--muted); font-size: .88rem; }
+/* metronome */
+.metro { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; grid-template-columns: auto 1fr; gap: 16px 24px; align-items: center; }
+.bpm { display: flex; align-items: center; gap: 10px; }
+.bpm output { font: 700 2.6rem var(--font-mono); font-variant-numeric: tabular-nums; min-width: 3ch; text-align: center; line-height: 1; }
+.bpm small { display: block; font: 600 .75rem var(--font-body); color: var(--muted); text-align: center; letter-spacing: .06em; text-transform: uppercase; }
+.round { width: 40px; height: 40px; padding: 0; font-size: 1.3rem; line-height: 1; }
+.metro-right { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+input[type="range"] { width: 100%; accent-color: var(--chick); }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets button { padding: 6px 12px; font-size: .9rem; }
+.presets button[aria-pressed="true"] { background: var(--chick); color: var(--chick-ink); border-color: var(--chick); }
+.metro-row { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; }
+.beats { display: flex; gap: 8px; }
+.beat { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); }
+.beat.first { border-color: var(--red); }
+.beat.on { background: var(--chick); border-color: var(--chick); }
+.beat.first.on { background: var(--red); border-color: var(--red); }
+label.check { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: .92rem; cursor: pointer; }
+@media (max-width: 560px) { .metro { grid-template-columns: 1fr; } .bpm { justify-content: center; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Chicco Piano</h1>
+    <p class="lede">What every key and button sends since the ESP32 took over. Key numbers count from the left with the black keys included, so key 1 is F3 and key 32 is C6.</p>
+  </header>
+
+  <section aria-labelledby="kbd-h">
+    <h2 id="kbd-h">The 32 keys</h2>
+    <div class="kbd-box scroll"><svg id="kbd" viewBox="0 0 760 210" role="img" aria-label="32-key keyboard with key numbers and note names; the Megalovania keys are highlighted"></svg></div>
+    <div class="legend"><span><span class="sw"></span>keys used by the Megalovania opening</span><span>TEMPO + / − move everything an octave; RESET brings it back to these notes</span></div>
+  </section>
+
+  <section aria-labelledby="riff-h">
+    <h2 id="riff-h">Megalovania opening</h2>
+    <p>Four bars. Only the first two notes change from bar to bar (keys 10, 8, 7, 6); the rest of each bar is the same run. One box is one 16th; a wider box is held longer. Press <b>DEMO</b> on the toy to hear it at 100 bpm; <b>Listen here</b> uses the metronome's tempo below.</p>
+    <div class="controls">
+      <button id="play" type="button">Listen here</button>
+      <button id="stop" class="ghost" type="button">Stop</button>
+      <span class="hint">Tap a bar to show its keys on the keyboard above.</span>
+    </div>
+    <div class="scroll">
+      <div class="steps" aria-hidden="true" id="steps"></div>
+      <div class="bars" id="bars"></div>
+    </div>
+    <div class="reading">
+      <span class="hint">As key numbers, one bar per line (a dash joins notes held longer):</span>
+      <div class="seq" id="seq"></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="metro-h">
+    <h2 id="metro-h">Metronome</h2>
+    <p>Four clicks per bar, the first one higher. Start slow and step up: the original runs at 120, the toy's DEMO at 100. <b>Listen here</b> plays at the tempo set here; with the metronome running it comes in on the next beat 1, and a tempo change speeds up or slows down both at once.</p>
+    <div class="metro">
+      <div class="bpm">
+        <button class="round ghost" id="bpm-down" type="button" aria-label="Slower by 5">−</button>
+        <div><output id="bpm-out" for="bpm">100</output><small>bpm</small></div>
+        <button class="round ghost" id="bpm-up" type="button" aria-label="Faster by 5">+</button>
+      </div>
+      <div class="metro-right">
+        <input type="range" id="bpm" min="40" max="160" step="1" value="100" aria-label="Tempo in beats per minute">
+        <div class="presets" id="presets">
+          <button class="ghost" type="button" data-bpm="60">60 learn the notes</button>
+          <button class="ghost" type="button" data-bpm="80">80 practice</button>
+          <button class="ghost" type="button" data-bpm="100">100 toy DEMO</button>
+          <button class="ghost" type="button" data-bpm="120">120 original</button>
+        </div>
+        <div class="metro-row">
+          <button id="metro-go" type="button">Start metronome</button>
+          <div class="beats" aria-hidden="true"><span class="beat first"></span><span class="beat"></span><span class="beat"></span><span class="beat"></span></div>
+          <label class="check"><input type="checkbox" id="sixteenths"> soft 16ths in between</label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="btn-h">
+    <h2 id="btn-h">Buttons</h2>
+    <div class="groups">
+      <div class="group">
+        <h3><span class="dot" style="background:var(--red)"></span>Control</h3>
+        <table>
+          <tr><td>RESET</td><td>Back to normal: piano sound, full volume, normal octave, every note off, demo stopped</td></tr>
+          <tr><td>VOLUME +</td><td>Louder, one step per press</td></tr>
+          <tr><td>VOLUME −</td><td>Quieter, one step per press (a few presses and it's silent)</td></tr>
+          <tr><td>TEMPO +</td><td>Keys one octave up (up to two)</td></tr>
+          <tr><td>TEMPO −</td><td>Keys one octave down (down to two)</td></tr>
+          <tr><td>DEMO</td><td>Plays the Megalovania opening twice; press again to stop</td></tr>
+        </table>
+      </div>
+      <div class="group">
+        <h3><span class="dot" style="background:var(--blue)"></span>Style buttons pick the sound</h3>
+        <table>
+          <tr><td>SLOW ROCK</td><td>Church organ</td></tr>
+          <tr><td>ROCK</td><td>Distortion guitar</td></tr>
+          <tr><td>NEW AGE</td><td>New age pad</td></tr>
+          <tr><td>DISCO</td><td>Saw lead</td></tr>
+          <tr><td>MARCH</td><td>Trumpet</td></tr>
+          <tr><td>WALTZ</td><td>Accordion</td></tr>
+          <tr><td>SAMBA</td><td>Marimba</td></tr>
+          <tr><td>BLUES</td><td>Electric piano</td></tr>
+        </table>
+      </div>
+      <div class="group">
+        <h3><span class="dot" style="background:var(--green)"></span>Animals play drums</h3>
+        <table>
+          <tr><td>DOG</td><td>Bass drum</td></tr>
+          <tr><td>FROG</td><td>Low tom</td></tr>
+          <tr><td>RED BIRD</td><td>High-mid tom</td></tr>
+          <tr><td>BLUE BIRD</td><td>Open hi-hat</td></tr>
+        </table>
+      </div>
+      <div class="group">
+        <h3><span class="dot" style="background:var(--chick)"></span>Chicks play drums too</h3>
+        <p class="note-small">Two rows of four. Top row: next to the style buttons. Bottom row: along the edge. Both counted from the BLUES end.</p>
+        <table>
+          <tr><td>Top 1</td><td>Closed hi-hat</td></tr>
+          <tr><td>Top 2</td><td>Crash cymbal</td></tr>
+          <tr><td>Top 3</td><td>Ride cymbal</td></tr>
+          <tr><td>Top 4</td><td>Cowbell</td></tr>
+          <tr><td>Bottom 1</td><td>Snare</td></tr>
+          <tr><td>Bottom 2</td><td>Hand clap</td></tr>
+          <tr><td>Bottom 3</td><td>Tambourine</td></tr>
+          <tr><td>Bottom 4</td><td>Claves</td></tr>
+        </table>
+      </div>
+      <div class="group">
+        <h3><span class="dot" style="background:var(--muted)"></span>Not used yet</h3>
+        <table>
+          <tr><td>SELECT</td><td>Nothing</td></tr>
+          <tr><td>RECORD</td><td>Nothing</td></tr>
+          <tr><td>REPLAY</td><td>Nothing</td></tr>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  const BASE = 53; // key 1 = F3
+  const NAMES = ["C","C♯","D","D♯","E","F","F♯","G","G♯","A","A♯","B"];
+  const isBlack = n => [1,3,6,8,10].includes(n % 12);
+  const noteName = n => NAMES[n % 12] + (Math.floor(n / 12) - 1);
+  const keyOf = note => note - BASE + 1;
+
+  // Riff, same as main/main.c: lead-in note twice, then the run. Steps in 16ths.
+  const LEADS = [62, 60, 59, 58];
+  const RUN = [[74,2],[69,3],[68,2],[67,2],[65,2],[62,1],[65,1],[67,1]];
+  const bars = LEADS.map(l => [[l,1],[l,1], ...RUN]);
+  const riffKeys = new Set(bars.flat().map(([n]) => keyOf(n)));
+
+  // keyboard
+  const svg = document.getElementById("kbd");
+  const NS = "http://www.w3.org/2000/svg";
+  const W = 760, H = 210, top = 8, wh = 190, bh = 118;
+  const whites = [];
+  for (let k = 1; k <= 32; k++) if (!isBlack(BASE + k - 1)) whites.push(k);
+  const ww = (W - 2) / whites.length;
+  const keyEls = {};
+  const el = (tag, attrs, text) => {
+    const e = document.createElementNS(NS, tag);
+    for (const a in attrs) e.setAttribute(a, attrs[a]);
+    if (text != null) e.textContent = text;
+    return e;
+  };
+  const xOfWhite = {};
+  whites.forEach((k, i) => { xOfWhite[k] = 1 + i * ww; });
+  // white keys first, then black on top
+  whites.forEach(k => {
+    const x = xOfWhite[k], n = BASE + k - 1;
+    const g = el("g", {});
+    const r = el("rect", { x, y: top, width: ww - 2, height: wh, rx: 5, fill: "var(--white-key)", stroke: "var(--line)" });
+    g.append(r,
+      el("text", { x: x + (ww - 2) / 2, y: top + wh - 26, "text-anchor": "middle", "font-size": 14, "font-weight": 700, fill: "#1c2240" }, k),
+      el("text", { x: x + (ww - 2) / 2, y: top + wh - 10, "text-anchor": "middle", "font-size": 9.5, fill: "#5b6283" }, noteName(n)));
+    svg.append(g);
+    keyEls[k] = { r, black: false };
+  });
+  for (let k = 1; k <= 32; k++) {
+    const n = BASE + k - 1;
+    if (!isBlack(n)) continue;
+    const bw = ww * 0.62, x = xOfWhite[k - 1] + ww - 1 - bw / 2;
+    const g = el("g", {});
+    const r = el("rect", { x, y: top, width: bw, height: bh, rx: 4, fill: "var(--black-key)", stroke: "var(--black-key)" });
+    g.append(r,
+      el("text", { x: x + bw / 2, y: top + bh - 22, "text-anchor": "middle", "font-size": 12, "font-weight": 700, fill: "#ffffff" }, k),
+      el("text", { x: x + bw / 2, y: top + bh - 8, "text-anchor": "middle", "font-size": 8, fill: "#c9cde6" }, noteName(n)));
+    svg.append(g);
+    keyEls[k] = { r, black: true };
+  }
+  function highlight(keys, active) {
+    for (const k in keyEls) {
+      const { r, black } = keyEls[k];
+      const on = keys.has(+k), hot = active === +k;
+      r.setAttribute("fill", hot ? "var(--red)" : on ? "var(--chick)" : black ? "var(--black-key)" : "var(--white-key)");
+      r.setAttribute("stroke", on || hot ? "var(--chick-ink)" : black ? "var(--black-key)" : "var(--line)");
+    }
+  }
+  highlight(riffKeys);
+
+  // steps ruler
+  const steps = document.getElementById("steps");
+  steps.append(Object.assign(document.createElement("span"), { textContent: "16ths" }));
+  for (let i = 1; i <= 16; i++) steps.append(Object.assign(document.createElement("span"), { textContent: i }));
+
+  // bars
+  const barsEl = document.getElementById("bars");
+  const noteEls = [];
+  bars.forEach((bar, bi) => {
+    const row = document.createElement("div");
+    row.className = "bar";
+    row.tabIndex = 0;
+    row.setAttribute("role", "button");
+    row.setAttribute("aria-label", "Bar " + (bi + 1) + ", show its keys");
+    row.append(Object.assign(document.createElement("span"), { className: "bar-label", textContent: "Bar " + (bi + 1) }));
+    bar.forEach(([n, len], i) => {
+      const d = document.createElement("div");
+      d.className = "note" + (i < 2 ? " lead" : "") + (isBlack(n) ? " black" : "");
+      d.style.gridColumn = "span " + len;
+      d.innerHTML = "<b>" + keyOf(n) + "</b><span>" + noteName(n) + "</span>";
+      row.append(d);
+      noteEls.push({ d, bar: bi, i });
+    });
+    const select = () => {
+      document.querySelectorAll(".bar").forEach(b => b.classList.toggle("sel", b === row && !row.classList.contains("sel")));
+      highlight(row.classList.contains("sel") ? new Set(bar.map(([n]) => keyOf(n))) : riffKeys);
+    };
+    row.addEventListener("click", select);
+    row.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(); } });
+    barsEl.append(row);
+  });
+
+  // plain reading
+  document.getElementById("seq").innerHTML = bars.map(bar =>
+    bar.map(([n, len]) => keyOf(n) + (len > 1 ? "-".repeat(len - 1) : "")).join(" ")).join("<br>");
+
+  // tempo, shared by the metronome and "Listen here"
+  let bpm = 100;
+  const bpmIn = document.getElementById("bpm"), bpmOut = document.getElementById("bpm-out");
+  function setBpm(v) {
+    bpm = Math.max(40, Math.min(160, Math.round(v)));
+    bpmIn.value = bpm; bpmOut.textContent = bpm;
+    document.querySelectorAll("#presets button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.bpm === bpm));
+  }
+  bpmIn.addEventListener("input", () => setBpm(+bpmIn.value));
+  document.getElementById("bpm-down").addEventListener("click", () => setBpm(bpm - 5));
+  document.getElementById("bpm-up").addEventListener("click", () => setBpm(bpm + 5));
+  document.querySelectorAll("#presets button").forEach(b => b.addEventListener("click", () => setBpm(+b.dataset.bpm)));
+  setBpm(100);
+
+  // One clock for the metronome and "Listen here": a look-ahead scheduler that
+  // steps in 16ths and reads the tempo at every step, so a change applies at once
+  // and the riff stays on the metronome's beat.
+  let actx = null, timer = null, nextTime = 0, tick = 0;
+  let metroOn = false, riffAt = -1, riffStart = 0; // riffAt: next riff event, -1 = off
+  const beatEls = [...document.querySelectorAll(".beat")];
+  const go = document.getElementById("metro-go"), sub = document.getElementById("sixteenths");
+  const playBtn = document.getElementById("play");
+
+  // the riff, twice, as events on the 16th grid
+  const events = [];
+  let step = 0;
+  for (let pass = 0; pass < 2; pass++) bars.forEach((bar, bi) => bar.forEach(([n, len], i) => {
+    events.push({ step, n, len, el: noteEls.find(e => e.bar === bi && e.i === i).d });
+    step += len;
+  }));
+  const RIFF_STEPS = step;
+
+  const later = (time, fn) => setTimeout(fn, Math.max(0, (time - actx.currentTime) * 1000));
+  function click(time, kind) {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.frequency.value = kind === 0 ? 1500 : kind === 1 ? 1000 : 700;
+    g.gain.setValueAtTime(kind === 2 ? 0.08 : 0.35, time);
+    g.gain.exponentialRampToValueAtTime(0.0001, time + 0.04);
+    o.connect(g).connect(actx.destination);
+    o.start(time); o.stop(time + 0.05);
+  }
+  function tone(time, n, dur) {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = "square"; o.frequency.value = 440 * Math.pow(2, (n - 69) / 12);
+    g.gain.setValueAtTime(0.08, time); g.gain.setValueAtTime(0, time + Math.max(0.03, dur - 0.02));
+    o.connect(g).connect(actx.destination); o.start(time); o.stop(time + dur);
+  }
+  function riffOff() {
+    riffAt = -1;
+    noteEls.forEach(({ d }) => d.classList.remove("on"));
+    highlight(riffKeys);
+    playBtn.textContent = "Listen here";
+  }
+  function schedule() {
+    while (nextTime < actx.currentTime + 0.12) {
+      const sixteenth = 60 / bpm / 4;
+      if (metroOn) {
+        const beat = Math.floor(tick / 4) % 4;
+        if (tick % 4 === 0) {
+          click(nextTime, beat === 0 ? 0 : 1);
+          later(nextTime, () => beatEls.forEach((b, i) => b.classList.toggle("on", i === beat)));
+        } else if (sub.checked) {
+          click(nextTime, 2);
+        }
+      }
+      if (riffAt >= 0) {
+        const s = tick - riffStart;
+        if (s >= RIFF_STEPS) {
+          later(nextTime, riffOff);
+          riffAt = -1;
+        } else if (s >= 0 && events[riffAt].step === s) {
+          const ev = events[riffAt++];
+          tone(nextTime, ev.n, ev.len * sixteenth);
+          later(nextTime, () => {
+            noteEls.forEach(({ d }) => d.classList.remove("on"));
+            ev.el.classList.add("on");
+            highlight(riffKeys, keyOf(ev.n));
+          });
+        }
+      }
+      nextTime += sixteenth;
+      tick++;
+    }
+    if (!metroOn && riffAt < 0) {
+      clearInterval(timer); timer = null;
+    }
+  }
+  function ensureClock() {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === "suspended") actx.resume();
+    if (!timer) {
+      nextTime = actx.currentTime + 0.05; tick = 0;
+      timer = setInterval(schedule, 25);
+    }
+  }
+  function metroStop() {
+    metroOn = false;
+    beatEls.forEach(b => b.classList.remove("on"));
+    go.textContent = "Start metronome";
+  }
+  go.addEventListener("click", () => {
+    if (metroOn) { metroStop(); return; }
+    ensureClock(); // the riff, if playing, started on a beat 1, so the clicks line up with it
+    metroOn = true;
+    go.textContent = "Stop metronome";
+    schedule();
+  });
+  function play() {
+    if (riffAt >= 0) { riffOff(); return; }
+    ensureClock();
+    riffStart = Math.ceil(tick / 16) * 16; // on the metronome's next beat 1
+    riffAt = 0;
+    playBtn.textContent = "Stop listening";
+    schedule();
+  }
+  function stop() {
+    riffOff();
+    metroStop();
+  }
+  playBtn.addEventListener("click", play);
+  document.getElementById("stop").addEventListener("click", stop);
+})();
+</script>

@@ -1,0 +1,19 @@
+# Code style for this project's C sources (the ktlint equivalent).
+# Format: tools/format.sh   Check only (CI): tools/format.sh --check
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 110
+BreakBeforeBraces: Linux          # function braces on their own line, others K&R
+IndentCaseLabels: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: None
+AlignEscapedNewlines: Left
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+AlignTrailingComments: true
+AlignConsecutiveMacros: Consecutive
+SpacesBeforeTrailingComments: 1
+PointerAlignment: Right
+SortIncludes: Never               # include order sometimes matters with ESP-IDF headers
+ReflowComments: false
+BreakBeforeBinaryOperators: NonAssignment

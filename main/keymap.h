@@ -1,0 +1,44 @@
+#pragma once
+
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#include "matrix.h"
+#include "midi_out.h"
+
+/* What each crossing of the grid is and what it plays (docs/MATRIX.md,
+ * docs/cheatsheet.html). Pure: no ESP-IDF.
+ *
+ * Keys (rows AB0-AB3, key = row * 8 + col + 1) play notes on channel 1, key 1
+ * = F3, TEMPO+/- shift them by an octave. The 8 style buttons pick an
+ * instrument, the animals and chicks play drums on channel 10, VOLUME+/- send
+ * CC7, RESET sends all notes off and restores the defaults. DEMO is left to
+ * the caller (KEYMAP_DEMO). SELECT, RECORD, REPLAY: nothing yet. */
+#define KEY_CH         0
+#define DRUM_CH        9
+#define BASE_NOTE      53 /* key 1 = F3: the black keys start with a group of three */
+#define VELOCITY       100
+#define VOLUME_STEP    16
+#define DEFAULT_VOLUME 100
+#define MAX_OCTAVE     2
+
+typedef struct {
+    int octave;                   /* -MAX_OCTAVE..MAX_OCTAVE */
+    int volume;                   /* 0..127 */
+    uint8_t key_note[4 * N_COLS]; /* note sent for each held key, so its note off matches */
+} keymap_t;
+
+typedef enum {
+    KEYMAP_NONE,
+    KEYMAP_DEMO,  /* DEMO pressed */
+    KEYMAP_RESET, /* RESET pressed (its MIDI is already sent) */
+} keymap_action_t;
+
+void keymap_init(keymap_t *k);
+
+/* "key 14", "DEMO", "chick T1"; "?" for an unused crossing. */
+void keymap_name(size_t r, size_t c, char *buf, size_t len);
+
+/* A press or release at (r, c): sends its MIDI. */
+keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_send_fn send, void *ctx);

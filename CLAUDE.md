@@ -4,7 +4,7 @@
 A Chicco toy keyboard (flea market, 2026-10-11) gets an ESP32 inside that
 reads its keys and buttons. What it does with them is **not decided yet**,
 the user picks once the toy is opened (milestone 1):
-- **A. MIDI controller**: the ESP32 sends the keys as BLE-MIDI, and a synth
+- **A. MIDI controller**: the ESP32 sends the keys as MIDI (over WiFi), and a synth
   on the PC or phone makes the sound.
 - **B. Own synth**: the ESP32 makes the sound itself (I2S amp module into
   the toy's own speaker); the style buttons pick sounds or patterns.
@@ -74,40 +74,69 @@ milestones.
 
 ## Build
 ESP-IDF project at the repo root, `sdkconfig.defaults` from `../esp32-hw-checks`
-(4 MB flash) plus NimBLE (BLE only) and a 1000 Hz tick (the key scan runs
-every 2 ms). First build in a fresh checkout: `. ~/esp/esp-idf/export.sh &&
-idf.py set-target esp32 && idf.py build`. Flash with the `esp32-flash-verify`
-skill. After changing `sdkconfig.defaults`: `rm sdkconfig` and build again.
-- `main/main.c`: matrix scanner (rows `AB0`–`AB7` pulled low one at a time,
-  columns `EF0`–`EF7` read, debounce 3 scans) and the key/button → MIDI
-  mapping (comment at the top). Presses that may be a ghost are held back.
-  The line-pair finder that mapped the grid is in git (`233c8c3`).
-- `main/ble_midi.c`: BLE-MIDI peripheral "Chicco Piano", one notification per
-  MIDI message.
-- `tools/pc_synth.sh`: the PC side. FluidSynth (pipewire, small buffer) plus
-  a once-a-second check that routes the toy's ALSA port to it (the port is
-  recreated on every Bluetooth reconnect). Run it in the background.
-- No tests, CI or the four checks yet.
+(4 MB flash, large single app partition) plus a 1000 Hz tick (the key scan runs
+every 2 ms). First build in a fresh checkout: `cp main/wifi_secrets.h.example
+main/wifi_secrets.h` (fill in, gitignored; same network as mukklet), then
+`. ~/esp/esp-idf/export.sh && idf.py set-target esp32 && idf.py build`. Flash
+with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
+`rm sdkconfig` and build again.
+- `main/main.c`: GPIO scan (rows `AB0`–`AB7` pulled low one at a time,
+  columns `EF0`–`EF7` read), serial log, glue. The logic is in pure files
+  (no ESP-IDF includes, host-tested): `matrix.c` (debounce 3 scans, ghost
+  rectangles; a press that may be a ghost is held back), `keymap.c` (names
+  and what every key and button plays), `demo.c` (DEMO: Megalovania intro,
+  channel 2, 100 bpm, velocity 70). They send through `midi_out.h`'s
+  callback. The line-pair finder that mapped the grid is in git (`233c8c3`).
+- `main/wifi.c` (from mukklet, power save off: it holds packets up to a
+  beacon interval) and `main/midi_link.c`: MIDI over UDP, protocol in
+  `main/midi_link.h`. The toy is `chicco-piano.local` (mDNS, port 21928); the
+  PC sends `HELLO` once a second, the toy sends each MIDI message twice with a
+  sequence number back to where the HELLO came from.
+- `tools/piano_bridge.c` (PC, links `-lasound`): owns the ALSA port
+  "Chicco Piano" (stays while it runs, toy on or off), says HELLO, drops the
+  copies. `tools/pc_synth.sh` builds it into `build-host/`, starts it with
+  FluidSynth and keeps the route between them.
+- `tools/chicco-piano.service`: systemd user service running `pc_synth.sh`,
+  installed (symlink in `~/.config/systemd/user/`, enabled 2026-10-13). Log:
+  `journalctl --user -u chicco-piano`. The path in it is hardcoded to
+  `~/proj/grappim/esp32-piano`.
+- `docs/cheatsheet.html`: what every key and button does, the Megalovania
+  opening as key numbers, a metronome. Published as a private artifact:
+  https://claude.ai/artifact/Ttss3MnAfWboWeEaJDS2zC (republish from this file
+  after a mapping change).
+- The BLE-MIDI version (NimBLE, `ble_midi.c`) is in git at `923500c`.
+- **The four checks** (from mukklet, `FIRMWARE_PLAYBOOK.md`): `tools/test.sh`
+  (host tests in `test/`, gcc + ASan/UBSan, Unity from `$IDF_PATH`),
+  `tools/format.sh --check`, `tools/lint.sh` (clang-tidy, its own
+  `build/clang` tree), `tools/size_check.sh` (47% flash free on 2026-10-13).
+  Format and lint only see git-tracked files: `git add` new ones first.
+  `.github/workflows/ci.yml` runs them, but the repo has no remote yet, so
+  CI hasn't run anywhere. `tools/piano_bridge.c` is formatted, not
+  linted or tested.
 - Firmware: ESP-IDF in C, like the siblings. No Arduino.
 
 ### Traps found here
-- **BlueZ's default supervision timeout (420 ms) dropped the BLE link** every
-  few seconds (NimBLE disconnect reason `0x208`; bluetoothd then logs
-  "notifications not enabled ... unlikely error" / "Failed to read initial
-  request", which are symptoms, not the cause). Fixed by the toy asking for
-  4 s right after connecting (`ble_gap_update_params`).
-- **DevKit on the USB hub: the link still dropped about once a minute**
-  while playing; on the PC's own port, none in 4 min (2 idle, 2 playing).
-  Keep it off the hub.
-- **Every serial capture resets the board** (CP2102 auto-reset; setting
-  DTR/RTS false before opening didn't prevent it), so it drops the BLE link
-  and the user sees connect/disconnect notifications. With the BLE firmware
-  the captures also came back as repeated stale chunks and half boot lines;
-  ruled out: another process on the port (`fuser` empty), kernel USB errors
-  (none). For key tests read the PC side instead (`aseqdump -p "Chicco
-  Piano"`), no reset. Serial only for boot checks after a flash.
-- Paired with `bluetoothctl` (pair fails with `ConnectionAttemptFailed`, but
-  `trust` + `connect` works and BlueZ creates the MIDI port; no bond needed).
+- **This PC runs ufw, which drops UDP that isn't a reply.** The toy must
+  answer from the port the HELLO went to (21928); sending from a second socket
+  (another source port) made every packet vanish with no error on either side.
+- **Key tests: read the PC side, not serial.** Every serial capture resets
+  the board (CP2102 auto-reset) and comes back with a screenful of stale
+  `rst:` lines before the real boot log. For keys: `aseqdump` subscribed to
+  "Chicco Piano", through `stdbuf -oL` when written to a file (block-buffered
+  otherwise, lost on kill). Serial only for boot checks after a flash.
+- **A whole row or column of keys dead = check that line's jumper first.**
+  2026-10-13: keys 25–32 silent, D25 (`AB3`) had come off the breadboard.
+  Check it by continuity from the DevKit pin to the slot pad while wiggling
+  the wire.
+- **Keys that need a hard press (14, 21, 23, 30 on 2026-10-13) are the key
+  board's seating, not the contacts or the firmware.** Pressed, they read
+  510–570 Ω across their DevKit pins (key 13, which works, the same), open at
+  rest; a hard press always registers. The user moved the board and it
+  changed; they're fixing the position themselves.
+- **Every button is live**: a press of VOLUME− (or a style button) during a
+  test can make the toy go quiet. RESET restores the defaults.
+- esptool prints `Detected crystal freq 15.44 MHz ... Unsupported crystal`
+  on this DevKit; flashing and boot work regardless.
 - FluidSynth fed `noteon` commands on stdin stayed silent; a small `.mid`
   file played. Default audio output is the user's G733 headset.
 
@@ -127,7 +156,8 @@ skill. After changing `sdkconfig.defaults`: `rm sdkconfig` and build again.
 2. **Key scan on the breadboard**: the ESP32 scans the matrix and prints
    key down/up events over serial. Every key and button verified, chords
    included (ghosting check).
-3. **Sound / MIDI**: whichever direction was chosen.
+3. **Sound / MIDI**: whichever direction was chosen. Direction A done
+   2026-10-13 (MVP: every key and button over WiFi to FluidSynth).
 4. **Inside the toy**: power, mounting, the case closed, the battery life
    checked.
 
@@ -139,28 +169,27 @@ skill. After changing `sdkconfig.defaults`: `rm sdkconfig` and build again.
   at 3 V, so listening in on it would need dividers on every line.
   Direction A / B (MIDI or own synth) is still open.
 - 2026-10-12: direction A first (BLE-MIDI to a synth on the PC), B (own
-  synth) after A works. This PC: Bluetooth adapter present, bluetoothd built
-  with MIDI support; no synth installed yet (FluidSynth/Qsynth + a
-  soundfont, the user installs with sudo).
+  synth) after A works. FluidSynth + `FluidR3_GM.sf2` installed.
+- 2026-10-13: WiFi instead of Bluetooth (the user's call). BLE dropped the
+  link now and then and every reset popped up connect/disconnect
+  notifications (blueman's ConnectionNotifier); the siblings use WiFi and
+  never had that. Custom UDP + a PC bridge rather than RTP-MIDI: no extra
+  package, and the bridge gives a fixed ALSA port.
 
 ## Next step
-State on 2026-10-12 (end of session):
-- Milestones 0 and 2 done: every key and button mapped (`docs/MATRIX.md`),
-  scanner with names, chord check (ghosting on 3 corners of a rectangle).
-- Milestone 3, direction A: BLE-MIDI works end to end (toy → Bluetooth →
-  `tools/pc_synth.sh` → headset). The user played the Megalovania opening;
-  latency "fine for now". Key 1 = F3 (53) is inferred from the black-key
-  pattern (3-2-3-2-3 from the left, photo); keys 2 and 9 black confirmed by
-  the user.
-- **Open: some keys don't sound under a normal press.** Scan sweep (serial,
-  keys 1–25 captured): 14, 18, 21, 23 never registered. The user heard
-  silence on 14, 18, 22, 24, 27, 31 (22/24 did register in the scan: count
-  drift or lost MIDI, unresolved). All of them worked in the mapping run.
-  Not the wires: they share lines with working keys. Next: measure key 14's
-  contact (Ω across `EF5`–`AB1`, USB out, normal vs firm press) against key
-  13 (`EF4`–`AB1`); then a sweep read with `aseqdump`, not serial.
-- Earlier weak contacts: chick above WALTZ, key 9 (before the case-squeeze
-  fix).
+State on 2026-10-13 (end of session): **MVP done.** Every key and button
+reaches FluidSynth over WiFi, the service starts at login, DEMO plays the
+Megalovania intro. Latency over WiFi not yet asked about.
+- Open: keys 14, 21, 23, 30 need a hard press (key board seating, see
+  Traps); the user is fixing it.
+- Ideas the user hasn't picked from yet: RECORD/REPLAY as a looper, SELECT
+  (e.g. cycle DEMO songs or a drum pattern), direction B (own synth on the
+  I2S amp into the toy's speaker, no PC needed), then milestone 4 (inside
+  the toy: power, mounting, battery life). Four checks: done 2026-10-13.
 
 Open items:
 - Main board marking `9105C` is read off a photo only.
+- BlueZ still knows the toy's old BLE identity (`70:4B:CA:4D:F0:1E`);
+  harmless, `bluetoothctl remove` when the user agrees.
+- Button domes: white rubber with a black carbon pill (user's photos
+  2026-10-13, not measured); not in Homebox yet.

@@ -1,0 +1,49 @@
+# Firmware build + flash budget + formatting + host unit tests + clang-tidy on
+# every push/PR, the same four checks as esp32-mukklet. Runs in Espressif's
+# ESP-IDF image; `latest` tracks ESP-IDF master, which is what this project is
+# developed against (v6.1-dev).
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    container: espressif/idf:latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup
+        run: |
+          # checkout runs as a different user than the container: let git
+          # (tools/*.sh use git ls-files) trust the workspace.
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          # Real secrets are gitignored; the template is enough to compile.
+          cp main/wifi_secrets.h.example main/wifi_secrets.h
+          . "$IDF_PATH/export.sh" >/dev/null
+          python "$IDF_PATH/tools/idf_tools.py" install esp-clang
+          command -v gcc >/dev/null || (apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev)
+
+      - name: Firmware build
+        run: . "$IDF_PATH/export.sh" >/dev/null && idf.py build
+
+      - name: Flash budget
+        run: . "$IDF_PATH/export.sh" >/dev/null && tools/size_check.sh
+
+      - name: Formatting
+        if: success() || failure()
+        run: tools/format.sh --check
+
+      - name: Host unit tests
+        if: success() || failure()
+        run: . "$IDF_PATH/export.sh" >/dev/null && tools/test.sh
+
+      - name: clang-tidy
+        if: success() || failure()
+        run: . "$IDF_PATH/export.sh" >/dev/null && tools/lint.sh

@@ -1,0 +1,40 @@
+# Static analysis for this project's C sources (the detekt / Android lint
+# equivalent). Run: tools/lint.sh
+#
+# Enabled: bug-pattern checks (bugprone), the clang static analyzer, misc and
+# performance. Disabled below, with the reason, are checks that only produce
+# noise for this codebase.
+Checks: >
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-assignment-in-if-condition,
+  clang-analyzer-*,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  -clang-analyzer-security.insecureAPI.strcpy,
+  cert-err34-c,
+  misc-*,
+  -misc-include-cleaner,
+  -misc-unused-parameters,
+  -misc-header-include-cycle,
+  performance-*,
+  readability-function-cognitive-complexity,
+  readability-isolate-declaration,
+  readability-duplicate-include,
+  readability-misleading-indentation,
+  readability-redundant-*,
+  readability-else-after-return
+# Why the exclusions:
+# - easily-swappable-parameters: flags every (int, int) function
+# - assignment-in-if-condition: `if ((err = f()) != ESP_OK)` is idiomatic here
+# - insecureAPI.*: wants C11 Annex K (memcpy_s, snprintf_s), which newlib
+#   doesn't have; snprintf/memcpy with sizeof() are the norm
+# - include-cleaner: ESP-IDF headers are umbrella headers by design
+# - unused-parameters: ESP-IDF callback signatures are fixed
+# - header-include-cycle: fires inside ESP-IDF's own FreeRTOS headers
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*/main/.*'
+CheckOptions:
+  readability-function-cognitive-complexity.Threshold: 40
+  # ESP_LOGx / ESP_ERROR_CHECK expand to branches: counting them makes
+  # every function with logging look complex.
+  readability-function-cognitive-complexity.IgnoreMacros: true
