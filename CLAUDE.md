@@ -131,6 +131,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `rst:` lines before the real boot log. For keys: `aseqdump` subscribed to
   "Chicco Piano", through `stdbuf -oL` when written to a file (block-buffered
   otherwise, lost on kill). Serial only for boot checks after a flash.
+  aseqdump shows order, not timing: tempos and bar-line timing are checked by
+  the host tests and by ear.
 - **A whole row or column of keys dead = check that line's jumper first.**
   2026-10-13: keys 25–32 silent, D25 (`AB3`) had come off the breadboard.
   Check it by continuity from the DevKit pin to the slot pad while wiggling
@@ -203,6 +205,10 @@ FluidSynth+PipeWire at 64 samples 3-5); the user finds it fine.
   the toy: power, mounting, battery life). Four checks: done 2026-10-13.
 
 Open items:
-- Main board marking `9105C` is read off a photo only.
+- Main board marking `9105C` is read off a photo only; read it on the board
+  next time the main board is unscrewed (not worth opening it just for this).
 - Button domes: white rubber with a black carbon pill (user's photos
-  2026-10-13, not measured); not in Homebox yet.
+  2026-10-13, not measured); not in Homebox yet. Low value (every button
+  already works); seeing a dome needs the toy open. Pressed resistance can be
+  read from the breadboard without opening: DevKit USB unplugged, DEMO =
+  GPIO17 + GPIO33, Ω mode.
