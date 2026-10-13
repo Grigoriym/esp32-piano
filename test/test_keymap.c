@@ -86,6 +86,7 @@ static void test_reset_restores_the_defaults(void)
 {
     keymap_event(&k, 5, 0, true, midi_rec, &rec);
     keymap_event(&k, 5, 3, true, midi_rec, &rec);
+    keymap_event(&k, 4, 6, true, midi_rec, &rec); /* SAMBA */
     rec.n = 0;
     TEST_ASSERT_EQUAL(KEYMAP_RESET, keymap_event(&k, 5, 4, true, midi_rec, &rec));
     TEST_ASSERT_EQUAL(0, k.octave);
@@ -96,13 +97,16 @@ static void test_reset_restores_the_defaults(void)
     assert_msg(5, 0xb0 | LOOP_CH, 7, DEFAULT_VOLUME);
     assert_msg(6, 0xc0 | KEY_CH, 0, 0);
     TEST_ASSERT_EQUAL(0, k.program);
+    TEST_ASSERT_EQUAL(DEFAULT_STYLE, k.style);
 }
 
 static void test_buttons(void)
 {
-    keymap_event(&k, 4, 5, true, midi_rec, &rec); /* WALTZ: accordion */
+    TEST_ASSERT_EQUAL(DEFAULT_STYLE, k.style);
+    TEST_ASSERT_EQUAL(KEYMAP_STYLE, keymap_event(&k, 4, 5, true, midi_rec, &rec)); /* WALTZ: accordion */
     assert_msg(0, 0xc0, 21, 0);
     TEST_ASSERT_EQUAL(21, k.program);
+    TEST_ASSERT_EQUAL(5, k.style);
     keymap_event(&k, 7, 0, true, midi_rec, &rec); /* DOG: bass drum */
     keymap_event(&k, 7, 0, false, midi_rec, &rec);
     assert_msg(1, 0x90 | DRUM_CH, 36, VELOCITY);
@@ -111,7 +115,7 @@ static void test_buttons(void)
     TEST_ASSERT_EQUAL(KEYMAP_NONE, keymap_event(&k, 7, 5, false, midi_rec, &rec));
     TEST_ASSERT_EQUAL(KEYMAP_RECORD, keymap_event(&k, 5, 5, true, midi_rec, &rec));
     TEST_ASSERT_EQUAL(KEYMAP_REPLAY, keymap_event(&k, 5, 6, true, midi_rec, &rec));
-    TEST_ASSERT_EQUAL(KEYMAP_NONE, keymap_event(&k, 7, 4, true, midi_rec, &rec)); /* SELECT */
+    TEST_ASSERT_EQUAL(KEYMAP_SELECT, keymap_event(&k, 7, 4, true, midi_rec, &rec));
     TEST_ASSERT_EQUAL(3, rec.n);
 }
 

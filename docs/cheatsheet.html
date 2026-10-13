@@ -167,7 +167,7 @@ label.check { display: flex; gap: 6px; align-items: center; color: var(--muted);
       <div class="group">
         <h3><span class="dot" style="background:var(--red)"></span>Control</h3>
         <table>
-          <tr><td>RESET</td><td>Back to normal: piano sound, full volume, normal octave, every note off, demo stopped, loop erased</td></tr>
+          <tr><td>RESET</td><td>Back to normal: piano sound, full volume, normal octave, every note off, demo and beat stopped, loop erased</td></tr>
           <tr><td>VOLUME +</td><td>Louder, one step per press</td></tr>
           <tr><td>VOLUME −</td><td>Quieter, one step per press (a few presses and it's silent)</td></tr>
           <tr><td>TEMPO +</td><td>Keys one octave up (up to two)</td></tr>
@@ -175,19 +175,20 @@ label.check { display: flex; gap: 6px; align-items: center; color: var(--muted);
           <tr><td>DEMO</td><td>Plays the Megalovania opening twice; press again to stop</td></tr>
           <tr><td>RECORD</td><td>Records a loop from your first note (keys and drums); press again and it repeats right away, keeping its sound while you switch style and play over it. Press while it plays to record a new one</td></tr>
           <tr><td>REPLAY</td><td>Stops the loop, or starts it again from the top</td></tr>
+          <tr><td>SELECT</td><td>Starts the drum beat of the last style button (ROCK if none yet); press again to stop. A style button while it plays switches the beat at the next bar. Not recorded by the loop</td></tr>
         </table>
       </div>
       <div class="group">
-        <h3><span class="dot" style="background:var(--blue)"></span>Style buttons pick the sound</h3>
+        <h3><span class="dot" style="background:var(--blue)"></span>Style buttons pick the sound and the beat</h3>
         <table>
-          <tr><td>SLOW ROCK</td><td>Church organ</td></tr>
-          <tr><td>ROCK</td><td>Distortion guitar</td></tr>
-          <tr><td>NEW AGE</td><td>New age pad</td></tr>
-          <tr><td>DISCO</td><td>Saw lead</td></tr>
-          <tr><td>MARCH</td><td>Trumpet</td></tr>
-          <tr><td>WALTZ</td><td>Accordion</td></tr>
-          <tr><td>SAMBA</td><td>Marimba</td></tr>
-          <tr><td>BLUES</td><td>Electric piano</td></tr>
+          <tr><td>SLOW ROCK</td><td>Church organ; beat: slow rock in 12/8, 66 bpm</td></tr>
+          <tr><td>ROCK</td><td>Distortion guitar; beat: rock, 116 bpm</td></tr>
+          <tr><td>NEW AGE</td><td>New age pad; beat: soft ride and rim click, 80 bpm</td></tr>
+          <tr><td>DISCO</td><td>Saw lead; beat: four on the floor, 120 bpm</td></tr>
+          <tr><td>MARCH</td><td>Trumpet; beat: snare march, 112 bpm</td></tr>
+          <tr><td>WALTZ</td><td>Accordion; beat: waltz in 3/4, 96 bpm</td></tr>
+          <tr><td>SAMBA</td><td>Marimba; beat: samba with shaker and agogo, 100 bpm</td></tr>
+          <tr><td>BLUES</td><td>Electric piano; beat: blues shuffle, 88 bpm</td></tr>
         </table>
       </div>
       <div class="group">
@@ -211,12 +212,6 @@ label.check { display: flex; gap: 6px; align-items: center; color: var(--muted);
           <tr><td>Bottom 2</td><td>Hand clap</td></tr>
           <tr><td>Bottom 3</td><td>Tambourine</td></tr>
           <tr><td>Bottom 4</td><td>Claves</td></tr>
-        </table>
-      </div>
-      <div class="group">
-        <h3><span class="dot" style="background:var(--muted)"></span>Not used yet</h3>
-        <table>
-          <tr><td>SELECT</td><td>Nothing</td></tr>
         </table>
       </div>
     </div>

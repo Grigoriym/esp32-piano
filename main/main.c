@@ -11,7 +11,7 @@
  *
  * The pure parts, host-tested (tools/test.sh): matrix.c (debounce, ghosts),
  * keymap.c (names, what each key and button plays), demo.c (DEMO button),
- * looper.c (RECORD / REPLAY).
+ * looper.c (RECORD / REPLAY), rhythm.c (SELECT: drum beats).
  * MIDI goes out as UDP over WiFi to tools/piano_bridge.c (main/midi_link.h).
  *
  * Output on serial (115200):
@@ -37,6 +37,7 @@
 #include "looper.h"
 #include "matrix.h"
 #include "midi_link.h"
+#include "rhythm.h"
 #include "wifi.h"
 
 /* Rows AB0-AB7: pulled low one at a time. */
@@ -56,6 +57,7 @@ static const gpio_num_t COLS[N_COLS] = {
 static keymap_t keymap;
 static demo_t demo;
 static looper_t looper;
+static rhythm_t rhythm;
 
 static void scan(grid_t g)
 {
@@ -120,8 +122,11 @@ static void on_cell(size_t r, size_t c, bool down, void *ctx)
         case KEYMAP_DEMO: demo_toggle(&demo, now, send_midi, NULL); break;
         case KEYMAP_RECORD: looper_record(&looper, now, send_midi, NULL); break;
         case KEYMAP_REPLAY: looper_replay(&looper, now, send_midi, NULL); break;
+        case KEYMAP_SELECT: rhythm_toggle(&rhythm, keymap.style, now, send_midi, NULL); break;
+        case KEYMAP_STYLE: rhythm_select(&rhythm, keymap.style); break;
         case KEYMAP_RESET:
             if (demo.on) demo_toggle(&demo, now, send_midi, NULL);
+            if (rhythm.on) rhythm_toggle(&rhythm, keymap.style, now, send_midi, NULL);
             looper_clear(&looper, send_midi, NULL);
             break;
         case KEYMAP_NONE: break;
@@ -159,6 +164,7 @@ void app_main(void)
         int64_t t = esp_timer_get_time();
         demo_tick(&demo, t, send_midi, NULL);
         looper_tick(&looper, t, send_midi, NULL);
+        rhythm_tick(&rhythm, t, send_midi, NULL);
         vTaskDelay(pdMS_TO_TICKS(SCAN_PERIOD_MS));
     }
 }

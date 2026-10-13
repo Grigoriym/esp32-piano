@@ -87,8 +87,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   and what every key and button plays), `demo.c` (DEMO: Megalovania intro,
   channel 2, 100 bpm, velocity 70), `looper.c` (RECORD/REPLAY: a looper that
   starts at the first note; keys replay on channel 3 with the instrument they
-  were recorded with, drums on 10; RESET erases it). They send through `midi_out.h`'s
-  callback. The line-pair finder that mapped the grid is in git (`233c8c3`).
+  were recorded with, drums on 10; RESET erases it), `rhythm.c` (SELECT: a drum
+  beat per style button, one bar of `x`/`X`/`.` steps per drum, switches at the
+  bar line, velocity 70, not recorded by the looper). They send through
+  `midi_out.h`'s callback. The line-pair finder that mapped the grid is in git (`233c8c3`).
 - `main/wifi.c` (from mukklet, power save off: it holds packets up to a
   beacon interval) and `main/midi_link.c`: MIDI over UDP, protocol in
   `main/midi_link.h`. The toy is `chicco-piano.local` (mDNS, port 21928); the
@@ -193,14 +195,14 @@ FluidSynth+PipeWire at 64 samples 3-5); the user finds it fine.
 - Done 2026-10-13: the board was reseated and all 32 keys play with a normal
   press (key 20 feels a bit off). Recheck if keys go hard again.
 - Looper (RECORD/REPLAY) done 2026-10-13, checked on the toy. No overdub yet.
-- Ideas the user hasn't picked from yet: SELECT
-  (e.g. cycle DEMO songs or a drum pattern), direction B (own synth on the
+- SELECT drum beats done 2026-10-13, checked on the toy (sequence on the PC
+  side; the user listened: fine). TEMPO+/- stay octave, each beat has a fixed
+  tempo. A loop recorded over a beat isn't lined up with it (could come later).
+- Ideas the user hasn't picked from yet: direction B (own synth on the
   I2S amp into the toy's speaker, no PC needed), then milestone 4 (inside
   the toy: power, mounting, battery life). Four checks: done 2026-10-13.
 
 Open items:
 - Main board marking `9105C` is read off a photo only.
-- BlueZ still knows the toy's old BLE identity (`70:4B:CA:4D:F0:1E`);
-  harmless, `bluetoothctl remove` when the user agrees.
 - Button domes: white rubber with a black carbon pill (user's photos
   2026-10-13, not measured); not in Homebox yet.

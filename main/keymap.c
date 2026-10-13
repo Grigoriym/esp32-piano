@@ -31,7 +31,7 @@ static const uint8_t DRUM_NOTE[2][N_COLS] = {
 
 void keymap_init(keymap_t *k)
 {
-    *k = (keymap_t){.volume = DEFAULT_VOLUME};
+    *k = (keymap_t){.volume = DEFAULT_VOLUME, .style = DEFAULT_STYLE};
 }
 
 void keymap_name(size_t r, size_t c, char *buf, size_t len)
@@ -68,6 +68,7 @@ static void reset(keymap_t *k, midi_send_fn send, void *ctx)
     k->octave = 0;
     k->volume = DEFAULT_VOLUME;
     k->program = 0;
+    k->style = DEFAULT_STYLE;
     send_volume(k, send, ctx);
     uint8_t program[2] = {0xc0 | KEY_CH, 0};
     send(program, 2, "program 0", ctx);
@@ -98,9 +99,12 @@ keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_se
     if (r == 4) {
         snprintf(what, sizeof(what), "program %u", STYLE_PROGRAM[c]);
         k->program = STYLE_PROGRAM[c];
+        k->style = c;
         uint8_t msg[2] = {0xc0 | KEY_CH, k->program};
         send(msg, 2, what, ctx);
-    } else if (r == 5 && c <= 1) { /* TEMPO+ / TEMPO- */
+        return KEYMAP_STYLE;
+    }
+    if (r == 5 && c <= 1) { /* TEMPO+ / TEMPO- */
         k->octave = clamp(k->octave + (c == 0 ? 1 : -1), -MAX_OCTAVE, MAX_OCTAVE);
         snprintf(what, sizeof(what), "octave %+d (next notes)", k->octave);
         send(NULL, 0, what, ctx);
@@ -114,6 +118,8 @@ keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_se
         return KEYMAP_RECORD;
     } else if (r == 5 && c == 6) {
         return KEYMAP_REPLAY;
+    } else if (r == 7 && c == 4) {
+        return KEYMAP_SELECT;
     } else if (r == 7 && c == 5) {
         return KEYMAP_DEMO;
     }
