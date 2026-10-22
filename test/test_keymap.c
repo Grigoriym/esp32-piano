@@ -119,6 +119,14 @@ static void test_buttons(void)
     TEST_ASSERT_EQUAL(3, rec.n);
 }
 
+static void test_program_names(void)
+{
+    TEST_ASSERT_EQUAL_STRING("Piano", keymap_program_name(k.program));
+    TEST_ASSERT_EQUAL_STRING("Trumpet", keymap_program_name(56));
+    TEST_ASSERT_EQUAL_STRING("Electric piano", keymap_program_name(4));
+    TEST_ASSERT_EQUAL_STRING("?", keymap_program_name(127));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -129,5 +137,6 @@ int main(void)
     RUN_TEST(test_volume_steps_and_clamps);
     RUN_TEST(test_reset_restores_the_defaults);
     RUN_TEST(test_buttons);
+    RUN_TEST(test_program_names);
     return UNITY_END();
 }

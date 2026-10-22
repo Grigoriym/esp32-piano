@@ -23,6 +23,20 @@ static const uint8_t STYLE_PROGRAM[N_COLS] = {
     12, /* SAMBA: marimba */
     4,  /* BLUES: electric piano */
 };
+/* The keys' instrument for the screen: program 0 (after RESET) or a style button's. */
+const char *keymap_program_name(uint8_t program)
+{
+    static const char *const NAMES[N_COLS] = {
+        "Church organ", "Distortion guitar", "New age pad", "Saw lead",
+        "Trumpet",      "Accordion",         "Marimba",     "Electric piano",
+    };
+    if (program == 0) return "Piano";
+    for (size_t c = 0; c < N_COLS; c++) {
+        if (STYLE_PROGRAM[c] == program) return NAMES[c];
+    }
+    return "?";
+}
+
 /* General MIDI drum notes for the animals and chicks, AB6/AB7 x EF0-EF7; 0 = none. */
 static const uint8_t DRUM_NOTE[2][N_COLS] = {
     /* AB6 chicks */ {75, 38, 51, 49, 39, 42, 54, 56},

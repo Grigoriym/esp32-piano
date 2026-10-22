@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Piano Caliper Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+/* Same look as mukklet's caliper guide: one card per measurement, the next one outlined. */
+:root{
+  --bg:#EEF2F0; --card:#FFFFFF; --ink:#1B2422; --muted:#5B6964; --line:#D3DCD8;
+  --pcb:#2F5FA8; --brd:#9A5A2C; --shell:#DCD8CC; --metal:#B9C0C4; --metal-d:#8A949A;
+  --steel:#C9D0D3; --dim:#D0431B; --now:#D0431B; --done:#2E7D55; --skip:#8A6D1F;
+  --hole:#EEF2F0; --plas:#2A2A2A; --cap:#2F6FB8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#121716; --card:#1B2220; --ink:#E4EBE8; --muted:#95A39E; --line:#2E3936;
+    --pcb:#3A6CB8; --brd:#8A5530; --shell:#4A4740; --metal:#8E989D; --metal-d:#6C767B;
+    --steel:#6E787C; --dim:#FF7A52; --now:#FF7A52; --done:#5CC08C; --skip:#D9B04C;
+    --hole:#121716; --plas:#2A2A2A; --cap:#4A86CC;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121716; --card:#1B2220; --ink:#E4EBE8; --muted:#95A39E; --line:#2E3936;
+  --pcb:#3A6CB8; --brd:#8A5530; --shell:#4A4740; --metal:#8E989D; --metal-d:#6C767B;
+  --steel:#6E787C; --dim:#FF7A52; --now:#FF7A52; --done:#5CC08C; --skip:#D9B04C;
+  --hole:#121716; --plas:#2A2A2A; --cap:#4A86CC;
+}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.5 "Barlow",system-ui,sans-serif;padding:0 16px;padding-block:28px 48px}
+.wrap{max-width:1040px;margin:0 auto;display:grid;gap:28px}
+h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:700;text-wrap:balance;margin:0;line-height:1.1}
+h1{font-size:2.4rem;letter-spacing:.01em}
+h2{font-size:1.5rem;margin-bottom:12px}
+.lede{color:var(--muted);max-width:62ch;margin:6px 0 0}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px}
+.panel p{margin:0;max-width:70ch}
+.panel p+p{margin-top:10px}
+.panel ul{margin:8px 0 0;padding-left:1.2em;display:grid;gap:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.step{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:10px;align-content:start;min-width:0}
+.step.now{border:2px solid var(--now)}
+.head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.num{font:500 .85rem "JetBrains Mono",ui-monospace,monospace;color:var(--muted)}
+.part{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+h3{font-size:1.25rem;width:100%}
+.chip{margin-left:auto;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;padding:2px 8px;border-radius:99px;border:1px solid currentColor}
+.chip.done{color:var(--done)} .chip.now{color:var(--now)} .chip.skip{color:var(--skip)} .chip.todo{color:var(--muted)}
+ol.how{margin:0;padding-left:1.2em;display:grid;gap:4px}
+.val{font:500 .95rem "JetBrains Mono",ui-monospace,monospace;color:var(--done)}
+.note{font-size:.9rem;color:var(--muted);margin:0}
+.send{font-size:.9rem;margin:0}
+.send b{font-family:"JetBrains Mono",ui-monospace,monospace;font-weight:500}
+svg.fig{width:100%;height:auto;display:block;background:var(--bg);border-radius:8px}
+/* svg paint */
+.pcb{fill:var(--pcb)} .brd{fill:var(--brd)} .shell{fill:var(--shell)} .capc{fill:var(--cap)}
+.metal{fill:var(--metal)} .metald{fill:var(--metal-d)} .steel{fill:var(--steel);stroke:var(--ink);stroke-width:1}
+.hole{fill:var(--hole)} .plas{fill:var(--plas)}
+.free{fill:none;stroke:var(--done);stroke-width:2;stroke-dasharray:5 4}
+.d{stroke:var(--dim);stroke-width:2;fill:none}
+.ext{stroke:var(--dim);stroke-width:1;stroke-dasharray:3 3;fill:none}
+.t{fill:var(--dim);font:600 13px "Barlow",sans-serif}
+.lab{fill:var(--ink);font:500 13px "Barlow",sans-serif}
+.cap{fill:var(--muted);font:500 12px "Barlow",sans-serif}
+.arr{fill:var(--dim)}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="arr" d="M0 0L10 5L0 10z"/>
+    </marker>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header>
+    <h1>Piano caliper guide</h1>
+    <p class="lede">The sizes needed to decide where the ESP32, the amp and the wires go inside the Chicco toy. Started 2026-10-17. All values in millimetres.</p>
+  </header>
+
+  <section class="panel">
+    <h2>How to measure</h2>
+    <ul>
+      <li>Always edge to edge. Nothing is measured from the centre of a hole.</li>
+      <li><b>Depth into a shell:</b> lay a ruler on its edge across the shell, resting on both rims. Then push the caliper's depth rod (the thin rod that comes out of the end) down from the ruler to the surface. A ruler held upright works too.</li>
+      <li>Shells lie open, inside up, as on the table now.</li>
+      <li>The numbers in grey are what I'd assume without you. Yours replace them.</li>
+    </ul>
+    <p>Room above the main board when the case is closed = <b>step 1 + step 2</b>.</p>
+  </section>
+
+  <section>
+    <h2>Inside the toy</h2>
+    <div class="grid" id="toy"></div>
+  </section>
+
+  <section>
+    <h2>Parts</h2>
+    <div class="grid" id="parts"></div>
+  </section>
+</div>
+
+<script>
+// ---- drawing helpers -------------------------------------------------
+const dh=(x1,x2,y,t,dy=-7)=>`<line class="d" x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" marker-start="url(#a)" marker-end="url(#a)"/><text class="t" x="${(x1+x2)/2}" y="${y+dy+(dy>0?6:0)}" text-anchor="middle">${t}</text>`;
+const dv=(x,y1,y2,t,anchor="start")=>`<line class="d" x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" marker-start="url(#a)" marker-end="url(#a)"/><text class="t" x="${anchor==="start"?x+7:x-7}" y="${(y1+y2)/2+4}" text-anchor="${anchor}">${t}</text>`;
+const ext=(x1,y1,x2,y2)=>`<line class="ext" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+const cap=(t,x=150,y=182)=>`<text class="cap" x="${x}" y="${y}" text-anchor="middle">${t}</text>`;
+const svg=(inner,label)=>`<svg class="fig" viewBox="0 0 300 190" role="img" aria-label="${label}">${inner}</svg>`;
+
+// A shell in section, lying open (inside up): rim at y 50, floor at y 150.
+const shell=()=>`<path class="shell" d="M24 50 H34 V144 H266 V50 H276 V154 H24 Z"/>`;
+const ruler=()=>`<rect class="steel" x="14" y="40" width="272" height="10"/><text class="lab" x="150" y="34" text-anchor="middle">ruler on its edge, across the rims</text>`;
+
+// ---- steps -----------------------------------------------------------
+// status: done | skip | now | todo ; the first "todo" of a list becomes "now"
+const toySteps=[
+ {part:"Front shell",title:"Rim down to the main board",status:"done",val:"12 (2026-10-17)",cur:"",
+  how:["The shell with the keys and the main board in it.","Ruler across the rims, near the chip slot (where your wires are soldered).","Depth rod from the ruler down to the bare board, next to the slot: not on a part or a wire."],
+  send:"one number",
+  fig:svg(shell()+`<rect class="brd" x="34" y="112" width="232" height="6"/><rect class="capc" x="206" y="88" width="14" height="24" rx="2"/><text class="lab" x="242" y="104">C8</text><text class="lab" x="60" y="132">main board</text>`+ruler()+dv(120,50,112,"1")+cap("front shell, side view"),"Front shell rim to main board")},
+ {part:"Back shell",title:"Rim down to the floor",status:"done",val:"14 at the centre, between the battery box and the speaker (2026-10-17). Room above the main board: 12 + 14 = 26",cur:"",
+  how:["The shell with the battery box and the speaker.","Ruler across the rims, over the flat area between the battery box and the speaker.","Depth rod from the ruler down to the floor there, not on a rib or a screw post."],
+  send:"one number",
+  fig:svg(shell()+`<rect class="shell" x="44" y="96" width="62" height="48"/><text class="lab" x="75" y="90" text-anchor="middle">battery box</text><rect class="metald" x="200" y="118" width="56" height="26"/><text class="lab" x="228" y="112" text-anchor="middle">speaker</text>`+ruler()+dv(150,50,144,"2")+cap("back shell, side view"),"Back shell rim to floor")},
+ {part:"Main board",title:"Tallest part on the main board",status:"done",cur:"~12 (a typical small electrolytic capacitor)",
+  how:["The tall blue capacitors next to the slot (C8, C9) look like the tallest parts.","Depth rod from the top of the tallest one down to the board beside it."],
+  send:"one number, and which part",
+  val:"14, the blue capacitors (2026-10-17). Over them: 26 − 14 = 12 left",
+  fig:svg(`<rect class="brd" x="30" y="120" width="240" height="8"/><rect class="capc" x="130" y="64" width="30" height="56" rx="3"/><rect class="metal" x="130" y="64" width="30" height="5"/><text class="lab" x="100" y="96" text-anchor="end">C8</text>`+ext(160,64,200,64)+dv(196,64,120,"height")+cap("side view"),"Tallest part height")},
+ {part:"Back shell",title:"Free floor area",status:"done",val:"Speaker to round boss: 35.57 × 117. Round boss to battery box: 37 × 117 (2026-10-17). The strip past the long rib is over the key board, which sits higher: not measured",cur:"",
+  how:["The flat area between the battery box and the speaker (green, dashed).","A: across the shell, from wall or rib to the next wall or rib.","B: from the battery box to the speaker's frame.","If a screw post or a rib stands in the middle, send its position too, or a photo."],
+  send:"A × B",
+  fig:svg(`<rect class="shell" x="20" y="14" width="260" height="158" rx="10"/><rect class="hole" x="90" y="24" width="96" height="44"/><text class="lab" x="138" y="50" text-anchor="middle">battery box</text><circle class="metald" cx="138" cy="140" r="24"/><text class="lab" x="138" y="144" text-anchor="middle">speaker</text><rect class="free" x="46" y="72" width="184" height="40"/>`+dh(46,230,92,"A",-4)+dv(250,68,116,"B")+ext(186,68,256,68)+ext(162,116,256,116)+cap("back shell from above",150,186),"Free floor area")},
+ {part:"Front shell",title:"Keys wall to the main board",status:"done",val:"91 (2026-10-17). Key board: 314 × 29, narrowing to 25 from 191 from the left end",cur:"",
+  how:["Front shell lying open, keys on the left (as in your photo).","From the inside face of the long wall on the keys side to the main board's near edge (the edge next to the black bar), straight across.","Together with the next step it says whether A and B sit over the main board or over the key board."],
+  send:"one number",
+  fig:svg(`<rect class="shell" x="20" y="22" width="260" height="126" rx="8"/><rect class="hole" x="28" y="30" width="244" height="110" rx="4"/><rect class="brd" x="40" y="36" width="44" height="98"/><text class="lab" x="62" y="90" text-anchor="middle">keys</text><rect class="plas" x="90" y="36" width="8" height="98"/><rect class="brd" x="112" y="34" width="150" height="102"/><circle class="hole" cx="170" cy="58" r="16"/><text class="lab" x="200" y="118" text-anchor="middle">main board</text>`+dh(28,112,160,"wall → board",14)+ext(28,140,28,164)+ext(112,136,112,164)+cap("front shell from above",150,12),"Keys wall to main board")},
+ {part:"Back shell",title:"Keys wall to the long rib",cur:"",
+  how:["Back shell lying open as in your photo: the keys side is now on the right (the shell is a mirror image when it closes).","From the inside face of the long wall on the right (next to strip C) to the far face of the long rib (the face towards A and B)."],
+  send:"one number", status:"done",
+  val:"54 (2026-10-17). A and B run 117 from the rib, so 54…171 from the keys wall; the main board starts at 91. Over the main board: the 80 of A and B farthest from the rib. The 37 next to the rib is over the key board side",
+  fig:svg(`<rect class="shell" x="20" y="22" width="260" height="126" rx="8"/><rect class="hole" x="28" y="30" width="244" height="110" rx="4"/><rect class="metald" x="200" y="36" width="6" height="98"/><text class="lab" x="240" y="94" text-anchor="middle">C</text><rect class="free" x="100" y="42" width="94" height="34"/><text class="lab" x="147" y="64" text-anchor="middle">A</text><rect class="free" x="80" y="94" width="114" height="34"/><text class="lab" x="137" y="116" text-anchor="middle">B</text>`+dh(200,272,160,"rib → wall",14)+ext(200,134,200,164)+ext(272,140,272,164)+cap("back shell from above (mirrored)",150,12),"Keys wall to long rib")},
+ {part:"Old chip board",title:"Size of the removed chip board",status:"done",val:"75.75 × 15; 11.47 tall at the short parts; three tabs of 8 pads, 19.82, 20.04, 19.82 wide. It sat in three slots in the main board (2026-10-17)",cur:"",
+  how:["The sound chip's upright board, desoldered 2026-10-11 and kept."],send:"",fig:""},
+ {part:"Old chip board",title:"Spacing of the pads on a tab",status:"done",val:"1st to 8th pad 17.63, so 2.52 per pad (2026-10-17). A 2.54 header would be 0.15 off over 8 pads",cur:"2.54 (standard pin header spacing)",
+  how:["On one of the three tabs of the old chip board: 8 pads in a row.","Left edge of the first pad to the left edge of the last pad (same edge to same edge = centre to centre).","I divide by 7. The main board's pads next to the slots have the same spacing."],
+  send:"one number",
+  fig:svg(`<rect class="brd" x="20" y="40" width="260" height="40"/><rect class="brd" x="34" y="80" width="232" height="44"/>`+[0,1,2,3,4,5,6,7].map(i=>`<rect class="metal" x="${44+i*29}" y="88" width="14" height="30"/>`).join("")+ext(44,118,44,150)+ext(247,118,247,150)+dh(44,247,146,"left edge → left edge",14)+cap("one tab, 8 pads",150,30),"Pad spacing on a tab")},
+];
+
+const partSteps=[
+ {part:"I2S amp module",title:"Board size and height",status:"done",val:"34.48 × 24.71; 11.13 tall overall (solder tails under the board to the tops of the upright pin headers); audio jack 6.11 (2026-10-17)",cur:"",
+  how:["A: width and B: length of the board.","C: from the board's underside to the top of the tallest part (a pin header, if it has one).","If the pins aren't soldered yet, say so."],
+  send:"A × B, C",
+  fig:svg(`<rect class="pcb" x="60" y="30" width="110" height="90"/>`+[0,1,2,3,4,5].map(i=>`<circle class="hole" cx="${76+i*16}" cy="110" r="3"/>`).join("")+`<rect class="plas" x="90" y="50" width="40" height="30"/>`+dh(60,170,138,"A",14)+dv(186,30,120,"B")+`<rect class="pcb" x="216" y="96" width="60" height="6"/><rect class="plas" x="230" y="80" width="24" height="16"/>`+ext(254,80,286,80)+dv(282,80,102,"C")+cap("top",115,182)+cap("side",246,182),"Amp module size")},
+ {part:"ESP32 mini",title:"Board size and height",status:"done",val:"31.51 × 39.02, 4.66 tall (bare, no pins)",cur:"",
+  how:["Measured for mukklet, in Homebox."],send:"",
+  fig:""},
+ {part:"ESP32 DevKit 30-pin",title:"Board size and height",status:"done",val:"51.49 × 28.36, 4.78 tall (bare, no pins)",cur:"",
+  how:["Measured for the desk display, in Homebox. The tall pin headers add ~9 if they stay on."],send:"",
+  fig:""},
+];
+
+// ---- render ----------------------------------------------------------
+const render=(id,list,start)=>{
+  let nowSet=false;
+  document.getElementById(id).innerHTML=list.map((s,i)=>{
+    let st=s.status; if(st==="todo"&&!nowSet&&id==="toy"){st="now";nowSet=true;}
+    const label={done:"done",now:"next",skip:"skipped",todo:"to do"}[st];
+    return `<article class="step ${st==="now"?"now":""}">
+      <div class="head"><span class="num">${String(start+i).padStart(2,"0")}</span><span class="part">${s.part}</span><span class="chip ${st}">${label}</span><h3>${s.title}</h3></div>
+      ${s.fig}
+      <ol class="how">${s.how.map(h=>`<li>${h}</li>`).join("")}</ol>
+      ${s.val?`<p class="val">${s.val}</p>`:""}
+      ${s.cur&&st!=="done"?`<p class="note">Assumed without you: ${s.cur}</p>`:""}
+      ${s.send&&st!=="done"?`<p class="send">Send: <b>${s.send}</b></p>`:""}
+    </article>`;
+  }).join("");
+};
+render("toy",toySteps,1);
+render("parts",partSteps,toySteps.length+1);
+</script>

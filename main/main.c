@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "demo.h"
 #include "driver/gpio.h"
@@ -38,17 +39,20 @@
 #include "matrix.h"
 #include "midi_link.h"
 #include "rhythm.h"
+#include "screen.h"
 #include "wifi.h"
 
 /* Rows AB0-AB7: pulled low one at a time. */
 static const gpio_num_t ROWS[N_ROWS] = {
     GPIO_NUM_21, GPIO_NUM_22, GPIO_NUM_23, GPIO_NUM_25, GPIO_NUM_26, GPIO_NUM_27, GPIO_NUM_32, GPIO_NUM_33,
 };
-/* Columns EF0-EF7: read. */
+/* Columns EF0-EF7: read. EF0-EF3 sit on input-only pins (no internal pull-up:
+ * 10k to 3V3 on the breadboard), freeing 4, 5, 13, 14 for the screen and the
+ * amp (docs/wiring.html). */
 static const gpio_num_t COLS[N_COLS] = {
-    GPIO_NUM_4, GPIO_NUM_5, GPIO_NUM_13, GPIO_NUM_14, GPIO_NUM_16, GPIO_NUM_17, GPIO_NUM_18, GPIO_NUM_19,
+    GPIO_NUM_34, GPIO_NUM_35, GPIO_NUM_36, GPIO_NUM_39, GPIO_NUM_16, GPIO_NUM_17, GPIO_NUM_18, GPIO_NUM_19,
 };
-/* CD0 carries no key or button: not wired (GPIO34 is free). */
+/* CD0 carries no key or button: not wired. */
 
 #define WIFI_TIMEOUT_MS 10000 /* boot waits this long, then scans anyway */
 #define SETTLE_US       50    /* pull-up (~45k) against the toy's wiring */
@@ -115,6 +119,30 @@ static void send_key(const uint8_t *msg, size_t len, const char *what, void *ctx
     looper_capture(&looper, esp_timer_get_time(), msg, len, keymap.program);
 }
 
+/* What the screen shows, from the state of every part. */
+static void show(void)
+{
+    static const ui_loop_t LOOP[] = {
+        [LOOPER_ARMED] = UI_LOOP_WAITING,
+        [LOOPER_RECORDING] = UI_LOOP_RECORDING,
+        [LOOPER_PLAYING] = UI_LOOP_PLAYING,
+    };
+    const rhythm_style_t *beat = rhythm.on ? rhythm_style(rhythm.style) : NULL;
+    ui_state_t s;
+    memset(&s, 0, sizeof(s)); /* compared with memcmp: padding too */
+    s.pc = midi_link_connected();
+    s.demo = demo.on;
+    s.sound = keymap_program_name(keymap.program);
+    s.volume = keymap.volume;
+    s.octave = keymap.octave;
+    s.beat = beat ? beat->name : NULL;
+    s.beat_bpm = beat ? beat->bpm : 0;
+    s.loop = looper.state != LOOPER_IDLE ? LOOP[looper.state]
+             : looper.length_us          ? UI_LOOP_STOPPED
+                                         : UI_LOOP_EMPTY;
+    screen_set(&s);
+}
+
 static void on_cell(size_t r, size_t c, bool down, void *ctx)
 {
     int64_t now = esp_timer_get_time();
@@ -143,8 +171,9 @@ void app_main(void)
     for (size_t i = 0; i < N_COLS; i++) {
         gpio_reset_pin(COLS[i]);
         gpio_set_direction(COLS[i], GPIO_MODE_INPUT);
-        gpio_set_pull_mode(COLS[i], GPIO_PULLUP_ONLY);
+        if (GPIO_IS_VALID_OUTPUT_GPIO(COLS[i])) gpio_set_pull_mode(COLS[i], GPIO_PULLUP_ONLY);
     }
+    screen_init();
     wifi_connect(WIFI_TIMEOUT_MS);
     midi_link_init("chicco-piano");
     printf("\nesp32-piano key scanner: %u x %u, MIDI over WiFi\n", N_ROWS, N_COLS);
@@ -165,6 +194,7 @@ void app_main(void)
         demo_tick(&demo, t, send_midi, NULL);
         looper_tick(&looper, t, send_midi, NULL);
         rhythm_tick(&rhythm, t, send_midi, NULL);
+        show();
         vTaskDelay(pdMS_TO_TICKS(SCAN_PERIOD_MS));
     }
 }

@@ -49,5 +49,8 @@ void keymap_init(keymap_t *k);
 /* "key 14", "DEMO", "chick T1"; "?" for an unused crossing. */
 void keymap_name(size_t r, size_t c, char *buf, size_t len);
 
+/* "Piano", "Trumpet": the instrument a program number stands for; "?" if none. */
+const char *keymap_program_name(uint8_t program);
+
 /* A press or release at (r, c): sends its MIDI. */
 keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_send_fn send, void *ctx);

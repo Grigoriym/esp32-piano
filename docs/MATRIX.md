@@ -158,30 +158,8 @@ Pad order on the copper side, top to bottom (same as the printed labels):
 - bottom group: `AB1`, `AB0`, `VDD`, `OSC`, `RESET`, `AUD1`, `AUD2`, `VSS`;
   on the board this group has 7 solder places, `AUD1` and `AUD2` share one
 
-| Toy pad | ESP32 GPIO | DevKit pin label |
-|---|---|---|
-| `EF0` | 4 | D4 |
-| `EF1` | 5 | D5 |
-| `EF2` | 13 | D13 |
-| `EF3` | 14 | D14 |
-| `EF4` | 16 | RX2 (usually; D16 on some boards) |
-| `EF5` | 17 | TX2 (usually; D17 on some boards) |
-| `EF6` | 18 | D18 |
-| `EF7` | 19 | D19 |
-| `AB0` | 21 | D21 |
-| `AB1` | 22 | D22 |
-| `AB2` | 23 | D23 |
-| `AB3` | 25 | D25 |
-| `AB4` | 26 | D26 |
-| `AB5` | 27 | D27 |
-| `AB6` | 32 | D32 |
-| `AB7` | 33 | D33 |
-| `VSS` | GND | GND |
-
-Not connected: `CD0`, `CPUVDD`, `VDD`, `OSC`, `RESET`, `AUD1`, `AUD2`.
-`CD0` was on D34 with a 10 kΩ pull-up to 3V3 until 2026-10-13; it carried
-no key or button, so the wire, the resistor and the 3V3 jumper came out. D34
-is free.
+Which pad goes to which DevKit pin: `wiring.html` (the wiring doc; the
+pins changed on 2026-10-21 for the screen).
 
 Route the wires away from the front buttons' pads: wires first laid over
 them got in the way of the presses and some buttons didn't register; the

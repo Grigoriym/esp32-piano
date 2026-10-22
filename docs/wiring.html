@@ -1,0 +1,166 @@
+<title>Chicco Piano Wiring</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one column. The DevKit drawn once as the map, then one checklist line per wire. Same look as cheatsheet.html. */
+:root {
+  --bg: #f6f7fb;
+  --panel: #ffffff;
+  --ink: #1c2240;
+  --muted: #5b6283;
+  --line: #d9dcea;
+  --board: #23305e;
+  --pin: #59607f;
+  --row: #d07a1f;
+  --col: #7b4fd0;
+  --gnd: #2e6bd8;
+  --tft: #2f9e57;
+  --power: #c8323a;
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558;
+    --board: #0b1030; --pin: #59607f; --row: #f0a050; --col: #b59bff; --gnd: #77a4ff; --tft: #5fd18a; --power: #ff6b70;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558;
+  --board: #0b1030; --pin: #59607f; --row: #f0a050; --col: #b59bff; --gnd: #77a4ff; --tft: #5fd18a; --power: #ff6b70;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--font-body); margin: 0; }
+.wrap { max-width: 760px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 56px; display: flex; flex-direction: column; gap: 30px; }
+h1, h2 { font-family: var(--font-display); font-weight: 600; margin: 0; line-height: 1.15; text-wrap: balance; }
+h1 { font-size: clamp(1.8rem, 5vw, 2.4rem); }
+h2 { font-size: 1.35rem; }
+p { margin: 0; max-width: 65ch; }
+.muted { color: var(--muted); }
+section { display: flex; flex-direction: column; gap: 10px; }
+.box { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; overflow-x: auto; }
+svg { display: block; width: 100%; min-width: 560px; height: auto; }
+svg text { font-family: var(--font-mono); }
+ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+li label { display: grid; grid-template-columns: 22px 1fr; gap: 12px; align-items: start; padding: 9px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
+li:last-child label { border-bottom: 0; }
+li.group { font-family: var(--font-display); font-weight: 600; padding: 14px 4px 4px; color: var(--ink); }
+li.group:first-child { padding-top: 0; }
+li.skip { padding: 6px 4px 6px 38px; border-bottom: 1px solid var(--line); color: var(--muted); opacity: .6; }
+li input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--tft); }
+li input:focus-visible { outline: 2px solid var(--col); outline-offset: 2px; }
+li input:checked + span { color: var(--muted); text-decoration: line-through; }
+.w { font-family: var(--font-mono); font-size: .95rem; }
+.w b { font-weight: 700; }
+.arrow { color: var(--muted); padding-inline: 6px; }
+.extra { display: block; font-family: var(--font-body); font-size: .88rem; color: var(--power); font-weight: 600; }
+.row { color: var(--row); } .col { color: var(--col); } .tft { color: var(--tft); } .power { color: var(--power); } .gnd { color: var(--gnd); }
+.wire { margin-left: 12px; font-family: var(--font-body); font-size: .88rem; color: var(--muted); }
+.wire i { display: inline-block; width: 22px; height: 8px; border-radius: 4px; border: 1px solid var(--muted); margin-right: 6px; vertical-align: 1px; }
+.note { border-left: 4px solid var(--power); padding: 4px 12px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Chicco Piano wiring</h1>
+    <p class="muted">Wired and checked 2026-10-21: all 32 keys, the screen. Toy batteries out.</p>
+  </header>
+
+  <section>
+    <h2>The boards</h2>
+    <p class="muted">Component side up, USB on the right. Each pin shows what plugs into it.</p>
+    <div class="box"><svg id="board" viewBox="0 0 760 250" role="img" aria-label="ESP32 DevKit pins and what plugs into each"></svg></div>
+    <p class="muted">The toy's slot pads, left to right as they run top to bottom on the main board. Below each pad: the DevKit pin it goes to.</p>
+    <div class="box"><svg id="slot" viewBox="0 30 760 145" role="img" aria-label="The toy's 24 slot pads and the DevKit pin each goes to"></svg></div>
+    <p class="muted">The screen's 8 pins, in the order printed on its board, BLK first. Below each pin: where it goes.</p>
+    <div class="box"><svg id="screen" viewBox="0 30 760 145" role="img" aria-label="The screen's 8 pins and where each goes"></svg></div>
+  </section>
+</div>
+
+<script>
+// The 24 slot pads as printed on the main board, top to bottom, in its 3 groups
+// (docs/MATRIX.md). [pad, DevKit pin or null = leave empty, needs 10 kΩ, real wire colour]
+const GROUPS = [
+  ["Top group", [["EF7", "D19", 0, "green"], ["EF6", "D18", 0, "black"], ["EF5", "TX2", 0, "yellow"], ["EF4", "RX2", 0, "white"],
+    ["EF3", "VN", 1, "black"], ["EF2", "VP", 1, "yellow"], ["EF1", "D35", 1, "green"], ["EF0", "D34", 1, "white"]]],
+  ["Middle group", [["AB7", "D33"], ["CD0", null], ["AB6", "D32"], ["AB5", "D27"],
+    ["AB4", "D26"], ["AB3", "D25"], ["CPUVDD", null], ["AB2", "D23"]]],
+  ["Bottom group (AUD1 and AUD2 share one solder place)", [["AB1", "D22"], ["AB0", "D21"], ["VDD", null], ["OSC", null],
+    ["RESET", null], ["AUD1", null], ["AUD2", null], ["VSS", "GND"]]],
+];
+const TOY = GROUPS.flatMap(([, pads]) => pads).filter(([, pin]) => pin && pin !== "GND");
+const WIRE = { white: "#ffffff", green: "#1fa83a", yellow: "#f2c200", black: "#111111" };
+
+// The board: pins from the USB end, the USB end drawn on the right.
+const topRow = ["3V3","GND","D15","D2","D4","RX2","TX2","D5","D18","D19","D21","RX0","TX0","D22","D23"];
+const botRow = ["VIN","GND","D13","D12","D14","D27","D26","D25","D33","D32","D35","D34","VN","VP","EN"];
+const role = { "3V3": ["power", "+rail"], GND: ["gnd", "−rail"], D14: ["tft", "SCL"], D13: ["tft", "SDA"], D4: ["tft", "DC"], D15: ["tft", "CS"], D5: ["tft", "RES"] };
+for (const [pad, pin, , wire] of TOY) role[pin] = [pad.startsWith("AB") ? "row" : "col", pad, wire];
+let svg = document.getElementById("board");
+const NS = "http://www.w3.org/2000/svg";
+const el = (name, attrs, text) => {
+  const e = document.createElementNS(NS, name);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text) e.textContent = text;
+  svg.appendChild(e);
+  return e;
+};
+const step = 44, right = 680;
+el("rect", { x: 34, y: 62, width: 670, height: 126, rx: 10, fill: "var(--board)" });
+el("rect", { x: 704, y: 106, width: 34, height: 38, rx: 6, fill: "var(--pin)" });
+el("text", { x: 721, y: 166, fill: "var(--muted)", "font-size": 11, "text-anchor": "middle" }, "USB");
+function row(names, y, labelY, tagY) {
+  names.forEach((n, i) => {
+    const x = right - i * step;
+    const [kind, tag, wire] = role[n] || ["pin", ""];
+    // A known wire colour fills the dot; the ring keeps the group colour.
+    el("circle", { cx: x, cy: y, r: 9, fill: wire ? WIRE[wire] : `var(--${kind})`, stroke: wire ? `var(--${kind})` : "none", "stroke-width": 3 });
+    el("text", { x, y: labelY, fill: "#e8eaf6", "font-size": 11, "text-anchor": "middle" }, n);
+    if (tag) el("text", { x, y: tagY, fill: `var(--${kind})`, "font-size": 12, "font-weight": 700, "text-anchor": "middle" }, tag);
+  });
+}
+row(topRow, 80, 106, 46);
+row(botRow, 170, 152, 214);
+el("text", { x: 34, y: 244, fill: "var(--muted)", "font-size": 11 }, "orange = toy row   purple = toy column   green = screen   red = 3V3   blue = GND   grey = empty");
+
+// The slot: 3 groups of 8 pads, EF7 first. AUD1 and AUD2 share one solder place.
+svg = document.getElementById("slot");
+const padStep = 28, groupGap = 22, dotY = 104;
+GROUPS.forEach(([, pads], g) => {
+  const x0 = 34 + g * (8 * padStep + groupGap);
+  el("rect", { x: x0 - 16, y: dotY - 16, width: 8 * padStep + 4, height: 32, rx: 8, fill: "var(--board)" });
+  pads.forEach(([pad, pin, , wire], i) => {
+    const x = x0 + i * padStep;
+    const kind = !pin ? "pin" : pin === "GND" ? "gnd" : pad.startsWith("AB") ? "row" : "col";
+    const shared = pad === "AUD1" || pad === "AUD2";
+    if (pad !== "AUD2") {
+      const cx = shared ? x + padStep / 2 : x;
+      el("circle", { cx, cy: dotY, r: 8, fill: wire ? WIRE[wire] : `var(--${kind})`, stroke: wire ? `var(--${kind})` : "none", "stroke-width": 3 });
+    }
+    el("text", { x: x + 4, y: dotY - 22, fill: pin ? "var(--ink)" : "var(--muted)", "font-size": 11, "font-weight": pin ? 700 : 400,
+      transform: `rotate(-60 ${x + 4} ${dotY - 22})` }, pad);
+    if (pin) el("text", { x: x + 4, y: dotY + 24, fill: `var(--${kind})`, "font-size": 11, "font-weight": 700, "text-anchor": "end",
+      transform: `rotate(-60 ${x + 4} ${dotY + 24})` }, pin === "GND" ? "−rail" : pin);
+  });
+});
+
+// The screen (TFT 1.69", ST7789V2): header pins in their printed order, BLK on the left.
+svg = document.getElementById("screen");
+const SCREEN = [["BLK", null, "pin"], ["CS", "D15", "tft"], ["DC", "D4", "tft"], ["RES", "D5", "tft"],
+  ["SDA", "D13", "tft"], ["SCL", "D14", "tft"], ["VCC", "+rail", "power"], ["GND", "−rail", "gnd"]];
+{
+  const x0 = 34, pinStep = 28;
+  el("rect", { x: x0 - 16, y: dotY - 16, width: 8 * pinStep + 4, height: 32, rx: 8, fill: "var(--board)" });
+  SCREEN.forEach(([name, to, kind], i) => {
+    const x = x0 + i * pinStep;
+    el("circle", { cx: x, cy: dotY, r: 8, fill: `var(--${kind})` });
+    el("text", { x: x + 4, y: dotY - 22, fill: to ? "var(--ink)" : "var(--muted)", "font-size": 11, "font-weight": to ? 700 : 400,
+      transform: `rotate(-60 ${x + 4} ${dotY - 22})` }, name);
+    if (to) el("text", { x: x + 4, y: dotY + 24, fill: `var(--${kind})`, "font-size": 11, "font-weight": 700, "text-anchor": "end",
+      transform: `rotate(-60 ${x + 4} ${dotY + 24})` }, to);
+  });
+  el("text", { x: x0 + 8 * pinStep + 10, y: dotY + 4, fill: "var(--muted)", "font-size": 12 }, "3.3 V only: VCC never to VIN.  BLK: leave unconnected.");
+}
+</script>

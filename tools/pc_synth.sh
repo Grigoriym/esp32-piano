@@ -30,3 +30,5 @@ while kill -0 $SYNTH 2>/dev/null && kill -0 $BRIDGE 2>/dev/null; do
     fi
     read -rt 1 <> <(:) || true
 done
+# One of the two died: fail, so systemd restarts the pair.
+exit 1

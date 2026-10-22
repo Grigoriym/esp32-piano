@@ -80,6 +80,10 @@ main/wifi_secrets.h` (fill in, gitignored; same network as mukklet), then
 `. ~/esp/esp-idf/export.sh && idf.py set-target esp32 && idf.py build`. Flash
 with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 `rm sdkconfig` and build again.
+- `main/display.c`, `canvas.c`, `font.c`, `font_data.c` (+ `tools/gen_font.py`)
+  are lifted from mukklet (pins changed); `ui.c` (pure, host-tested) draws
+  the screen, `screen.c` runs it in its own task on core 1 and redraws when
+  the state `main.c` hands it (`screen_set`, every scan) changes.
 - `main/main.c`: GPIO scan (rows `AB0`–`AB7` pulled low one at a time,
   columns `EF0`–`EF7` read), serial log, glue. The logic is in pure files
   (no ESP-IDF includes, host-tested): `matrix.c` (debounce 3 scans, ghost
@@ -104,10 +108,19 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   installed (symlink in `~/.config/systemd/user/`, enabled 2026-10-13). Log:
   `journalctl --user -u chicco-piano`. The path in it is hardcoded to
   `~/proj/grappim/esp32-piano`.
+- `tools/chicco-piano.desktop`: "Chicco Piano" in the app menu, restarts the
+  service (symlink in `~/.local/share/applications/`, 2026-10-22).
 - `docs/cheatsheet.html`: what every key and button does, the Megalovania
   opening as key numbers, a metronome. Published as a private artifact:
   https://claude.ai/artifact/Ttss3MnAfWboWeEaJDS2zC (republish from this file
   after a mapping change).
+- `docs/wiring.html`: **the wiring doc**, every DevKit pin and what goes on it
+  (local page, open in a browser; not published). Update it with every
+  wiring change. 2026-10-21: `EF0`–`EF3` moved to D34/D35/VP/VN with 10 kΩ
+  pull-ups (firmware too), all 32 keys checked by the user. Screen (TFT 1.69",
+  HSPI: SCL D14, SDA D13, CS D15, RES D5, DC D4, BLK open) works, shows
+  `ui.c` (sound, volume, octave, beat, loop, DEMO, PC link); the user checked
+  it. Left for the amp: D2 only (see the trap below).
 - The BLE-MIDI version (NimBLE, `ble_midi.c`) is in git at `923500c`.
 - **The four checks** (from mukklet, `FIRMWARE_PLAYBOOK.md`): `tools/test.sh`
   (host tests in `test/`, gcc + ASan/UBSan, Unity from `$IDF_PATH`),
@@ -128,7 +141,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (another source port) made every packet vanish with no error on either side.
 - **Key tests: read the PC side, not serial.** Every serial capture resets
   the board (CP2102 auto-reset) and comes back with a screenful of stale
-  `rst:` lines before the real boot log. For keys: `aseqdump` subscribed to
+  `rst:` lines before the real boot log. Boot checks:
+  `~/.espressif/python_env/idf*_env/bin/python tools/serial_log.py <s> "<regex>"`
+  (from mukklet, port `/dev/ttyUSB0`). For keys: `aseqdump` subscribed to
   "Chicco Piano", through `stdbuf -oL` when written to a file (block-buffered
   otherwise, lost on kill). Serial only for boot checks after a flash.
   aseqdump shows order, not timing: tempos and bar-line timing are checked by
@@ -143,6 +158,15 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   rest; a hard press always registers. The user moved the board and it
   changed. After the user reseated it, all 32 played with a normal press
   (2026-10-13); key 20 still felt a bit off but registered.
+- **A whole column reads "always pressed" (every key on it DOWN at boot) =
+  its pull-up goes to GND, not 3V3.** 2026-10-21: `EF0`–`EF3` on D34-VN, the
+  breadboard's + rail was tied to GND; D34 read 0 V. Measure the pin against
+  the DevKit's own GND pin, not a rail (a rail can be split or miswired).
+- **Screen with CS on GND and RES on 3V3: backlight only, no picture**
+  (2026-10-21, SPI mode 0, wiring checked by continuity). With CS on D15 and
+  RES on D5, as on mukklet, it works. Untried: CS on GND with SPI mode 3
+  (what CS-less ST7789 boards usually need): the way to free D15/D5 for the
+  amp, with the MCP23017 idea (16 key lines over I2C) as the other.
 - **Every button is live**: a press of VOLUME− (or a style button) during a
   test can make the toy go quiet. RESET restores the defaults.
 - esptool prints `Detected crystal freq 15.44 MHz ... Unsupported crystal`
@@ -187,6 +211,26 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   notifications (blueman's ConnectionNotifier); the siblings use WiFi and
   never had that. Custom UDP + a PC bridge rather than RTP-MIDI: no extra
   package, and the bridge gives a fixed ALSA port.
+- 2026-10-17: milestone 4 started. Direction B too: the toy's own speaker
+  (8 Ω 1 W) on the free I2S amp module. Every comfortable GPIO is taken by
+  the scan, so `EF` columns move to input-only pins (external 10 kΩ
+  pull-ups to 3V3), freeing outputs for I2S. Done 2026-10-21 with 4 columns
+  (D34/D35/VP/VN); the freed pins went to the screen, see 2026-10-21.
+  Power: NiMH AAs in the toy's own battery box (cleaned, no corrosion),
+  charged outside; LiPo + charger module kept as a later option.
+  Supply: one fixed-5 V buck-boost (4 NiMH run from ~5.8 V fresh to ~4.0 V,
+  across 5 V; the amp takes 3.3-5 V) feeding the ESP32's VIN/5V and the
+  amp's VCC. Board in the toy: the DevKit already in use is allowed, the
+  ESP32 mini isn't required (the user, 2026-10-17).
+  Printing, if needed: mukklet's `enclosure/` and the
+  `enclosure-preprint-review` skill (`../agentic-grappim/skills/`).
+- 2026-10-21: a screen (the user's idea): the free TFT 1.69" (the bigger one,
+  as on mukklet, not the 0.96" OLED), showing sound, volume, octave, beat,
+  loop, DEMO and the PC link. It took 5 pins (SCL/SDA/DC/CS/RES), so the amp
+  has only D2 left and needs a pin decision first: CS on GND with SPI mode 3
+  (untried, frees D15/D5) or an MCP23017 (the 16 key lines over I2C: 4 wires
+  to the slot instead of 17, frees 16 pins; ~3-4 ms scan instead of 2; not
+  in Homebox, a purchase). Battery and audio postponed (the user).
 
 ## Next step
 State on 2026-10-13 (end of session): **MVP done.** Every key and button
@@ -200,11 +244,53 @@ FluidSynth+PipeWire at 64 samples 3-5); the user finds it fine.
 - SELECT drum beats done 2026-10-13, checked on the toy (sequence on the PC
   side; the user listened: fine). TEMPO+/- stay octave, each beat has a fixed
   tempo. A loop recorded over a beat isn't lined up with it (could come later).
-- Ideas the user hasn't picked from yet: direction B (own synth on the
-  I2S amp into the toy's speaker, no PC needed), then milestone 4 (inside
-  the toy: power, mounting, battery life). Four checks: done 2026-10-13.
+- Milestone 4 under way (decisions 2026-10-17 above). Four checks: done
+  2026-10-13.
+- Measured 2026-10-17, all in `enclosure/pages/caliper.html` (same shape as
+  mukklet's caliper guide; mark a step `done` with its value as numbers come
+  in, part sizes also go to Homebox). The gist: 26 mm between the main board
+  and the back shell's floor (12 front + 14 back), 14 mm tall capacitors, so
+  12 mm over them. Two flat strips on the back shell floor, between the
+  speaker and the round boss and between the boss and the battery box,
+  ~36 × 117 each; the 37 mm next to the long rib lands over the key board
+  (not measured there), the other 80 mm over the main board. The back shell
+  closes as a left-right mirror: measure both shells from the keys-side wall.
+- Layout sketch (`enclosure/pages/layout-sketch.jpg`, drawn from those
+  numbers): amp under the speaker, ESP32 mini above the battery box, a short
+  I2S + power bundle between them. Amp is 11.13 tall with its upright
+  headers: solder wires to the pins (a Dupont plug adds ~14), or unsolder the
+  headers (the user is fine with that).
+- The old chip board's tabs sit in slots, not holes; its pads are 2.52 apart
+  (1st to 8th 17.63), so an 8-pin 2.54 header strip soldered onto each slot
+  pad group is 0.15 off over 8: fine. Replaces 17 loose wires.
+- **Milestone 4 steps: `docs/MILESTONE4.md`**, one at a time, ticked with
+  date and result. Step 1 (buck-boost) waits for the user to order one from
+  the shortlist there; the user will say when it's in hand.
+- **State 2026-10-21 (end of session):** keys on the new pins and the
+  screen work, checked by the user. Not committed yet, and the four checks
+  haven't run on the new files (`git add` them first: format and lint only
+  see tracked files). Next: the amp's pins (decision 2026-10-21), then the
+  amp test, then the NiMH batteries.
+- **The amp (planned for 2026-10-21, postponed):** The amp is new here: `esp32-hw-checks` first (rule), it has no
+  amp test yet. Chips printed on the board: ES7148 (DAC) + PAM8403 (amp);
+  speaker outputs are headers `L+ L- R+ R-` (read off a sharp photo; the
+  Homebox `Pins` field lists only the I2S/line pins). PAM8403 outputs are
+  bridged: the speaker goes on `L+`/`L-`, neither to GND. VCC 3.3-5 V per the
+  board, so feed it from a regulated rail, not straight from the batteries.
+- Deferred: where the chip slot lands under the back shell (decides wire
+  length; check by holding the back shell over the front one). Firmware
+  updates with the case closed (OTA vs a USB hole), mounting.
 
 Open items:
+- `chicco-piano.service` died 1 s after login (2026-10-21 and -22, exit 0;
+  most likely FluidSynth before PipeWire was up). Fixed 2026-10-22:
+  `pc_synth.sh` exits 1 when either program dies, so `Restart=on-failure`
+  restarts it. Check at the next login that it stays up.
+- Homebox, TFT 1.69" (needs the user's OK): one more `In use`
+  (esp32-piano); the CS-on-GND result (blank with SPI mode 0).
+- Homebox, toy entry (needs the user's OK, not asked yet): key board
+  314 × 29 (25 wide from 191 on); removed chip board 75.75 × 15, 11.47 tall,
+  three 8-pad tabs, pads 2.52 apart.
 - Main board marking `9105C` is read off a photo only; read it on the board
   next time the main board is unscrewed (not worth opening it just for this).
 - Button domes: white rubber with a black carbon pill (user's photos
