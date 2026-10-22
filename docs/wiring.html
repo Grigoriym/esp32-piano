@@ -16,6 +16,8 @@
   --gnd: #2e6bd8;
   --tft: #2f9e57;
   --power: #c8323a;
+  --i2c: #0f9aa8;
+  --amp: #c2418f;
   --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
   --font-body: "Nunito", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
@@ -23,13 +25,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558;
-    --board: #0b1030; --pin: #59607f; --row: #f0a050; --col: #b59bff; --gnd: #77a4ff; --tft: #5fd18a; --power: #ff6b70;
+    --board: #0b1030; --pin: #59607f; --row: #f0a050; --col: #b59bff; --gnd: #77a4ff; --tft: #5fd18a; --power: #ff6b70; --i2c: #4fd3e0; --amp: #f07ac0;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558;
-  --board: #0b1030; --pin: #59607f; --row: #f0a050; --col: #b59bff; --gnd: #77a4ff; --tft: #5fd18a; --power: #ff6b70;
+  --board: #0b1030; --pin: #59607f; --row: #f0a050; --col: #b59bff; --gnd: #77a4ff; --tft: #5fd18a; --power: #ff6b70; --i2c: #4fd3e0; --amp: #f07ac0;
   color-scheme: dark;
 }
 body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--font-body); margin: 0; }
@@ -56,7 +58,7 @@ li input:checked + span { color: var(--muted); text-decoration: line-through; }
 .w b { font-weight: 700; }
 .arrow { color: var(--muted); padding-inline: 6px; }
 .extra { display: block; font-family: var(--font-body); font-size: .88rem; color: var(--power); font-weight: 600; }
-.row { color: var(--row); } .col { color: var(--col); } .tft { color: var(--tft); } .power { color: var(--power); } .gnd { color: var(--gnd); }
+.row { color: var(--row); } .col { color: var(--col); } .tft { color: var(--tft); } .power { color: var(--power); } .gnd { color: var(--gnd); } .i2c { color: var(--i2c); } .amp { color: var(--amp); }
 .wire { margin-left: 12px; font-family: var(--font-body); font-size: .88rem; color: var(--muted); }
 .wire i { display: inline-block; width: 22px; height: 8px; border-radius: 4px; border: 1px solid var(--muted); margin-right: 6px; vertical-align: 1px; }
 .note { border-left: 4px solid var(--power); padding: 4px 12px; }
@@ -65,17 +67,21 @@ li input:checked + span { color: var(--muted); text-decoration: line-through; }
 <div class="wrap">
   <header>
     <h1>Chicco Piano wiring</h1>
-    <p class="muted">Wired and checked 2026-10-21: all 32 keys, the screen. Toy batteries out.</p>
+    <p class="muted">With the MCP23017. Toy batteries out.</p>
   </header>
 
   <section>
-    <h2>The boards</h2>
-    <p class="muted">Component side up, USB on the right. Each pin shows what plugs into it.</p>
+    <h2>ESP32 DevKit</h2>
     <div class="box"><svg id="board" viewBox="0 0 760 250" role="img" aria-label="ESP32 DevKit pins and what plugs into each"></svg></div>
-    <p class="muted">The toy's slot pads, left to right as they run top to bottom on the main board. Below each pad: the DevKit pin it goes to.</p>
-    <div class="box"><svg id="slot" viewBox="0 30 760 145" role="img" aria-label="The toy's 24 slot pads and the DevKit pin each goes to"></svg></div>
-    <p class="muted">The screen's 8 pins, in the order printed on its board, BLK first. Below each pin: where it goes.</p>
-    <div class="box"><svg id="screen" viewBox="0 30 760 145" role="img" aria-label="The screen's 8 pins and where each goes"></svg></div>
+    <h2>Toy slot</h2>
+    <div class="box"><svg id="slot" viewBox="0 30 760 145" role="img" aria-label="The toy's slot pads and the MCP23017 pin each goes to"></svg></div>
+    <h2>MCP23017</h2>
+    <div class="box"><svg id="mcp2" viewBox="0 30 760 145" role="img" aria-label="The MCP23017 board's double row and the toy pads on each pair"></svg></div>
+    <div class="box"><svg id="mcp" viewBox="0 30 760 145" role="img" aria-label="The MCP23017 board's single row and where each pin goes"></svg></div>
+    <h2>Screen</h2>
+    <div class="box"><svg id="screen" viewBox="0 30 760 145" role="img" aria-label="The screen's pins and where each goes"></svg></div>
+    <h2>Amp</h2>
+    <div class="box"><svg id="amp" viewBox="0 30 760 145" role="img" aria-label="The amp's pins and where each goes"></svg></div>
   </section>
 </div>
 
@@ -83,21 +89,20 @@ li input:checked + span { color: var(--muted); text-decoration: line-through; }
 // The 24 slot pads as printed on the main board, top to bottom, in its 3 groups
 // (docs/MATRIX.md). [pad, DevKit pin or null = leave empty, needs 10 kΩ, real wire colour]
 const GROUPS = [
-  ["Top group", [["EF7", "D19", 0, "green"], ["EF6", "D18", 0, "black"], ["EF5", "TX2", 0, "yellow"], ["EF4", "RX2", 0, "white"],
-    ["EF3", "VN", 1, "black"], ["EF2", "VP", 1, "yellow"], ["EF1", "D35", 1, "green"], ["EF0", "D34", 1, "white"]]],
-  ["Middle group", [["AB7", "D33"], ["CD0", null], ["AB6", "D32"], ["AB5", "D27"],
-    ["AB4", "D26"], ["AB3", "D25"], ["CPUVDD", null], ["AB2", "D23"]]],
-  ["Bottom group (AUD1 and AUD2 share one solder place)", [["AB1", "D22"], ["AB0", "D21"], ["VDD", null], ["OSC", null],
+  ["Top group", [["EF7", "B7", 0, "green"], ["EF6", "B6", 0, "black"], ["EF5", "B5", 0, "yellow"], ["EF4", "B4", 0, "white"],
+    ["EF3", "B3", 0, "black"], ["EF2", "B2", 0, "yellow"], ["EF1", "B1", 0, "green"], ["EF0", "B0", 0, "white"]]],
+  ["Middle group", [["AB7", "A7"], ["CD0", null], ["AB6", "A6"], ["AB5", "A5"],
+    ["AB4", "A4"], ["AB3", "A3"], ["CPUVDD", null], ["AB2", "A2"]]],
+  ["Bottom group (AUD1 and AUD2 share one solder place)", [["AB1", "A1"], ["AB0", "A0"], ["VDD", null], ["OSC", null],
     ["RESET", null], ["AUD1", null], ["AUD2", null], ["VSS", "GND"]]],
 ];
-const TOY = GROUPS.flatMap(([, pads]) => pads).filter(([, pin]) => pin && pin !== "GND");
 const WIRE = { white: "#ffffff", green: "#1fa83a", yellow: "#f2c200", black: "#111111" };
 
 // The board: pins from the USB end, the USB end drawn on the right.
 const topRow = ["3V3","GND","D15","D2","D4","RX2","TX2","D5","D18","D19","D21","RX0","TX0","D22","D23"];
 const botRow = ["VIN","GND","D13","D12","D14","D27","D26","D25","D33","D32","D35","D34","VN","VP","EN"];
-const role = { "3V3": ["power", "+rail"], GND: ["gnd", "−rail"], D14: ["tft", "SCL"], D13: ["tft", "SDA"], D4: ["tft", "DC"], D15: ["tft", "CS"], D5: ["tft", "RES"] };
-for (const [pad, pin, , wire] of TOY) role[pin] = [pad.startsWith("AB") ? "row" : "col", pad, wire];
+const role = { "3V3": ["power", "+rail"], GND: ["gnd", "−rail"], D14: ["tft", "SCL"], D13: ["tft", "SDA"], D4: ["tft", "DC"], D15: ["tft", "CS"], D5: ["tft", "RES"],
+  D21: ["i2c", "SDA"], D22: ["i2c", "SCL"], D26: ["amp", "BCK"], D25: ["amp", "LCK"], D27: ["amp", "DIN"] };
 let svg = document.getElementById("board");
 const NS = "http://www.w3.org/2000/svg";
 const el = (name, attrs, text) => {
@@ -123,7 +128,7 @@ function row(names, y, labelY, tagY) {
 }
 row(topRow, 80, 106, 46);
 row(botRow, 170, 152, 214);
-el("text", { x: 34, y: 244, fill: "var(--muted)", "font-size": 11 }, "orange = toy row   purple = toy column   green = screen   red = 3V3   blue = GND   grey = empty");
+el("text", { x: 34, y: 244, fill: "var(--muted)", "font-size": 11 }, "teal = MCP23017   pink = amp   green = screen   red = 3V3   blue = GND   grey = empty");
 
 // The slot: 3 groups of 8 pads, EF7 first. AUD1 and AUD2 share one solder place.
 svg = document.getElementById("slot");
@@ -146,21 +151,40 @@ GROUPS.forEach(([, pads], g) => {
   });
 });
 
-// The screen (TFT 1.69", ST7789V2): header pins in their printed order, BLK on the left.
-svg = document.getElementById("screen");
-const SCREEN = [["BLK", null, "pin"], ["CS", "D15", "tft"], ["DC", "D4", "tft"], ["RES", "D5", "tft"],
-  ["SDA", "D13", "tft"], ["SCL", "D14", "tft"], ["VCC", "+rail", "power"], ["GND", "−rail", "gnd"]];
-{
+// A header row: pins in their printed order. [name, where it goes or null = empty, group colour]
+function header(id, pins, note) {
+  svg = document.getElementById(id);
   const x0 = 34, pinStep = 28;
-  el("rect", { x: x0 - 16, y: dotY - 16, width: 8 * pinStep + 4, height: 32, rx: 8, fill: "var(--board)" });
-  SCREEN.forEach(([name, to, kind], i) => {
+  el("rect", { x: x0 - 16, y: dotY - 16, width: pins.length * pinStep + 4, height: 32, rx: 8, fill: "var(--board)" });
+  pins.forEach(([name, to, kind], i) => {
     const x = x0 + i * pinStep;
-    el("circle", { cx: x, cy: dotY, r: 8, fill: `var(--${kind})` });
+    el("circle", { cx: x, cy: dotY, r: 8, fill: `var(--${to ? kind : "pin"})` });
     el("text", { x: x + 4, y: dotY - 22, fill: to ? "var(--ink)" : "var(--muted)", "font-size": 11, "font-weight": to ? 700 : 400,
       transform: `rotate(-60 ${x + 4} ${dotY - 22})` }, name);
     if (to) el("text", { x: x + 4, y: dotY + 24, fill: `var(--${kind})`, "font-size": 11, "font-weight": 700, "text-anchor": "end",
       transform: `rotate(-60 ${x + 4} ${dotY + 24})` }, to);
   });
-  el("text", { x: x0 + 8 * pinStep + 10, y: dotY + 4, fill: "var(--muted)", "font-size": 12 }, "3.3 V only: VCC never to VIN.  BLK: leave unconnected.");
+  note.forEach((line, i) =>
+    el("text", { x: x0 + pins.length * pinStep + 10, y: dotY + 4 + i * 16, fill: "var(--muted)", "font-size": 12 }, line));
 }
+
+// The screen (TFT 1.69", ST7789V2), BLK on the left.
+header("screen", [["BLK", null], ["CS", "D15", "tft"], ["DC", "D4", "tft"], ["RES", "D5", "tft"],
+  ["SDA", "D13", "tft"], ["SCL", "D14", "tft"], ["VCC", "+rail", "power"], ["GND", "−rail", "gnd"]],
+  []);
+
+// The MCP23017 board's single row. RESET and A0-A2 have resistors on the board (seller's
+// schematic: RESET up, A0-A2 down, address 0x20); the check confirms them, so they stay empty.
+header("mcp", [["A2", null], ["A1", null], ["A0", null], ["RESET", null], ["NC/SO", null], ["NC/CS", null],
+  ["SDA/SI", "D21", "i2c"], ["SCL/SCK", "D22", "i2c"], ["GND", "−rail", "gnd"], ["VCC", "+rail", "power"]],
+  []);
+
+// Its double row, pairs as printed (B0/A0 ...): GPAn takes ABn, GPBn takes EFn.
+header("mcp2", [["VCC/GND", null], ["ITB/ITA", null],
+  ...[0, 1, 2, 3, 4, 5, 6, 7].map((n) => [`B${n}/A${n}`, `EF${n}/AB${n}`, "col"])], []);
+
+// The amp, by its printed labels (not in board order): tested this way on the WROVER.
+header("amp", [["VCC", "+rail", "power"], ["GND", "−rail", "gnd"], ["BCK", "D26", "amp"], ["LCK", "D25", "amp"], ["DIN", "D27", "amp"],
+  ["SCK", null], ["L+", "red", "amp"], ["L−", "black", "amp"]],
+  []);
 </script>

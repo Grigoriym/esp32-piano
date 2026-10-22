@@ -24,9 +24,11 @@ result when it is done.
       to 3V3. Done 2026-10-21 with 4 columns: `EF0`–`EF3` on D34/D35/VP/VN
       (`docs/wiring.html`). All 32 keys checked by the user; buttons not
       rechecked one by one. The freed pins went to the screen (CLAUDE.md,
-      decision 2026-10-21), so the amp has only D2 left.
+      decision 2026-10-21), so the amp has only D2 left. Replaced
+      2026-10-22: all 16 lines on an MCP23017 (I2C, D21/D22), no pull-ups;
+      every key checked by the user.
 - [ ] 4. **Amp on the piano firmware**: I2S on 3 pins (pick them first:
-      only D2 is free, see the 2026-10-21 decision), a simple
+      BCK D26 / LCK D25 / DIN D27, `docs/wiring.html`), a simple
       synth voice for the keys (direction B), MIDI over WiFi kept. How the
       two are chosen (setting, button): decide at this step.
 - [ ] 5. **Battery power test**: NiMH → buck-boost → DevKit VIN + amp VCC,

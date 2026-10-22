@@ -84,8 +84,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   are lifted from mukklet (pins changed); `ui.c` (pure, host-tested) draws
   the screen, `screen.c` runs it in its own task on core 1 and redraws when
   the state `main.c` hands it (`screen_set`, every scan) changes.
-- `main/main.c`: GPIO scan (rows `AB0`–`AB7` pulled low one at a time,
-  columns `EF0`–`EF7` read), serial log, glue. The logic is in pure files
+- `main/main.c`: key scan through the MCP23017 (I2C 0x20 on D21/D22; rows
+  `AB0`–`AB7` on port A pulled low one at a time, columns `EF0`–`EF7` on port B
+  read, the chip's pull-ups), serial log, glue. The logic is in pure files
   (no ESP-IDF includes, host-tested): `matrix.c` (debounce 3 scans, ghost
   rectangles; a press that may be a ghost is held back), `keymap.c` (names
   and what every key and button plays), `demo.c` (DEMO: Megalovania intro,
@@ -116,11 +117,11 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   after a mapping change).
 - `docs/wiring.html`: **the wiring doc**, every DevKit pin and what goes on it
   (local page, open in a browser; not published). Update it with every
-  wiring change. 2026-10-21: `EF0`–`EF3` moved to D34/D35/VP/VN with 10 kΩ
-  pull-ups (firmware too), all 32 keys checked by the user. Screen (TFT 1.69",
+  wiring change. 2026-10-22: the 16 toy lines on the MCP23017 (`EFn` → `Bn`,
+  `ABn` → `An`), the 10 kΩ pull-ups gone, all keys checked by the user. Screen (TFT 1.69",
   HSPI: SCL D14, SDA D13, CS D15, RES D5, DC D4, BLK open) works, shows
   `ui.c` (sound, volume, octave, beat, loop, DEMO, PC link); the user checked
-  it. Left for the amp: D2 only (see the trap below).
+  it. Amp (drawn, not wired on the piano yet): BCK D26, LCK D25, DIN D27.
 - The BLE-MIDI version (NimBLE, `ble_midi.c`) is in git at `923500c`.
 - **The four checks** (from mukklet, `FIRMWARE_PLAYBOOK.md`): `tools/test.sh`
   (host tests in `test/`, gcc + ASan/UBSan, Unity from `$IDF_PATH`),
@@ -159,14 +160,14 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   changed. After the user reseated it, all 32 played with a normal press
   (2026-10-13); key 20 still felt a bit off but registered.
 - **A whole column reads "always pressed" (every key on it DOWN at boot) =
-  its pull-up goes to GND, not 3V3.** 2026-10-21: `EF0`–`EF3` on D34-VN, the
+  its pull-up goes to GND, not 3V3.** (The setup before the MCP23017.) 2026-10-21: `EF0`–`EF3` on D34-VN, the
   breadboard's + rail was tied to GND; D34 read 0 V. Measure the pin against
   the DevKit's own GND pin, not a rail (a rail can be split or miswired).
 - **Screen with CS on GND and RES on 3V3: backlight only, no picture**
   (2026-10-21, SPI mode 0, wiring checked by continuity). With CS on D15 and
   RES on D5, as on mukklet, it works. Untried: CS on GND with SPI mode 3
-  (what CS-less ST7789 boards usually need): the way to free D15/D5 for the
-  amp, with the MCP23017 idea (16 key lines over I2C) as the other.
+  (what CS-less ST7789 boards usually need). Not needed since the MCP23017
+  freed the pins (2026-10-22).
 - **Every button is live**: a press of VOLUME− (or a style button) during a
   test can make the toy go quiet. RESET restores the defaults.
 - esptool prints `Detected crystal freq 15.44 MHz ... Unsupported crystal`
@@ -233,7 +234,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   in Homebox, a purchase). Battery and audio postponed (the user).
 - 2026-10-22: the MCP23017 it is (the user ordered one). SPI mode 3 with CS
   on GND not tried. When it arrives: Homebox entry and an `esp32-hw-checks`
-  test first (new module), then the key lines move to it.
+  test first (new module), then the key lines move to it. Done 2026-10-22:
+  the check found it at 0x20 with all 16 inputs high (on the DevKit, not the
+  WROVER), then every key played through it.
 
 ## Next step
 State on 2026-10-13 (end of session): **MVP done.** Every key and button
@@ -269,13 +272,13 @@ FluidSynth+PipeWire at 64 samples 3-5); the user finds it fine.
 - **Milestone 4 steps: `docs/MILESTONE4.md`**, one at a time, ticked with
   date and result. Step 1 (buck-boost) waits for the user to order one from
   the shortlist there; the user will say when it's in hand.
-- **State 2026-10-21 (end of session):** keys on the new pins and the
-  screen work, checked by the user. Not committed yet, and the four checks
-  haven't run on the new files (`git add` them first: format and lint only
-  see tracked files). Next: the amp's pins (decision 2026-10-21), then the
-  amp test, then the NiMH batteries.
+- **State 2026-10-22 (end of session):** the 16 toy lines run through the
+  MCP23017, every key checked by the user; the amp passed its check on the
+  WROVER. Next: the amp on the piano (wire it per `docs/wiring.html`, then
+  milestone 4 step 4: I2S + a synth voice), then the NiMH batteries (step 1,
+  the buck-boost, still to be bought).
 - **The amp:** tested 2026-10-22 in `esp32-hw-checks` (tone plays, see
-  `docs/MILESTONE4.md` step 2); on the piano it waits for the MCP23017. Chips printed on the board: ES7148 (DAC) + PAM8403 (amp);
+  `docs/MILESTONE4.md` step 2); on the piano: next (pins free since 2026-10-22). Chips printed on the board: ES7148 (DAC) + PAM8403 (amp);
   speaker outputs are headers `L+ L- R+ R-` (read off a sharp photo; the
   Homebox `Pins` field lists only the I2S/line pins). PAM8403 outputs are
   bridged: the speaker goes on `L+`/`L-`, neither to GND. VCC 3.3-5 V per the
@@ -285,6 +288,11 @@ FluidSynth+PipeWire at 64 samples 3-5); the user finds it fine.
   updates with the case closed (OTA vs a USB hole), mounting.
 
 Open items:
+- Homebox, needs the user's OK: the WROVER's port is `/dev/ttyUSB0`, CH340
+  (`udevadm` ID_MODEL `USB_Serial`; the DevKit's is `CP2102_USB_to_UART...`),
+  the entry still says "port not checked". The DevKit entry counts 2 in use
+  (desk-display, flipclock) and 1 free, without esp32-piano: check whether the
+  piano's DevKit is that free one.
 - `chicco-piano.service` died 1 s after login (2026-10-21 and -22, exit 0;
   most likely FluidSynth before PipeWire was up). Fixed 2026-10-22:
   `pc_synth.sh` exits 1 when either program dies, so `Restart=on-failure`

@@ -5,9 +5,12 @@
  * lines (docs/MATRIX.md): AB0-AB7 are the rows, EF0-EF7 the columns. Toy
  * batteries out: the only voltage on the lines is the ESP32's 3.3 V.
  *
- * Every line rests as an input with a pull-up. A scan pulls one AB row low at a
- * time and reads the EF columns: a column that follows it low has a pressed
- * key or button at that crossing. Lines are never driven high.
+ * The 16 lines go to an MCP23017 on I2C (docs/wiring.html): AB0-AB7 on its
+ * port A, EF0-EF7 on port B. Every line rests as an input with the chip's
+ * pull-up. A scan pulls one AB row low at a time and reads the EF columns: a
+ * column that follows it low has a pressed key or button at that crossing.
+ * Lines are never driven high: a row turns into an output only with its latch
+ * at 0.
  *
  * The pure parts, host-tested (tools/test.sh): matrix.c (debounce, ghosts),
  * keymap.c (names, what each key and button plays), demo.c (DEMO button),
@@ -29,7 +32,7 @@
 #include <string.h>
 
 #include "demo.h"
-#include "driver/gpio.h"
+#include "driver/i2c_master.h"
 #include "esp_rom_sys.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -42,20 +45,25 @@
 #include "screen.h"
 #include "wifi.h"
 
-/* Rows AB0-AB7: pulled low one at a time. */
-static const gpio_num_t ROWS[N_ROWS] = {
-    GPIO_NUM_21, GPIO_NUM_22, GPIO_NUM_23, GPIO_NUM_25, GPIO_NUM_26, GPIO_NUM_27, GPIO_NUM_32, GPIO_NUM_33,
-};
-/* Columns EF0-EF7: read. EF0-EF3 sit on input-only pins (no internal pull-up:
- * 10k to 3V3 on the breadboard), freeing 4, 5, 13, 14 for the screen and the
- * amp (docs/wiring.html). */
-static const gpio_num_t COLS[N_COLS] = {
-    GPIO_NUM_34, GPIO_NUM_35, GPIO_NUM_36, GPIO_NUM_39, GPIO_NUM_16, GPIO_NUM_17, GPIO_NUM_18, GPIO_NUM_19,
-};
+/* The MCP23017 (address 0x20: A0-A2 pulled down on the board). IOCON.BANK = 0,
+ * the reset default: each A register is followed by its B twin. */
+#define I2C_SDA    GPIO_NUM_21
+#define I2C_SCL    GPIO_NUM_22
+#define I2C_HZ     400000
+#define MCP_ADDR   0x20
+#define MCP_IODIRA 0x00 /* 1 = input */
+#define MCP_IODIRB 0x01
+#define MCP_GPPUA  0x0C /* 1 = 100k pull-up */
+#define MCP_GPPUB  0x0D
+#define MCP_OLATA  0x14 /* what an output drives */
+#define MCP_GPIOB  0x13
+/* Rows on A, columns on B. If keys come out transposed, the holes of each pair were the other way round. */
+#define ROW_IODIR MCP_IODIRA
+#define COL_GPIO  MCP_GPIOB
 /* CD0 carries no key or button: not wired. */
 
 #define WIFI_TIMEOUT_MS 10000 /* boot waits this long, then scans anyway */
-#define SETTLE_US       50    /* pull-up (~45k) against the toy's wiring */
+#define SETTLE_US       50    /* pull-up (100k) against the toy's wiring */
 #define SCAN_PERIOD_MS  2
 
 static keymap_t keymap;
@@ -63,19 +71,62 @@ static demo_t demo;
 static looper_t looper;
 static rhythm_t rhythm;
 
+static i2c_master_dev_handle_t mcp;
+
+static esp_err_t mcp_write(uint8_t reg, uint8_t v)
+{
+    uint8_t buf[2] = {reg, v};
+    return i2c_master_transmit(mcp, buf, sizeof(buf), 10);
+}
+
+static void mcp_init(void)
+{
+    i2c_master_bus_config_t bus_cfg = {
+        .i2c_port = I2C_NUM_0,
+        .sda_io_num = I2C_SDA,
+        .scl_io_num = I2C_SCL,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .flags.enable_internal_pullup = true,
+    };
+    i2c_master_bus_handle_t bus;
+    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_cfg, &bus));
+    i2c_device_config_t dev_cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
+        .device_address = MCP_ADDR,
+        .scl_speed_hz = I2C_HZ,
+    };
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus, &dev_cfg, &mcp));
+    /* Everything in with pull-ups first, then the row latches at 0. */
+    esp_err_t err = mcp_write(MCP_IODIRA, 0xFF);
+    if (err == ESP_OK) err = mcp_write(MCP_IODIRB, 0xFF);
+    if (err == ESP_OK) err = mcp_write(MCP_GPPUA, 0xFF);
+    if (err == ESP_OK) err = mcp_write(MCP_GPPUB, 0xFF);
+    if (err == ESP_OK) err = mcp_write(MCP_OLATA, 0x00);
+    printf("mcp23017 at 0x%02x: %s\n", MCP_ADDR, esp_err_to_name(err));
+}
+
+/* An I2C error reads as nothing pressed, so a lost chip can't hold a note. */
 static void scan(grid_t g)
 {
-    for (size_t r = 0; r < N_ROWS; r++) {
-        gpio_set_level(ROWS[r], 0);
-        gpio_set_direction(ROWS[r], GPIO_MODE_OUTPUT);
+    static bool failed;
+    esp_err_t err = ESP_OK;
+    for (size_t r = 0; r < N_ROWS && err == ESP_OK; r++) {
+        err = mcp_write(ROW_IODIR, (uint8_t)~(1u << r));
         esp_rom_delay_us(SETTLE_US);
-        uint8_t bits = 0;
-        for (size_t c = 0; c < N_COLS; c++) {
-            if (gpio_get_level(COLS[c]) == 0) bits |= 1u << c;
-        }
-        g[r] = bits;
-        gpio_set_direction(ROWS[r], GPIO_MODE_INPUT);
+        uint8_t reg = COL_GPIO;
+        uint8_t in = 0xFF;
+        if (err == ESP_OK) err = i2c_master_transmit_receive(mcp, &reg, 1, &in, 1, 10);
+        g[r] = (uint8_t)~in;
     }
+    if (mcp_write(ROW_IODIR, 0xFF) != ESP_OK && err == ESP_OK) err = ESP_FAIL;
+    if (err != ESP_OK) {
+        memset(g, 0, sizeof(grid_t));
+        if (!failed) printf("mcp23017: %s, keys read as up\n", esp_err_to_name(err));
+    } else if (failed) {
+        printf("mcp23017: back\n");
+    }
+    failed = err != ESP_OK;
 }
 
 static void report(const grid_t old_g, const grid_t new_g)
@@ -129,7 +180,7 @@ static void show(void)
     };
     const rhythm_style_t *beat = rhythm.on ? rhythm_style(rhythm.style) : NULL;
     ui_state_t s;
-    memset(&s, 0, sizeof(s)); /* compared with memcmp: padding too */
+    memset(&s, 0, sizeof(s));
     s.pc = midi_link_connected();
     s.demo = demo.on;
     s.sound = keymap_program_name(keymap.program);
@@ -163,16 +214,7 @@ static void on_cell(size_t r, size_t c, bool down, void *ctx)
 
 void app_main(void)
 {
-    for (size_t i = 0; i < N_ROWS; i++) {
-        gpio_reset_pin(ROWS[i]);
-        gpio_set_direction(ROWS[i], GPIO_MODE_INPUT);
-        gpio_set_pull_mode(ROWS[i], GPIO_PULLUP_ONLY);
-    }
-    for (size_t i = 0; i < N_COLS; i++) {
-        gpio_reset_pin(COLS[i]);
-        gpio_set_direction(COLS[i], GPIO_MODE_INPUT);
-        if (GPIO_IS_VALID_OUTPUT_GPIO(COLS[i])) gpio_set_pull_mode(COLS[i], GPIO_PULLUP_ONLY);
-    }
+    mcp_init();
     screen_init();
     wifi_connect(WIFI_TIMEOUT_MS);
     midi_link_init("chicco-piano");
