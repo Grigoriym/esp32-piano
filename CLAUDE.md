@@ -129,8 +129,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `build/clang` tree), `tools/size_check.sh` (46% flash free by CI's count,
   2026-10-13). Format and lint only see git-tracked files: `git add` new
   ones first. `.github/workflows/ci.yml` runs them on every push to
-  https://github.com/Grigoriym/esp32-piano (private; the siblings are
-  public). First run green 2026-10-13. `tools/piano_bridge.c` is formatted, not
+  https://github.com/Grigoriym/esp32-piano (public since 2026-10-22, like the
+  siblings). First run green 2026-10-13. `tools/piano_bridge.c` is formatted, not
   linted or tested. Right after a push, `gh run list -L1` still shows the
   previous run for a few seconds: wait until the new commit's run is listed
   before `gh run watch`.
