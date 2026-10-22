@@ -231,6 +231,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (untried, frees D15/D5) or an MCP23017 (the 16 key lines over I2C: 4 wires
   to the slot instead of 17, frees 16 pins; ~3-4 ms scan instead of 2; not
   in Homebox, a purchase). Battery and audio postponed (the user).
+- 2026-10-22: the MCP23017 it is (the user ordered one). SPI mode 3 with CS
+  on GND not tried. When it arrives: Homebox entry and an `esp32-hw-checks`
+  test first (new module), then the key lines move to it.
 
 ## Next step
 State on 2026-10-13 (end of session): **MVP done.** Every key and button
@@ -271,8 +274,8 @@ FluidSynth+PipeWire at 64 samples 3-5); the user finds it fine.
   haven't run on the new files (`git add` them first: format and lint only
   see tracked files). Next: the amp's pins (decision 2026-10-21), then the
   amp test, then the NiMH batteries.
-- **The amp (planned for 2026-10-21, postponed):** The amp is new here: `esp32-hw-checks` first (rule), it has no
-  amp test yet. Chips printed on the board: ES7148 (DAC) + PAM8403 (amp);
+- **The amp:** tested 2026-10-22 in `esp32-hw-checks` (tone plays, see
+  `docs/MILESTONE4.md` step 2); on the piano it waits for the MCP23017. Chips printed on the board: ES7148 (DAC) + PAM8403 (amp);
   speaker outputs are headers `L+ L- R+ R-` (read off a sharp photo; the
   Homebox `Pins` field lists only the I2S/line pins). PAM8403 outputs are
   bridged: the speaker goes on `L+`/`L-`, neither to GND. VCC 3.3-5 V per the

@@ -13,10 +13,13 @@ result when it is done.
       €14.86), S13V15F5 (1.5 A), S13V10F5 or S9V11F5 (~1 A, tight at the end
       of a charge). Step-down-only (Mini560, MP1584, LM2596) and step-up-only
       (MT3608) boards don't work: NiMH runs from above 5 V to below it.
-- [ ] 2. **Amp test in `esp32-hw-checks`** (new module, rule): DevKit on
+- [x] 2. **Amp test in `esp32-hw-checks`** (new module, rule): DevKit on
       USB, amp VCC from the DevKit, speaker on `L+`/`L-` (bridged output,
       neither to GND), plays a tone. Add the result to the amp's Homebox
       entry (with the user's OK).
+      Done 2026-10-22 on the Freenove WROVER (the DevKit stays on the piano):
+      BCK 26 / LCK 25 / DIN 22, SCK open, VCC 3.3 V, the kit's 8 Ω 2 W
+      speaker on L+/L-. Tones play; 10% of full scale is quite loud at 3.3 V.
 - [x] 3. **Move `EF` columns to the input-only pins** with 10 kΩ pull-ups
       to 3V3. Done 2026-10-21 with 4 columns: `EF0`–`EF3` on D34/D35/VP/VN
       (`docs/wiring.html`). All 32 keys checked by the user; buttons not
