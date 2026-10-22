@@ -29,10 +29,15 @@ static void header(canvas_t *c, const ui_state_t *s)
     canvas_fill(c, LEFT, 40, RIGHT - LEFT, 1, LINE);
 }
 
+int ui_percent(int midi)
+{
+    return (midi * 100 + 63) / 127; /* rounded */
+}
+
 static void volume(canvas_t *c, int v)
 {
     char num[8];
-    snprintf(num, sizeof(num), "%d", v);
+    snprintf(num, sizeof(num), "%d%%", ui_percent(v));
     canvas_text(c, &FONT_TEXT, LEFT, 112, "Volume", MUTED);
     canvas_fill(c, UI_VOL_X, UI_VOL_Y, UI_VOL_W, UI_VOL_H, LINE);
     canvas_fill(c, UI_VOL_X, UI_VOL_Y, UI_VOL_W * v / 127, UI_VOL_H, ACCENT);

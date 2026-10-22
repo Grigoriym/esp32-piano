@@ -42,6 +42,14 @@ static void test_volume_bar_follows_the_volume(void)
     TEST_ASSERT_NOT_EQUAL(full, canvas_get(&c, UI_VOL_X + UI_VOL_W / 2 + 2, mid));
 }
 
+static void test_percent_from_midi_volume(void)
+{
+    TEST_ASSERT_EQUAL_INT(0, ui_percent(0));
+    TEST_ASSERT_EQUAL_INT(79, ui_percent(100)); /* the default */
+    TEST_ASSERT_EQUAL_INT(50, ui_percent(64));
+    TEST_ASSERT_EQUAL_INT(100, ui_percent(127));
+}
+
 static void test_green_dot_only_while_the_pc_answers(void)
 {
     ui_render(&c, &s);
@@ -87,6 +95,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_volume_bar_follows_the_volume);
+    RUN_TEST(test_percent_from_midi_volume);
     RUN_TEST(test_green_dot_only_while_the_pc_answers);
     RUN_TEST(test_red_only_while_recording);
     RUN_TEST(test_every_state_draws_inside_the_screen);
