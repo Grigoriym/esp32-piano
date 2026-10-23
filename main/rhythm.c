@@ -40,10 +40,10 @@ static const rhythm_style_t STYLES[RHYTHM_STYLES] = {
     {"MARCH", 112, 4, 16, {
         {KICK,      "X.......x......."},
         {SNARE,     "X.xxx.x.X.xxX.xx"}}},
-    {"WALTZ", 96, 2, 6, { /* 3/4 */
-        {KICK,      "X....."},
-        {HAT,       "..x.x."},
-        {SNARE,     "..x.x."}}},
+    {"BALKAN", 126, 4, 8, { /* 2/4, cocek: the kick in 3+3+2 (WALTZ button) */
+        {KICK,      "X..x..x."},
+        {SNARE,     "....X..."},
+        {HAT,       "..x...x."}}},
     {"SAMBA", 100, 4, 16, {
         {LOW_TOM,   "X..xX..xX..xX..x"},
         {MARACAS,   "xxXxxxXxxxXxxxXx"},

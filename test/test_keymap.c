@@ -73,9 +73,10 @@ static void test_octave_stops_at_two(void)
 
 static void test_volume_steps_and_clamps(void)
 {
+    keymap_event(&k, 5, 3, true, midi_rec, &rec); /* VOLUME- from the default 127 */
+    assert_msg(0, 0xb0 | KEY_CH, 7, 111);
+    assert_msg(1, 0xb0 | DRUM_CH, 7, 111);
     keymap_event(&k, 5, 2, true, midi_rec, &rec); /* VOLUME+ */
-    assert_msg(0, 0xb0 | KEY_CH, 7, 116);
-    assert_msg(1, 0xb0 | DRUM_CH, 7, 116);
     keymap_event(&k, 5, 2, true, midi_rec, &rec);
     TEST_ASSERT_EQUAL(127, k.volume);
     for (int i = 0; i < 20; i++) keymap_event(&k, 5, 3, true, midi_rec, &rec);

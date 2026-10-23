@@ -82,6 +82,8 @@ li input:checked + span { color: var(--muted); text-decoration: line-through; }
     <div class="box"><svg id="screen" viewBox="0 30 760 145" role="img" aria-label="The screen's pins and where each goes"></svg></div>
     <h2>Amp</h2>
     <div class="box"><svg id="amp" viewBox="0 30 760 145" role="img" aria-label="The amp's pins and where each goes"></svg></div>
+    <h2>Diode test (temporary)</h2>
+    <div class="box"><svg id="diode" viewBox="0 30 760 130" role="img" aria-label="A 1N4148 between the toy's AB0 wire and the MCP23017's A0, stripe toward A0"></svg></div>
   </section>
 </div>
 
@@ -187,4 +189,20 @@ header("mcp2", [["VCC/GND", null], ["ITB/ITA", null],
 header("amp", [["VCC", "+rail", "power"], ["GND", "−rail", "gnd"], ["BCK", "D26", "amp"], ["LCK", "D25", "amp"], ["DIN", "D27", "amp"],
   ["SCK", null], ["L+", "red", "amp"], ["L−", "black", "amp"]],
   []);
+
+// Diode test: keys 1-8 through a 1N4148 in the AB0 wire. The row pulls current in,
+// so the stripe (cathode) faces the MCP23017.
+svg = document.getElementById("diode");
+el("circle", { cx: 90, cy: 95, r: 9, fill: "var(--row)" });
+el("text", { x: 90, y: 68, fill: "var(--ink)", "font-size": 12, "font-weight": 700, "text-anchor": "middle" }, "AB0");
+el("text", { x: 90, y: 128, fill: "var(--muted)", "font-size": 11, "text-anchor": "middle" }, "toy wire");
+el("line", { x1: 99, y1: 95, x2: 330, y2: 95, stroke: "var(--row)", "stroke-width": 3 });
+el("rect", { x: 330, y: 83, width: 100, height: 24, rx: 5, fill: "#e46a3a" });
+el("rect", { x: 412, y: 83, width: 12, height: 24, fill: "#111111" });
+el("text", { x: 380, y: 68, fill: "var(--ink)", "font-size": 12, "font-weight": 700, "text-anchor": "middle" }, "1N4148");
+el("text", { x: 418, y: 128, fill: "var(--muted)", "font-size": 11, "text-anchor": "middle" }, "stripe");
+el("line", { x1: 430, y1: 95, x2: 661, y2: 95, stroke: "var(--row)", "stroke-width": 3 });
+el("circle", { cx: 670, cy: 95, r: 9, fill: "var(--row)" });
+el("text", { x: 670, y: 68, fill: "var(--ink)", "font-size": 12, "font-weight": 700, "text-anchor": "middle" }, "A0");
+el("text", { x: 670, y: 128, fill: "var(--muted)", "font-size": 11, "text-anchor": "middle" }, "pair B0/A0");
 </script>

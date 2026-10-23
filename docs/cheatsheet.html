@@ -82,6 +82,12 @@ td { padding: 6px 0; border-top: 1px solid var(--line); vertical-align: top; }
 tr:first-child td { border-top: 0; }
 td:first-child { font-weight: 700; padding-right: 12px; white-space: nowrap; }
 td:last-child { color: var(--muted); }
+.chord { text-align: left; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; }
+.chord b { font: 700 1.3rem var(--font-display); }
+.chord span { font: 600 .95rem var(--font-mono); color: var(--muted); }
+.chord[aria-pressed="true"] { background: var(--chick); color: var(--chick-ink); border-color: var(--chick); }
+.chord[aria-pressed="true"] span { color: var(--chick-ink); }
+#ej-chords { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
 .note-small { color: var(--muted); font-size: .88rem; }
 /* metronome */
 .metro { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; grid-template-columns: auto 1fr; gap: 16px 24px; align-items: center; }
@@ -161,6 +167,25 @@ label.check { display: flex; gap: 6px; align-items: center; color: var(--muted);
     </div>
   </section>
 
+  <section aria-labelledby="ej-h">
+    <h2 id="ej-h">Ej, od kad sam se rodio (Sinan Sakić)</h2>
+    <p>The chords, in A minor, as found on chord sites (pesmarica.rs, akordi-online.com). The tune itself isn't written here, only the chords to play under it or to sing over. Press <b>WALTZ</b> for the Balkan sound (accordion), then <b>SELECT</b> for its čoček beat, and change chord every bar (two beats).</p>
+    <div class="groups" id="ej-chords"></div>
+    <p class="note-small">Why these hand positions: the keys are wired as a grid without diodes, so some three-key chords (5 + 8 + 13, for one) make a fourth key look pressed, and the toy then plays neither. These avoid that.</p>
+    <div class="controls">
+      <button id="ej-play" type="button">Listen to the intro</button>
+      <span class="hint">Tap a chord to show its keys on the keyboard above; the intro plays at the metronome's tempo, one chord per two beats.</span>
+    </div>
+    <div class="reading">
+      <span class="hint">Intro, then verse and chorus (one line per sung line):</span>
+      <div class="seq">
+        Intro: Am F G Am F G Am F G F G Am<br>
+        Verse: Am C Dm · Am F G Am<br>
+        Chorus: Am G Am · Am C Dm · Am G Am · Am C Dm F G Am
+      </div>
+    </div>
+  </section>
+
   <section aria-labelledby="btn-h">
     <h2 id="btn-h">Buttons</h2>
     <div class="groups">
@@ -186,7 +211,7 @@ label.check { display: flex; gap: 6px; align-items: center; color: var(--muted);
           <tr><td>NEW AGE</td><td>New age pad; beat: soft ride and rim click, 80 bpm</td></tr>
           <tr><td>DISCO</td><td>Saw lead; beat: four on the floor, 120 bpm</td></tr>
           <tr><td>MARCH</td><td>Trumpet; beat: snare march, 112 bpm</td></tr>
-          <tr><td>WALTZ</td><td>Accordion; beat: waltz in 3/4, 96 bpm</td></tr>
+          <tr><td>WALTZ</td><td>Balkan: accordion; beat: čoček in 2/4, 126 bpm</td></tr>
           <tr><td>SAMBA</td><td>Marimba; beat: samba with shaker and agogo, 100 bpm</td></tr>
           <tr><td>BLUES</td><td>Electric piano; beat: blues shuffle, 88 bpm</td></tr>
         </table>
@@ -438,5 +463,44 @@ label.check { display: flex; gap: 6px; align-items: center; color: var(--muted);
   }
   playBtn.addEventListener("click", play);
   document.getElementById("stop").addEventListener("click", stop);
+  // Ej, od kad sam se rodio: chords as keys, voiced close together so the hand barely moves.
+  // None has three corners of a grid rectangle (two keys in one block of 8, the third
+  // 8 keys from one of them): the toy has no diodes, so such a chord can't be told
+  // from its fourth corner and the firmware holds the note back.
+  const CHORDS = { Am: [5, 8, 12], F: [1, 5, 8], G: [3, 7, 10], C: [8, 12, 15], Dm: [1, 5, 10] };
+  const INTRO = ["Am", "F", "G", "Am", "F", "G", "Am", "F", "G", "F", "G", "Am"];
+  const chordBtns = {};
+  const showChord = name => {
+    for (const c in chordBtns) chordBtns[c].setAttribute("aria-pressed", c === name);
+    highlight(name ? new Set(CHORDS[name]) : riffKeys);
+  };
+  for (const name in CHORDS) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chord"; b.setAttribute("aria-pressed", "false");
+    b.innerHTML = "<b>" + name + "</b><span>keys " + CHORDS[name].join(" ") + "</span>";
+    b.addEventListener("click", () => showChord(b.getAttribute("aria-pressed") === "true" ? null : name));
+    chordBtns[name] = b;
+    document.getElementById("ej-chords").append(b);
+  }
+  const ejBtn = document.getElementById("ej-play");
+  let ejTimers = [];
+  function ejStop() {
+    ejTimers.forEach(clearTimeout); ejTimers = [];
+    showChord(null);
+    ejBtn.textContent = "Listen to the intro";
+  }
+  ejBtn.addEventListener("click", () => {
+    if (ejTimers.length) { ejStop(); return; }
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === "suspended") actx.resume();
+    const bar = 2 * 60 / bpm, t0 = actx.currentTime + 0.05;
+    INTRO.forEach((name, i) => {
+      const t = t0 + i * bar;
+      CHORDS[name].forEach(k => tone(t, BASE + k - 1, bar - 0.05));
+      ejTimers.push(setTimeout(() => showChord(name), (t - actx.currentTime) * 1000));
+    });
+    ejTimers.push(setTimeout(ejStop, (t0 + INTRO.length * bar - actx.currentTime) * 1000));
+    ejBtn.textContent = "Stop";
+  });
 })();
 </script>

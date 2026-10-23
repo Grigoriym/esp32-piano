@@ -22,7 +22,7 @@
 #define BASE_NOTE      53 /* key 1 = F3: the black keys start with a group of three */
 #define VELOCITY       100
 #define VOLUME_STEP    16
-#define DEFAULT_VOLUME 100
+#define DEFAULT_VOLUME 127 /* max: what RESET and boot give */
 #define MAX_OCTAVE     2
 #define DEFAULT_STYLE  1 /* ROCK: SELECT's beat before a style button is pressed */
 

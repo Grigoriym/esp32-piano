@@ -19,7 +19,7 @@ static const uint8_t STYLE_PROGRAM[N_COLS] = {
     88, /* NEW AGE: new age pad */
     81, /* DISCO: saw lead */
     56, /* MARCH: trumpet */
-    21, /* WALTZ: accordion */
+    21, /* WALTZ: accordion, the Balkan sound (rhythm.c: BALKAN beat) */
     12, /* SAMBA: marimba */
     4,  /* BLUES: electric piano */
 };

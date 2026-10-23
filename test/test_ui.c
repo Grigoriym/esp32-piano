@@ -45,7 +45,7 @@ static void test_volume_bar_follows_the_volume(void)
 static void test_percent_from_midi_volume(void)
 {
     TEST_ASSERT_EQUAL_INT(0, ui_percent(0));
-    TEST_ASSERT_EQUAL_INT(79, ui_percent(100)); /* the default */
+    TEST_ASSERT_EQUAL_INT(79, ui_percent(100));
     TEST_ASSERT_EQUAL_INT(50, ui_percent(64));
     TEST_ASSERT_EQUAL_INT(100, ui_percent(127));
 }
