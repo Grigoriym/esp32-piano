@@ -84,6 +84,17 @@ static void test_every_corner_of_a_rectangle_is_ambiguous(void)
     TEST_ASSERT_FALSE(matrix_ambiguous(chord, 0, 1));
 }
 
+/* Key 5 (row 0, col 4) has a diode: a ghost can't run backwards through it,
+ * so the corner diagonal to it is real. The other corners stay ambiguous. */
+static void test_corner_diagonal_to_a_diode_is_real(void)
+{
+    grid_t four = {[0] = 0x90, [1] = 0x90};          /* keys 5, 8, 13, 16 */
+    TEST_ASSERT_FALSE(matrix_ambiguous(four, 1, 7)); /* 16, across from 5 */
+    TEST_ASSERT_TRUE(matrix_ambiguous(four, 0, 4));  /* 5, across from 16 */
+    TEST_ASSERT_TRUE(matrix_ambiguous(four, 1, 4));  /* 13, across from 8 */
+    TEST_ASSERT_TRUE(matrix_ambiguous(four, 0, 7));  /* 8, across from 13 */
+}
+
 static void test_sync_reports_presses_and_releases(void)
 {
     events_t e = {0};
@@ -136,6 +147,7 @@ int main(void)
     RUN_TEST(test_prev_holds_the_grid_before);
     RUN_TEST(test_rectangle_needs_two_rows_with_two_shared_columns);
     RUN_TEST(test_every_corner_of_a_rectangle_is_ambiguous);
+    RUN_TEST(test_corner_diagonal_to_a_diode_is_real);
     RUN_TEST(test_sync_reports_presses_and_releases);
     RUN_TEST(test_ghost_corner_is_held_back);
     return UNITY_END();

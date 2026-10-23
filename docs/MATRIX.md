@@ -9,7 +9,8 @@ Status: piano keys measured (2026-10-11) and confirmed on the ESP32 slot lines (
   `teardown/06-key-board-pads-closeup.jpg`). Key board marked `9105B 1995.7`.
 - The key board reaches the main board through two grey ribbons: one with
   8 wires, one with 4 (map below).
-- No diodes on the key board: it carries only traces, pads and black
+- Since 2026-10-23 key 5 has a 1N4148 in its `EF4` line (`key-board-map.html`).
+- No diodes on the key board as bought: it carries only traces, pads and black
   printed bars. The only diode seen on the main board is D1 (1N4148) next
   to the `SPK` pads, one part, not one per key
   (`teardown/08-main-board-components.jpg`).
@@ -57,6 +58,13 @@ soldered to the main board.
 
 In short: key = (4-wire number − 1) × 8 + 8-wire number. Example: key 20 is
 4-wire 3 with 8-wire 4.
+
+On the key board, key 1's pad is at the end away from the `9105B` marking;
+the 5th pad from that end is key 5 (checked 2026-10-22 by bridging its
+combs with a metal tip: the log showed `key 5`, `EF4+AB0`). Its two combs, measured
+in Ω the same day (USB unplugged): the top one reads 0 Ω to key 1's top comb
+(`AB0`), the bottom one, whose short tail runs straight into a black bar,
+reads 14-16 MΩ to both of key 1's combs (open): that tail is the `EF4` side.
 
 ## Buttons
 Measured by continuity at the small board's solder points while pressing.

@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How the Key Scan Works</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --fg: #1f1f1f; --muted: #6b6b6b; --line: #d4d0c8;
+    --high: #e8590c; --low: #1c7ed6; --float: #b9b5ad;
+    --key: #ffffff; --key-pressed: #2f2f2f; --ghost: #c2255c; --card: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17171a; --fg: #ececec; --muted: #9a9a9a; --line: #3a3a40;
+      --high: #ff8a3d; --low: #4dabf7; --float: #55555c;
+      --key: #26262b; --key-pressed: #ececec; --ghost: #f06595; --card: #1f1f23;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 16px/1.5 system-ui, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 1.5rem; margin: 0.5rem 0; }
+  p { margin: 0.4rem 0; }
+  .card { background: var(--card); border: 1px solid var(--line);
+          border-radius: 10px; padding: 12px; margin: 12px 0; }
+  svg { width: 100%; height: auto; display: block; user-select: none; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button { font: inherit; padding: 6px 12px; border-radius: 6px;
+           border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
+  button:hover { border-color: var(--fg); }
+  label { color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; margin-right: 16px; }
+  .sw { width: 22px; height: 5px; border-radius: 3px; display: inline-block; }
+  #status { font-size: 1.05rem; min-height: 3em; }
+  #status b.k { color: var(--low); }
+  #status b.g { color: var(--ghost); }
+  ol li { margin: 0.3rem 0; }
+  .key { cursor: pointer; }
+  text { fill: var(--fg); font-family: system-ui, sans-serif; }
+  .mut { fill: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>How the key scan works</h1>
+  <p><b>Click keys</b> to press or release them. Watch the firmware drain one row at a
+     time, and see which column wires drop to 0.</p>
+
+  <div class="card">
+    <div class="controls">
+      <button id="play">Pause</button>
+      <button id="step">Next step</button>
+      <label>Speed <input id="speed" type="range" min="150" max="2500" value="1400" step="50"></label>
+      <button id="clear">Release all</button>
+      <button id="ghost">Try 5 + 8 + 13</button>
+    </div>
+    <svg id="sv" viewBox="0 0 760 470" aria-label="Key matrix scan animation"></svg>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--high)"></i>3.3 V, reads 1</span>
+      <span><i class="sw" style="background:var(--low)"></i>0 V (drained), reads 0</span>
+      <span><i class="sw" style="background:var(--float)"></i>row left alone (floating)</span>
+    </div>
+    <p id="status"></p>
+  </div>
+
+  <div class="card">
+    <ol>
+      <li><b>At rest every column is at 3.3 V.</b> The pull-up at the top of each column
+          (the zigzag, a weak resistor) keeps "filling" the wire. The chip reads <b>1</b>.</li>
+      <li><b>The firmware drains one row</b> by connecting it to 0 V. Only one, so it knows which row it is testing.</li>
+      <li><b>A pressed key joins its row and its column.</b> If its row is the drained one,
+          the column empties through the key and reads <b>0</b>. The thin pull-up can't keep it full.</li>
+      <li><b>The chip reads all 8 columns at once.</b> A 0 in column <i>c</i> while row <i>r</i>
+          is drained means the key at that crossing is pressed.</li>
+      <li><b>Next row, and repeat.</b> On the real toy all 4 rows take a few milliseconds, and the
+          whole pass repeats hundreds of times a second.</li>
+    </ol>
+    <p>"Try 5 + 8 + 13" shows the problem we stopped at: when row <code>AB1</code> is drained, the current
+       sneaks backwards through key 5, so <code>EF7</code> drops too and key 16 shows up even though nobody pressed it.</p>
+  </div>
+</main>
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+const sv = document.getElementById('sv');
+const ROWS = 4, COLS = 8;
+const colX = c => 165 + c * 75;
+const rowY = r => 175 + r * 62;
+const RAIL_Y = 40, PU_TOP = 52, PU_BOT = 100, COL_BOT = 400;
+
+const pressed = new Set();      // key numbers 1..32
+let drained = 0;                // row being scanned
+let playing = true, timer = null;
+
+function el(name, attrs, parent = sv) {
+  const e = document.createElementNS(NS, name);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  parent.appendChild(e);
+  return e;
+}
+const keyOf = (r, c) => r * 8 + c + 1;
+
+// Which wires are connected to the drained row, through pressed keys (real wiring, ghosts included).
+function lowWires() {
+  const low = new Set(['r' + drained]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const k of pressed) {
+      const r = 'r' + Math.floor((k - 1) / 8), c = 'c' + ((k - 1) % 8);
+      if (low.has(r) !== low.has(c)) { low.add(r); low.add(c); grew = true; }
+    }
+  }
+  return low;
+}
+
+// static drawing
+el('text', { x: 40, y: RAIL_Y + 5, 'font-size': 14, 'font-weight': 600 }).textContent = '3.3 V';
+el('line', { x1: 110, y1: RAIL_Y, x2: 720, y2: RAIL_Y, stroke: 'var(--high)', 'stroke-width': 4 });
+const colLines = [], colBits = [], rowLines = [], rowTags = [], keyEls = [];
+for (let c = 0; c < COLS; c++) {
+  const x = colX(c);
+  // pull-up resistor (zigzag)
+  let d = `M${x},${RAIL_Y} L${x},${PU_TOP}`;
+  for (let i = 0; i < 6; i++) d += ` L${x + (i % 2 ? -7 : 7)},${PU_TOP + 6 + i * 7}`;
+  d += ` L${x},${PU_BOT}`;
+  el('path', { d, fill: 'none', stroke: 'var(--high)', 'stroke-width': 2 });
+  el('text', { x: x + 12, y: PU_TOP + 26, 'font-size': 10, class: 'mut' }).textContent = c === 0 ? 'pull-up' : '';
+  el('text', { x, y: PU_BOT + 22, 'font-size': 13, 'text-anchor': 'middle', 'font-weight': 600 }).textContent = 'EF' + c;
+  colLines.push(el('line', { x1: x, y1: PU_BOT + 30, x2: x, y2: COL_BOT, 'stroke-width': 5, 'stroke-linecap': 'round' }));
+  colBits.push(el('text', { x, y: COL_BOT + 34, 'font-size': 24, 'text-anchor': 'middle', 'font-weight': 700 }));
+}
+el('text', { x: 40, y: COL_BOT + 32, 'font-size': 13, class: 'mut' }).textContent = 'chip reads';
+for (let r = 0; r < ROWS; r++) {
+  const y = rowY(r);
+  rowLines.push(el('line', { x1: 110, y1: y, x2: 720, y2: y, 'stroke-width': 5, 'stroke-linecap': 'round' }));
+  el('text', { x: 62, y: y + 5, 'font-size': 13, 'font-weight': 600 }).textContent = 'AB' + r;
+  rowTags.push(el('text', { x: 6, y: y + 5, 'font-size': 12, 'font-weight': 700 }));
+}
+for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+  const k = keyOf(r, c);
+  const g = el('g', { class: 'key' });
+  const ring = el('circle', { cx: colX(c), cy: rowY(r), r: 17, 'stroke-width': 2.5 }, g);
+  const t = el('text', { x: colX(c), y: rowY(r) + 5, 'font-size': 13, 'text-anchor': 'middle', 'font-weight': 600 }, g);
+  t.textContent = k;
+  g.addEventListener('click', () => { pressed.has(k) ? pressed.delete(k) : pressed.add(k); render(); });
+  keyEls[k] = { ring, t };
+}
+
+function render() {
+  const low = lowWires();
+  for (let r = 0; r < ROWS; r++) {
+    const isDrained = r === drained;
+    const isLow = low.has('r' + r);
+    rowLines[r].setAttribute('stroke', isLow ? 'var(--low)' : 'var(--float)');
+    rowTags[r].textContent = isDrained ? '0 V →' : '';
+    rowTags[r].setAttribute('fill', 'var(--low)');
+  }
+  const seen = [];
+  for (let c = 0; c < COLS; c++) {
+    const isLow = low.has('c' + c);
+    colLines[c].setAttribute('stroke', isLow ? 'var(--low)' : 'var(--high)');
+    colBits[c].textContent = isLow ? '0' : '1';
+    colBits[c].setAttribute('fill', isLow ? 'var(--low)' : 'var(--high)');
+    if (isLow) seen.push(keyOf(drained, c));
+  }
+  for (let k = 1; k <= 32; k++) {
+    const { ring, t } = keyEls[k];
+    const r = Math.floor((k - 1) / 8), c = (k - 1) % 8;
+    const on = pressed.has(k);
+    const carrying = on && low.has('r' + r);
+    const ghost = !on && seen.includes(k);
+    ring.setAttribute('fill', on ? 'var(--key-pressed)' : 'var(--key)');
+    ring.setAttribute('stroke', ghost ? 'var(--ghost)' : carrying ? 'var(--low)' : on ? 'var(--key-pressed)' : 'var(--line)');
+    ring.setAttribute('stroke-width', ghost || carrying ? 5 : 2.5);
+    ring.setAttribute('stroke-dasharray', ghost ? '5 4' : 'none');
+    t.setAttribute('fill', on ? 'var(--bg)' : ghost ? 'var(--ghost)' : 'var(--fg)');
+  }
+  const st = document.getElementById('status');
+  let s = `Draining row <b>AB${drained}</b> (keys ${drained * 8 + 1}–${drained * 8 + 8}). `;
+  if (!seen.length) s += 'All columns read 1: no key pressed on this row.';
+  else s += 'Columns at 0 → ' + seen.map(k => pressed.has(k)
+      ? `<b class="k">key ${k}</b>`
+      : `<b class="g">key ${k} (ghost! not pressed)</b>`).join(', ') + '.';
+  st.innerHTML = s;
+}
+
+function tick() { drained = (drained + 1) % ROWS; render(); }
+function schedule() {
+  clearInterval(timer);
+  if (playing) timer = setInterval(tick, +document.getElementById('speed').value);
+}
+document.getElementById('play').onclick = e => {
+  playing = !playing; e.target.textContent = playing ? 'Pause' : 'Play'; schedule();
+};
+document.getElementById('step').onclick = () => tick();
+document.getElementById('speed').oninput = schedule;
+document.getElementById('clear').onclick = () => { pressed.clear(); render(); };
+document.getElementById('ghost').onclick = () => {
+  pressed.clear(); [5, 8, 13].forEach(k => pressed.add(k)); render();
+};
+
+pressed.add(5);
+render();
+schedule();
+</script>
+</body>
+</html>

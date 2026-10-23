@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Key Board Map</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Same look as wiring.html. */
+:root {
+  --bg: #f6f7fb; --panel: #ffffff; --ink: #1c2240; --muted: #5b6283; --line: #d9dcea;
+  --row: #d07a1f; --col: #7b4fd0; --ok: #2f9e57; --seen: #1f7fd0; --photo: #c98a00; --open: #9aa0bb;
+  --bar: #222; --copper: #c58a4a;
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558;
+    --row: #f0a050; --col: #b59bff; --ok: #5fd18a; --seen: #5aaeff; --photo: #f0c040; --open: #59607f;
+    --bar: #000; --copper: #d9a066; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558;
+  --row: #f0a050; --col: #b59bff; --ok: #5fd18a; --seen: #5aaeff; --photo: #f0c040; --open: #59607f;
+  --bar: #000; --copper: #d9a066; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--font-body); margin: 0; }
+.wrap { max-width: 900px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 56px; display: flex; flex-direction: column; gap: 26px; }
+h1, h2 { font-family: var(--font-display); font-weight: 600; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(1.8rem, 5vw, 2.4rem); }
+h2 { font-size: 1.3rem; }
+p { margin: 0; max-width: 70ch; }
+.muted { color: var(--muted); }
+section { display: flex; flex-direction: column; gap: 10px; }
+.box { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; overflow-x: auto; }
+svg { display: block; width: 100%; height: auto; }
+svg text { font-family: var(--font-mono); fill: var(--ink); }
+img { display: block; max-width: 100%; height: auto; border-radius: 8px; }
+code { font-family: var(--font-mono); font-size: 0.9em; }
+.chip { display: inline-block; font: 700 0.75rem var(--font-mono); padding: 1px 7px; border-radius: 999px; color: #fff; vertical-align: 1px; }
+.chip.measured { background: var(--ok); } .chip.seen { background: var(--seen); }
+.chip.photo { background: var(--photo); color: #222; } .chip.open { background: var(--open); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; }
+table { border-collapse: collapse; width: 100%; }
+td, th { text-align: left; padding: 6px 8px; border-top: 1px solid var(--line); vertical-align: top; }
+th { width: 9em; color: var(--muted); font-weight: 600; }
+.pad { cursor: pointer; }
+ul.log { margin: 0; padding-left: 1.2em; }
+ul.log li { margin: 4px 0; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+figcaption { color: var(--muted); font-size: 0.9rem; }
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Key board map</h1>
+    <p class="muted">The key board (<code>9105B 1995.7</code>), pads up, ribbons at the bottom. What each key's two lines do on the board, and where a diode could go. Filled in as we find things.</p>
+  </header>
+
+  <section>
+    <div class="legend">
+      <span><span class="chip measured">measured</span> meter or serial log</span>
+      <span><span class="chip seen">seen</span> the user, on the board</span>
+      <span><span class="chip photo">photo</span> read off a photo, to check</span>
+      <span><span class="chip open">open</span> not known yet</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>The board</h2>
+    <p class="muted">Key 1 at the end away from <code>9105B</code> (measured 2026-10-22), drawn on the right as in the photos. Pad colour = what we know about that key's diode spot. Click a pad.</p>
+    <div class="box"><svg id="board" viewBox="0 0 900 120" aria-label="Pads of the key board"></svg></div>
+  </section>
+
+  <section>
+    <h2 id="detail-title">Key 5</h2>
+    <div class="box"><table id="detail"></table></div>
+  </section>
+
+  <section>
+    <h2>Key 5, both lines</h2>
+    <p class="muted">What one key looks like electrically. The bottom comb's line is the one that gets the diode.</p>
+    <div class="box">
+      <svg viewBox="0 0 860 300" aria-label="Key 5 lines">
+        <!-- AB0 side -->
+        <line x1="40" y1="40" x2="820" y2="40" stroke="var(--row)" stroke-width="5"/>
+        <text x="40" y="28" font-size="14" style="fill:var(--row)">AB0 line (shared: keys 1–8)</text>
+        <line x1="430" y1="40" x2="430" y2="90" stroke="var(--row)" stroke-width="4"/>
+        <!-- pad -->
+        <circle cx="430" cy="120" r="32" fill="var(--copper)"/>
+        <text x="430" y="125" font-size="14" text-anchor="middle" style="fill:#222">pad 5</text>
+        <text x="475" y="98" font-size="12" class="muted">top comb</text>
+        <text x="475" y="150" font-size="12">bottom comb</text>
+        <!-- bar -->
+        <line x1="430" y1="152" x2="430" y2="165" stroke="var(--col)" stroke-width="4"/>
+        <rect x="418" y="165" width="24" height="60" fill="var(--bar)"/>
+        <text x="455" y="200" font-size="12">black bar (crosses the lines below the pads)</text>
+        <!-- B -->
+        <rect x="400" y="225" width="60" height="30" fill="none" stroke="var(--col)" stroke-width="4"/>
+        <text x="430" y="245" font-size="13" text-anchor="middle">B</text>
+        <!-- path left to merge -->
+        <line x1="400" y1="240" x2="200" y2="240" stroke="var(--col)" stroke-width="4" stroke-dasharray="8 6"/>
+        <text x="300" y="232" font-size="12" text-anchor="middle">under bars 6, 7, 8 (photo 23b)</text>
+        <circle cx="200" cy="240" r="7" fill="var(--col)"/>
+        <text x="200" y="272" font-size="12" text-anchor="middle">meets key 13's line</text>
+        <line x1="200" y1="240" x2="60" y2="240" stroke="var(--col)" stroke-width="5"/>
+        <text x="60" y="290" font-size="14" style="fill:var(--col)">EF4 line (shared: 5, 13, 21, 29)</text>
+        <!-- diode zone -->
+        <rect x="205" y="216" width="190" height="48" rx="8" fill="none" stroke="var(--ok)" stroke-width="2" stroke-dasharray="4 4"/>
+        <text x="300" y="210" font-size="12" text-anchor="middle" style="fill:var(--ok)">diode goes somewhere here</text>
+      </svg>
+    </div>
+  </section>
+
+  <section>
+    <h2>Findings</h2>
+    <div class="box"><ul class="log" id="log"></ul></div>
+  </section>
+
+  <section>
+    <h2>Photos</h2>
+    <div class="photos">
+      <figure><img src="teardown/23b-key5-to-key13-path-by-user.jpg" alt="Key 5 to key 13 path, drawn by the user"><figcaption><code>23b</code> key 5's EF4 line from B to key 13's box (pink), drawn by the user</figcaption></figure>
+      <figure><img src="teardown/22-key5-bottom-closeup.jpg" alt="Key 5 bottom close-up"><figcaption><code>22</code> key 5 and its bar, close-up</figcaption></figure>
+      <figure><img src="teardown/18-key-board-key1-end.jpg" alt="Key board, key 1 end"><figcaption><code>18</code> the key 1 end</figcaption></figure>
+      <figure><img src="teardown/19-key-board-middle-4wire.jpg" alt="Key board middle, 4-wire ribbon"><figcaption><code>19</code> middle, the 4-wire ribbon's solder points</figcaption></figure>
+      <figure><img src="teardown/20-key-board-middle-8wire.jpg" alt="Key board middle, 8-wire ribbon"><figcaption><code>20</code> middle, the 8-wire ribbon's solder points</figcaption></figure>
+      <figure><img src="teardown/21-key-board-9105B-end.jpg" alt="Key board, 9105B end"><figcaption><code>21</code> the <code>9105B</code> end</figcaption></figure>
+    </div>
+  </section>
+</div>
+
+<script>
+// ---- Data: edit here as findings come in. status: measured | seen | photo | open ----
+const KEYS = {
+  1: {
+    notes: [
+      ['seen', 'The thin line coming from the right through hole H (photo 22) is key 1\'s, not key 5\'s.'],
+      ['measured', 'Key 1 – key 5: 0 Ω (2026-10-23; combs not noted; fits their shared AB0 top combs).'],
+    ],
+  },
+  5: {
+    ab: ['measured', 'Top comb, AB0: 0 Ω to key 1\'s top comb (2026-10-22).'],
+    ef: ['seen', 'Bottom comb → black bar under the pad → copper box B at the bar\'s lower end → leaves at B\'s top-left corner → one line to the left, under the bars of keys 6, 7 and 8 and past key 9\'s, one step down near key 9 → key 13\'s box (drawn by the user on photo 23b, 2026-10-23).'],
+    bar: ['measured', 'Yes: the bottom comb\'s tail runs into it; it is the EF4 side (2026-10-22).'],
+    diode: ['measured', 'Done. Cut 2026-10-23 on the B → key 13 line, just before key 13\'s box. After the cut: key 5 – key 13 bottom combs OL, key 13 – key 21 bottom combs 391 Ω (key 13 still on EF4). Diode (1N4148) soldered across, stripe on the key 5 side (photo 24). Serial capture after flashing: 5+8+13 pressed 13 times, key 16 never read as pressed (before the diode it always did).'],
+    notes: [
+      ['measured', 'Key 5 – key 13: some ohms, not 0 (2026-10-23; value and combs not noted). Fits two bars in series.'],
+      ['seen', 'H (ringed hole, photo 22) is not on key 5\'s line.'],
+    ],
+  },
+  13: {
+    ef: ['seen', 'Has a copper box like key 5\'s B; key 5\'s EF4 path joins there.'],
+  },
+};
+const LOG = [
+  ['2026-10-11', 'measured', 'Grid: wire pairs for all 32 keys (docs/MATRIX.md). Some lines run through black bars, ~280–300 Ω.'],
+  ['2026-10-22', 'measured', 'Key 1 is at the end away from 9105B. Key 5 = EF4 + AB0 (bridged with a metal tip, serial log). Key 5\'s bottom comb (tail into a black bar) is the EF4 side.'],
+  ['2026-10-23', 'seen', 'Key 5: pad → bar → B is key 5\'s alone; from B a path goes left to key 13\'s box. The line through hole H is key 1\'s.'],
+  ['2026-10-23', 'measured', 'Key 5 – key 13: some ohms. Key 1 – key 5: 0 Ω.'],
+  ['2026-10-23', 'seen', 'The user traced key 5\'s EF4 line from B to key 13\'s box (photo 23b).'],
+  ['2026-10-23', 'measured', 'Cut made next to key 13\'s box. Key 5 – key 13: OL. Key 13 – key 21: 391 Ω.'],
+  ['2026-10-23', 'measured', 'Diode soldered, firmware told (matrix_diodes). Serial: 5+8+13 no longer lights key 16; all 32 keys register.'],
+];
+// ---- end of data ----
+
+const NS = 'http://www.w3.org/2000/svg';
+const row = k => Math.floor((k - 1) / 8), col = k => (k - 1) % 8;
+const rank = { measured: 3, seen: 2, photo: 1, open: 0 };
+const chip = s => `<span class="chip ${s}">${s}</span>`;
+
+function padStatus(k) {
+  const d = KEYS[k]?.diode;
+  return d ? d[0] : (KEYS[k] ? 'photo' : null);
+}
+
+const board = document.getElementById('board');
+let selected = 5;
+const padEls = {};
+for (let k = 1; k <= 32; k++) {
+  const x = 870 - (k - 1) * 27;   // key 1 on the right
+  const g = document.createElementNS(NS, 'g');
+  g.setAttribute('class', 'pad');
+  const c = document.createElementNS(NS, 'circle');
+  c.setAttribute('cx', x); c.setAttribute('cy', 50); c.setAttribute('r', 11);
+  const t = document.createElementNS(NS, 'text');
+  t.setAttribute('x', x); t.setAttribute('y', 85); t.setAttribute('font-size', 11);
+  t.setAttribute('text-anchor', 'middle'); t.textContent = k;
+  g.append(c, t);
+  g.addEventListener('click', () => { selected = k; render(); });
+  board.appendChild(g);
+  padEls[k] = c;
+}
+
+function render() {
+  for (let k = 1; k <= 32; k++) {
+    const c = padEls[k];
+    const s = padStatus(k);
+    c.setAttribute('fill', 'var(--copper)');
+    c.setAttribute('stroke', k === selected ? 'var(--ink)' : s && KEYS[k]?.diode ? `var(--${s === 'measured' ? 'ok' : s})` : 'var(--line)');
+    c.setAttribute('stroke-width', k === selected ? 4 : 3);
+    c.setAttribute('opacity', KEYS[k] ? 1 : 0.55);
+  }
+  const k = selected, d = KEYS[k] || {};
+  document.getElementById('detail-title').textContent = `Key ${k}`;
+  const line = (label, v) => `<tr><th>${label}</th><td>${v ? chip(v[0]) + ' ' + v[1] : chip('open')}</td></tr>`;
+  document.getElementById('detail').innerHTML =
+    `<tr><th>Grid</th><td>${chip('measured')} <code>EF${col(k)}</code> + <code>AB${row(k)}</code> (shares EF${col(k)} with ${[0,1,2,3].map(r => r*8 + col(k) + 1).filter(n => n !== k).join(', ')})</td></tr>` +
+    line('Top comb (AB)', d.ab) + line('Bottom comb (EF)', d.ef) + line('Black bar', d.bar) +
+    line('Diode spot', d.diode) +
+    (d.notes || []).map(n => `<tr><th>Note</th><td>${chip(n[0])} ${n[1]}</td></tr>`).join('');
+}
+document.getElementById('log').innerHTML = LOG.map(([date, s, text]) => `<li><b>${date}</b> ${chip(s)} ${text}</li>`).join('');
+render();
+</script>
+</body>
+</html>

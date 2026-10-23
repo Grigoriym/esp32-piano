@@ -2,6 +2,9 @@
 
 #include <string.h>
 
+/* Key 5 (EF4+AB0), 2026-10-23: in the bottom comb's line, stripe toward the key. */
+const grid_t matrix_diodes = {[0] = 1u << 4};
+
 void matrix_init(matrix_t *m)
 {
     memset(m, 0, sizeof(*m));
@@ -41,7 +44,7 @@ bool matrix_ambiguous(const grid_t g, size_t r, size_t c)
 {
     for (size_t r2 = 0; r2 < N_ROWS; r2++) {
         if (r2 == r || !(g[r2] & (1u << c))) continue;
-        if ((g[r] & g[r2]) & ~(1u << c)) return true;
+        if ((g[r] & g[r2]) & ~(1u << c) & ~matrix_diodes[r2]) return true;
     }
     return false;
 }

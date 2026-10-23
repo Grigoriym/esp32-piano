@@ -67,6 +67,11 @@ milestones.
 - **Photos are not readings**: pad type, pin labels and markings read off
   a phone photo were wrong twice (carbon vs metal pads, `EF`/`AB` label
   list). Ask for a sharp straight-on close-up before writing them anywhere.
+  Trace routes too: on 2026-10-23 two of my photo tracings were wrong (a line
+  that was key 1's, a route between parallel jogging lines). What worked: the
+  user follows the line on the board and draws it on the photo.
+- **The meter can't reach copper under the green coating**: probe bare pads,
+  combs or ringed holes. A silent probe on a coated trace proves nothing.
 - **ESP32 on the toy's lines: toy batteries out.** The chip ran straight from
   the batteries (up to ~6.4 V fresh); with it removed, the only voltage on
   the lines is the ESP32's 3.3 V. Firmware only pulls lines low, never
@@ -112,9 +117,11 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - `tools/chicco-piano.desktop`: "Chicco Piano" in the app menu, restarts the
   service (symlink in `~/.local/share/applications/`, 2026-10-22).
 - `docs/cheatsheet.html`: what every key and button does, the Megalovania
-  opening as key numbers, a metronome. Published as a private artifact:
+  opening as key numbers, a metronome, the chords of Sinan Sakić's "Ej, od kad
+  sam se rodio" (from chord sites; no melody, none found). Published as a private artifact:
   https://claude.ai/artifact/Ttss3MnAfWboWeEaJDS2zC (republish from this file
   after a mapping change).
+- `docs/how-scan-works.html`: animated explainer of the row-by-row scan and the ghost (local page).
 - `docs/wiring.html`: **the wiring doc**, every DevKit pin and what goes on it
   (local page, open in a browser; not published). Update it with every
   wiring change. 2026-10-22: the 16 toy lines on the MCP23017 (`EFn` → `Bn`,
@@ -140,13 +147,21 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - **This PC runs ufw, which drops UDP that isn't a reply.** The toy must
   answer from the port the HELLO went to (21928); sending from a second socket
   (another source port) made every packet vanish with no error on either side.
-- **Key tests: read the PC side, not serial.** Every serial capture resets
-  the board (CP2102 auto-reset) and comes back with a screenful of stale
-  `rst:` lines before the real boot log. Boot checks:
-  `~/.espressif/python_env/idf*_env/bin/python tools/serial_log.py <s> "<regex>"`
-  (from mukklet, port `/dev/ttyUSB0`). For keys: `aseqdump` subscribed to
-  "Chicco Piano", through `stdbuf -oL` when written to a file (block-buffered
-  otherwise, lost on kill). Serial only for boot checks after a flash.
+- **Key tests: serial for what the grid reads, the PC side for what plays.**
+  Every serial capture resets the board (CP2102 auto-reset) and may start with
+  stale `rst:` lines. `~/.espressif/python_env/idf*_env/bin/python
+  tools/serial_log.py <s> "DOWN|UP |GHOST"` (from mukklet, port `/dev/ttyUSB0`,
+  run in the background, the user presses after ~5 s) prints every debounced
+  change with its crossing (`key 5 (EF4+AB0)`), **before** the ghost hold-back:
+  a key missing there was never read (contact), a key there but silent was held
+  back (ghost). It prints only at the end; SIGTERM ends it early and keeps the
+  output (2026-10-22). What was sent: `aseqdump` subscribed to "Chicco Piano",
+  through `stdbuf -oL` when written to a file (block-buffered otherwise, lost
+  on kill).
+- **Which pad is which key: bridge its two combs with a metal tip** during a
+  serial capture (USB on, toy batteries out, 3.3 V only): the log names the
+  key. Found key 5 that way (2026-10-22); key 1 is at the end away from
+  `9105B` (`docs/MATRIX.md`).
   aseqdump shows order, not timing: tempos and bar-line timing are checked by
   the host tests and by ear.
 - **A whole row or column of keys dead = check that line's jumper first.**
@@ -158,7 +173,14 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   510–570 Ω across their DevKit pins (key 13, which works, the same), open at
   rest; a hard press always registers. The user moved the board and it
   changed. After the user reseated it, all 32 played with a normal press
-  (2026-10-13); key 20 still felt a bit off but registered.
+  (2026-10-13); key 20 still felt a bit off but registered. 2026-10-22: key
+  14 plays alone, with 5 or with 8, but with 5+8 held only on a very hard
+  press (serial log: no DOWN at all). Nothing electrical joins them, so it's
+  the seating again; reseat when the toy is open next.
+- **Three keys on corners of a grid rectangle never play together** (no
+  diodes: 5+8+13 lights 16 too, `matrix.c` holds both back). Key 5 has a
+  diode since 2026-10-23: 5+8+13 no longer lights 16 (serial log). Other rectangles still ghost. By design;
+  the cheat sheet's chord voicings avoid it.
 - **A whole column reads "always pressed" (every key on it DOWN at boot) =
   its pull-up goes to GND, not 3V3.** (The setup before the MCP23017.) 2026-10-21: `EF0`–`EF3` on D34-VN, the
   breadboard's + rail was tied to GND; D34 read 0 V. Measure the pin against
@@ -237,6 +259,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   test first (new module), then the key lines move to it. Done 2026-10-22:
   the check found it at 0x20 with all 16 inputs high (on the DevKit, not the
   WROVER), then every key played through it.
+- 2026-10-22: WALTZ is the Balkan button (the user's pick): accordion, beat
+  `BALKAN` (čoček 2/4, 126 bpm, tempo by guess, not yet judged by ear). RESET
+  and boot give full volume (127), the user's ask.
 
 ## Next step
 State on 2026-10-13 (end of session): **MVP done.** Every key and button
@@ -272,6 +297,19 @@ FluidSynth+PipeWire at 64 samples 3-5); the user finds it fine.
 - **Milestone 4 steps: `docs/MILESTONE4.md`**, one at a time, ticked with
   date and result. Step 1 (buck-boost) waits for the user to order one from
   the shortlist there; the user will say when it's in hand.
+- **Diode on key 5: done 2026-10-23.** A 1N4148 in key 5's `EF4` line on the
+  key board's bottom area (the pad area lies on the rubber strip, no soldering
+  there): key 5's own part is pad → black bar → copper box B at the bar's
+  lower end → one line left to key 13's box; cut just before key 13's box
+  (after: 5–13 OL, 13–21 391 Ω), diode across, stripe on the key 5 side.
+  Serial: 5+8+13 pressed 13 times, key 16 never lit; all 32 keys register.
+  `matrix.c` knows (`matrix_diodes`): a rectangle corner whose diagonal corner
+  has a diode is played, the others held back, so 5+8+13+16 pressed at once
+  plays only 16 (the user heard it; by design: 5, 8, 13 could each be a fake).
+  Per-key findings: `docs/key-board-map.html` (local page; `KEYS`/`LOG` data at
+  the top of its script, each fact tagged measured / seen / photo / open).
+  The user is thinking about all 32 diodes (then any chord plays; velocity
+  stays impossible: one contact per key).
 - **State 2026-10-22 (end of session):** the 16 toy lines run through the
   MCP23017, every key checked by the user; the amp passed its check on the
   WROVER. Next: the amp on the piano (wire it per `docs/wiring.html`, then
@@ -288,6 +326,12 @@ FluidSynth+PipeWire at 64 samples 3-5); the user finds it fine.
   updates with the case closed (OTA vs a USB hole), mounting.
 
 Open items:
+- The 1N4148 from the 2026-10-22 test in the `AB0` wire (`docs/wiring.html`,
+  "Diode test"): out or still in? Not confirmed. Two diodes in series on key 5
+  (~0.9 V) may exceed the MCP23017's input-low limit; key 5 played on
+  2026-10-23, so either it's out or it's fine. Update the wiring doc either way.
+- Homebox toy entry (needs the user's OK): the key board is modified, one trace
+  cut and a 1N4148 on key 5 (2026-10-23).
 - Homebox, needs the user's OK: the WROVER's port is `/dev/ttyUSB0`, CH340
   (`udevadm` ID_MODEL `USB_Serial`; the DevKit's is `CP2102_USB_to_UART...`),
   the entry still says "port not checked". The DevKit entry counts 2 in use
