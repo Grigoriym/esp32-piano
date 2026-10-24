@@ -110,12 +110,17 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   "Chicco Piano" (stays while it runs, toy on or off), says HELLO, drops the
   copies. `tools/pc_synth.sh` builds it into `build-host/`, starts it with
   FluidSynth and keeps the route between them.
-- `tools/chicco-piano.service`: systemd user service running `pc_synth.sh`,
-  installed (symlink in `~/.config/systemd/user/`, enabled 2026-10-13). Log:
+- `tools/chicco-piano.service`: systemd user service running `pc_synth.sh`.
+  **On demand only, never enabled** (no `[Install]` section since 2026-10-24,
+  the user's call: running all day it made the desktop's audio crackle, see
+  Traps). Linked, not enabled, in `~/.config/systemd/user/`. Log:
   `journalctl --user -u chicco-piano`. The path in it is hardcoded to
   `~/proj/grappim/esp32-piano`.
-- `tools/chicco-piano.desktop`: "Chicco Piano" in the app menu, restarts the
-  service (symlink in `~/.local/share/applications/`, 2026-10-22).
+- `tools/chicco-piano.desktop`: "Chicco Piano" in the app menu (symlink in
+  `~/.local/share/applications/`, 2026-10-22), runs
+  `tools/chicco-piano-launch.sh`: links the unit if it isn't (a `disable`
+  removes the link) and (re)starts it; right-click **Stop** stops it. Path
+  hardcoded too.
 - `docs/cheatsheet.html`: what every key and button does, the Megalovania
   opening as key numbers, a metronome, the chords of Sinan Sakić's "Ej, od kad
   sam se rodio" (from chord sites; no melody, none found). Published as a private artifact:
@@ -196,8 +201,13 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   on this DevKit; flashing and boot work regardless.
 - FluidSynth fed `noteon` commands on stdin stayed silent; a small `.mid`
   file played. Audio output: the G733 headset was the default; on 2026-10-13 PipeWire
-  played through the onboard `analog-stereo` sink (27 xruns in `pw-top`; raise
-  `audio.period-size` to 128 if it crackles).
+  played through the onboard `analog-stereo` sink.
+- **FluidSynth's `audio.period-size` sets the whole desktop's PipeWire
+  quantum** (the graph runs at the smallest any client asks). At 64 the sink
+  ran at 64 samples and all desktop audio (the music player too) crackled under
+  CPU load, 174 xruns 5 min after boot (2026-10-24, found by the system
+  session). Now 256 (`pw-top` shows the sink at 256 while it runs). Don't go
+  back below 256; if latency matters, try 128 and check `pw-top`'s ERR column.
 
 ## Milestones
 0. **Teardown and map** (no changes to the toy). Does it work as bought?
@@ -265,10 +275,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 
 ## Next step
 State on 2026-10-13 (end of session): **MVP done.** Every key and button
-reaches FluidSynth over WiFi, the service starts at login, DEMO plays the
-Megalovania intro. Latency (estimate from parts, 2026-10-13): ~10-20 ms
+reaches FluidSynth over WiFi (the service starts from the app menu, on demand
+since 2026-10-24), DEMO plays the Megalovania intro. Latency (estimate from parts, 2026-10-13): ~10-20 ms
 key to sound (scan+debounce 4-6, WiFi one way ~3 typ / ~8 worst by ping,
-FluidSynth+PipeWire at 64 samples 3-5); the user finds it fine.
+FluidSynth+PipeWire at 64 samples 3-5); the user finds it fine. Since
+2026-10-24 the buffer is 256 samples (~5 ms a period, so a few ms more);
+not yet judged by ear.
 - Done 2026-10-13: the board was reseated and all 32 keys play with a normal
   press (key 20 feels a bit off). Recheck if keys go hard again.
 - Looper (RECORD/REPLAY) done 2026-10-13, checked on the toy. No overdub yet.
@@ -337,10 +349,6 @@ Open items:
   the entry still says "port not checked". The DevKit entry counts 2 in use
   (desk-display, flipclock) and 1 free, without esp32-piano: check whether the
   piano's DevKit is that free one.
-- `chicco-piano.service` died 1 s after login (2026-10-21 and -22, exit 0;
-  most likely FluidSynth before PipeWire was up). Fixed 2026-10-22:
-  `pc_synth.sh` exits 1 when either program dies, so `Restart=on-failure`
-  restarts it. Check at the next login that it stays up.
 - Homebox, TFT 1.69" (needs the user's OK): one more `In use`
   (esp32-piano); the CS-on-GND result (blank with SPI mode 0).
 - Homebox, toy entry (needs the user's OK, not asked yet): key board
