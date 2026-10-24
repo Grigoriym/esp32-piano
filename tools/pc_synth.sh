@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# PC side of direction A: FluidSynth with a small audio buffer, the WiFi
+# PC side of direction A: FluidSynth, the WiFi
 # bridge (tools/piano_bridge.c, ALSA port "Chicco Piano") and the route
 # between them. Checked once a second, so a restarted synth gets routed again.
-# Run by tools/chicco-piano.service; by hand: tools/pc_synth.sh (Ctrl+C stops).
+# Run by tools/chicco-piano.service, started on demand by the app-menu launcher
+# (never at login); by hand: tools/pc_synth.sh (Ctrl+C stops).
+# period-size 256 (~5 ms at 48 kHz): PipeWire runs the whole graph at the
+# smallest quantum any client asks for, and 64 made all desktop audio crackle.
 set -u
 cd "$(dirname "$0")/.."
 SF2=${SF2:-/usr/share/sounds/sf2/FluidR3_GM.sf2}
@@ -13,7 +16,7 @@ if [ ! -x build-host/piano_bridge ] || [ tools/piano_bridge.c -nt build-host/pia
 fi
 
 fluidsynth -a pipewire -m alsa_seq -g 1.0 -is \
-    -o audio.period-size=64 -o audio.periods=2 -o midi.autoconnect=0 \
+    -o audio.period-size=256 -o audio.periods=2 -o midi.autoconnect=0 \
     "$SF2" >/dev/null 2>&1 &
 SYNTH=$!
 build-host/piano_bridge &

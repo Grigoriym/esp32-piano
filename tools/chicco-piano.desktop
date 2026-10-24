@@ -1,10 +1,16 @@
-# App-menu launcher: (re)starts the PC side of the toy (chicco-piano.service).
+# App-menu launcher: starts (or restarts) the PC side of the toy through
+# tools/chicco-piano-launch.sh. Right-click: Stop. The path is hardcoded.
 # Install: ln -s "$PWD/tools/chicco-piano.desktop" ~/.local/share/applications/
 [Desktop Entry]
 Type=Application
 Name=Chicco Piano
-Comment=Restart the synth and WiFi bridge for the toy piano
-Exec=sh -c 'systemctl --user restart chicco-piano && notify-send -i audio-x-generic "Chicco Piano" "Synth and bridge restarted"'
+Comment=Start the synth and WiFi bridge for the toy piano
+Exec=/home/gregory/proj/grappim/esp32-piano/tools/chicco-piano-launch.sh
 Icon=audio-x-generic
 Terminal=false
 Categories=Audio;AudioVideo;
+Actions=stop;
+
+[Desktop Action stop]
+Name=Stop
+Exec=/home/gregory/proj/grappim/esp32-piano/tools/chicco-piano-launch.sh stop
