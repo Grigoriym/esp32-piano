@@ -9,7 +9,9 @@ Status: piano keys measured (2026-10-11) and confirmed on the ESP32 slot lines (
   `teardown/06-key-board-pads-closeup.jpg`). Key board marked `9105B 1995.7`.
 - The key board reaches the main board through two grey ribbons: one with
   8 wires, one with 4 (map below).
-- Since 2026-10-23 key 5 has a 1N4148 in its `EF4` line (`key-board-map.html`).
+- Since 2026-10-23 key 5 has a 1N4148 in its `EF4` line, since 2026-10-25
+  key 1 in its `EF0` line and key 8 in its `EF7` line, since 2026-10-26 keys 6
+  and 7 in their `EF5` / `EF6` lines (`key-board-map.html`).
 - No diodes on the key board as bought: it carries only traces, pads and black
   printed bars. The only diode seen on the main board is D1 (1N4148) next
   to the `SPK` pads, one part, not one per key

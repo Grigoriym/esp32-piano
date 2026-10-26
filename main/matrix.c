@@ -2,8 +2,9 @@
 
 #include <string.h>
 
-/* Key 5 (EF4+AB0), 2026-10-23: in the bottom comb's line, stripe toward the key. */
-const grid_t matrix_diodes = {[0] = 1u << 4};
+/* In the bottom comb's line, stripe toward the key: key 5 (EF4+AB0, 2026-10-23),
+ * keys 1, 8 (EF0+AB0, EF7+AB0, 2026-10-25), keys 6, 7 (EF5+AB0, EF6+AB0, 2026-10-26). */
+const grid_t matrix_diodes = {[0] = 1u << 0 | 1u << 4 | 1u << 5 | 1u << 6 | 1u << 7};
 
 void matrix_init(matrix_t *m)
 {

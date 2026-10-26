@@ -153,6 +153,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   answer from the port the HELLO went to (21928); sending from a second socket
   (another source port) made every packet vanish with no error on either side.
 - **Key tests: serial for what the grid reads, the PC side for what plays.**
+  The user checks by ear: start the service before asking for presses
+  (2026-10-25: a serial capture ran while the user waited for sound, and caught
+  only stray buttons).
   Every serial capture resets the board (CP2102 auto-reset) and may start with
   stale `rst:` lines. `~/.espressif/python_env/idf*_env/bin/python
   tools/serial_log.py <s> "DOWN|UP |GHOST"` (from mukklet, port `/dev/ttyUSB0`,
@@ -173,6 +176,19 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   2026-10-13: keys 25–32 silent, D25 (`AB3`) had come off the breadboard.
   Check it by continuity from the DevKit pin to the slot pad while wiggling
   the wire.
+- **Chord tests: `aseqdump` alone, no serial capture.** It doesn't reset the
+  board, and on 2026-10-25 the serial capture returned stale presses nobody
+  made while aseqdump was right. Notes → key numbers at the default octave
+  (key = note − 52): `timeout 60 stdbuf -oL aseqdump -p "Chicco Piano" |
+  awk '/Note/{for(i=1;i<=NF;i++)if($i=="note")n=$(i+1);gsub(",","",n);printf
+  "%s%d ",($3=="on"?"+":"-"),n-52}'` (background, the user presses at once).
+  A fake key shows as a `+k -k` pair inside a chord.
+- **Open back shell = flaky chords**: 2026-10-25, 7+8+16 dropped keys in and
+  out with the key board hanging free; with the back panel closed it played
+  clean 14 times out of 14. Test chords with the back closed.
+- **After handling the key board, recheck every key**: 2026-10-25 the 4-wire
+  ribbon's wire 4 (`AB3`, keys 25–32) came off its key-board solder point,
+  then key 5 went silent: its diode had come loose (the user resoldered both).
 - **Keys that need a hard press (14, 21, 23, 30 on 2026-10-13) are the key
   board's seating, not the contacts or the firmware.** Pressed, they read
   510–570 Ω across their DevKit pins (key 13, which works, the same), open at
@@ -195,6 +211,17 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   RES on D5, as on mukklet, it works. Untried: CS on GND with SPI mode 3
   (what CS-less ST7789 boards usually need). Not needed since the MCP23017
   freed the pins (2026-10-22).
+- **Diode mode reads the black bars too**: at the meter's test current a
+  ~300 Ω bar adds ~0.3 V, so a path reading "two diodes" may be one diode plus
+  bars. The chip's real current is tiny, so the decisive check is a chord by
+  ear (a fake key that should be blocked). 2026-10-26: key 24 → key 8's 1.209 V
+  was one diode (0.614 V across its legs) plus 590 Ω of bars, not two diodes as
+  noted the day before. **Bars or diode: read Ω both ways** (same value both ways
+  = only bars; a diode reads OL one way). Same few hundred mV both ways in diode
+  mode means the same.
+- **The small holes in the key board are cut factory links**, not vias: a short
+  line between two lines with a hole drilled through it (likely the plating bus,
+  inference). Dead spots: don't probe or solder there.
 - **Every button is live**: a press of VOLUME− (or a style button) during a
   test can make the toy go quiet. RESET restores the defaults.
 - esptool prints `Detected crystal freq 15.44 MHz ... Unsupported crystal`
@@ -322,6 +349,27 @@ not yet judged by ear.
   the top of its script, each fact tagged measured / seen / photo / open).
   The user is thinking about all 32 diodes (then any chord plays; velocity
   stays impossible: one contact per key).
+- **More diodes, 2026-10-25:** only keys whose bottom-comb line runs outside the
+  screwed-down part of the key board can get one (2 and 9 can't). Key 1 done
+  (cut on the bottom-edge stretch near key 1, 0.761 V from key 9's side in
+  diode mode). Key 8 done (its own line, before key 16's box): 7+8+16 clean
+  14/14. Rule for every key: diode in the bottom comb's own stretch, before
+  another key's line joins it, stripe toward the pad. Keys 6 and 7 done
+  2026-10-26 (meter only: 0.6 V across each, ~1.0-1.1 V from key 14 / 15,
+  OL swapped). `matrix_diodes` has 1, 5, 6, 7, 8 (host tests pass; **not
+  flashed, not committed**). Next time the toy is connected: flash, every key
+  alone, then by ear with the back closed: 7+8+15 and 6+8+14 with no fake 16,
+  8+15+16 holding notes back instead of a fake 7.
+  **Key 16 has no diode** (2026-10-26; the 2026-10-25 notes wrongly said "8 and
+  16 soldered", and a plan to "move 16's diode" was built on that; re-measuring
+  at the user's suggestion found it). Its bottom comb goes pad → bar → the box
+  where key 8's line arrives: no copper carries 16 alone. Possible later: a
+  diode on its other contact (a diode works on either contact; there the stripe
+  points toward the shared line), or key 8 moved off the box. The user: skip
+  such keys, do the easy ones.
+  Next keys: any the user can reach, middle (9–24) first. Key k's diode makes
+  k + any key in k's row + any key in k's column play clean (21 three-key
+  chords per key).
 - **State 2026-10-22 (end of session):** the 16 toy lines run through the
   MCP23017, every key checked by the user; the amp passed its check on the
   WROVER. Next: the amp on the piano (wire it per `docs/wiring.html`, then

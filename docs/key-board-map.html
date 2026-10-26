@@ -139,6 +139,8 @@ figcaption { color: var(--muted); font-size: 0.9rem; }
 // ---- Data: edit here as findings come in. status: measured | seen | photo | open ----
 const KEYS = {
   1: {
+    ef: ['seen', 'Bottom comb → straight down → along the bottom edge to the left → up and left → key 9\'s copper box at its bar\'s lower end; no bar of its own (drawn by the user, 2026-10-25).'],
+    diode: ['measured', 'Done 2026-10-25. Cut on the bottom-edge stretch near key 1, right of the thin line from the small hole. Diode (1N4148) across, stripe toward key 1. Diode mode, red on key 9\'s bottom comb, black on key 1\'s: 0.761 V.'],
     notes: [
       ['seen', 'The thin line coming from the right through hole H (photo 22) is key 1\'s, not key 5\'s.'],
       ['measured', 'Key 1 – key 5: 0 Ω (2026-10-23; combs not noted; fits their shared AB0 top combs).'],
@@ -154,6 +156,18 @@ const KEYS = {
       ['seen', 'H (ringed hole, photo 22) is not on key 5\'s line.'],
     ],
   },
+  8: {
+    diode: ['measured', 'Soldered 2026-10-25, in the bottom comb\'s line, stripe toward key 8. Diode mode, red on key 24\'s bottom comb, black on key 8\'s: 1.207 V (2026-10-26: 1.209 V, swapped OL) = this one diode plus the bars (key 24 – key 16 reads 590 Ω both ways). Across the diode\'s legs: 0.614 V, swapped OL. Its line runs into key 16\'s box. Plays alone every time; 7+8+16 clean 14/14 (2026-10-25, by ear).'],
+  },
+  6: {
+    diode: ['measured', 'Soldered 2026-10-26 by the user, stripe toward key 6. Diode mode across its legs: 0.605 V, swapped OL. Red on key 14\'s bottom comb, black on key 6\'s: 1.038 V, swapped OL.'],
+  },
+  7: {
+    diode: ['measured', 'Soldered 2026-10-26 by the user, stripe toward key 7. Diode mode across its legs: 0.613 V, swapped OL. Red on key 15\'s bottom comb, black on key 7\'s: 1.130 V, swapped OL.'],
+  },
+  16: {
+    diode: ['measured', 'None, and no spot for one on the bottom comb: pad → black bar → a box where key 8\'s line arrives and the line to the pin, 24 and 32 leaves; no copper carries key 16 alone. Key 24 – key 16: 590.4 Ω both ways, 0.716 V both ways in diode mode (2026-10-26). 8+15+16 plays a fake key 7 (2026-10-25). Untried ways: a diode on key 16\'s other contact if it has its own stretch (stripe toward the shared line), or key 8 moved off the box. The user: skip for now (2026-10-26).'],
+  },
   13: {
     ef: ['seen', 'Has a copper box like key 5\'s B; key 5\'s EF4 path joins there.'],
   },
@@ -166,6 +180,14 @@ const LOG = [
   ['2026-10-23', 'seen', 'The user traced key 5\'s EF4 line from B to key 13\'s box (photo 23b).'],
   ['2026-10-23', 'measured', 'Cut made next to key 13\'s box. Key 5 – key 13: OL. Key 13 – key 21: 391 Ω.'],
   ['2026-10-23', 'measured', 'Diode soldered, firmware told (matrix_diodes). Serial: 5+8+13 no longer lights key 16; all 32 keys register.'],
+  ['2026-10-25', 'seen', 'The small holes on the board cut factory links between lines (the link\'s two halves read open).'],
+  ['2026-10-25', 'seen', 'Keys 2 and 9: their lines run in the part of the board that is screwed down, no diode possible there (the user).'],
+  ['2026-10-25', 'measured', 'Key 1: EF0 line cut near key 1, diode across; 0.761 V in diode mode from key 9 to key 1. Firmware told (matrix_diodes).'],
+  ['2026-10-25', 'measured', 'Key 8 (EF7): diode soldered, firmware told. (Written that day as keys 8 and 16: wrong, see 2026-10-26.)'],
+  ['2026-10-25', 'seen', 'Keys 25–32 dead after the work: wire 4 of the 4-wire ribbon (AB3) came off its solder point on the key board. Resoldered by the user; then key 5 went silent: its diode had come loose, resoldered by the user. All 32 play.'],
+  ['2026-10-25', 'measured', 'By ear + aseqdump, back closed: 1+2+9 clean (key 1 OK); 7+8+16 clean 14/14; 8+15+16 fake key 7 every time, key 16 never (key 16 has no diode, see 2026-10-26).'],
+  ['2026-10-26', 'measured', 'Only one diode on the EF7 line, key 8\'s (0.614 V across its legs, swapped OL). Key 24 – key 16: 590.4 Ω both ways, so no diode for key 16; its box is where key 8\'s line joins, no spot for one. Key 16 out of matrix_diodes (host tests pass, not flashed).'],
+  ['2026-10-26', 'measured', 'Keys 6 and 7: diodes soldered (the user), each 0.6 V across its legs and blocking in reverse, and in the path from key 14 / key 15. Firmware told (matrix_diodes), not flashed.'],
 ];
 // ---- end of data ----
 
