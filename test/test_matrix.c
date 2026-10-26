@@ -84,14 +84,15 @@ static void test_every_corner_of_a_rectangle_is_ambiguous(void)
     TEST_ASSERT_FALSE(matrix_ambiguous(chord, 0, 1));
 }
 
-/* Key 5 (row 0, col 4) has a diode: a ghost can't run backwards through it,
- * so the corner diagonal to it is real. The other corners stay ambiguous. */
+/* Keys 5 and 8 (row 0, cols 4 and 7) have diodes: a ghost can't run backwards
+ * through them, so the corners diagonal to them are real. The other corners
+ * stay ambiguous. */
 static void test_corner_diagonal_to_a_diode_is_real(void)
 {
     grid_t four = {[0] = 0x90, [1] = 0x90};          /* keys 5, 8, 13, 16 */
     TEST_ASSERT_FALSE(matrix_ambiguous(four, 1, 7)); /* 16, across from 5 */
+    TEST_ASSERT_FALSE(matrix_ambiguous(four, 1, 4)); /* 13, across from 8 */
     TEST_ASSERT_TRUE(matrix_ambiguous(four, 0, 4));  /* 5, across from 16 */
-    TEST_ASSERT_TRUE(matrix_ambiguous(four, 1, 4));  /* 13, across from 8 */
     TEST_ASSERT_TRUE(matrix_ambiguous(four, 0, 7));  /* 8, across from 13 */
 }
 
@@ -118,25 +119,25 @@ static void test_sync_reports_presses_and_releases(void)
 static void test_ghost_corner_is_held_back(void)
 {
     events_t e = {0};
-    grid_t three = {[0] = 0x03, [1] = 0x01};
+    grid_t three = {[0] = 0x06, [1] = 0x02}; /* keys 2, 3, 10: no diodes */
     feed(three, DEBOUNCE);
     matrix_sync(&m, record, &e);
     TEST_ASSERT_EQUAL(3, e.n);
 
-    grid_t four = {[0] = 0x03, [1] = 0x03}; /* (1,1) appears: real or ghost */
+    grid_t four = {[0] = 0x06, [1] = 0x06}; /* (1,2) appears: real or ghost */
     feed(four, DEBOUNCE);
     matrix_sync(&m, record, &e);
     TEST_ASSERT_EQUAL(3, e.n);
 
-    grid_t after = {[0] = 0x02, [1] = 0x03}; /* (0,0) let go: no rectangle */
+    grid_t after = {[0] = 0x04, [1] = 0x06}; /* (0,1) let go: no rectangle */
     feed(after, DEBOUNCE);
     matrix_sync(&m, record, &e);
     TEST_ASSERT_EQUAL(5, e.n);
-    TEST_ASSERT_FALSE(e.down[3]); /* (0,0) up */
+    TEST_ASSERT_FALSE(e.down[3]); /* (0,1) up */
     TEST_ASSERT_EQUAL(0, e.r[3]);
-    TEST_ASSERT_TRUE(e.down[4]); /* (1,1) down, now unambiguous */
+    TEST_ASSERT_TRUE(e.down[4]); /* (1,2) down, now unambiguous */
     TEST_ASSERT_EQUAL(1, e.r[4]);
-    TEST_ASSERT_EQUAL(1, e.c[4]);
+    TEST_ASSERT_EQUAL(2, e.c[4]);
 }
 
 int main(void)

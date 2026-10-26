@@ -140,7 +140,11 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `tools/format.sh --check`, `tools/lint.sh` (clang-tidy, its own
   `build/clang` tree), `tools/size_check.sh` (46% flash free by CI's count,
   2026-10-13). Format and lint only see git-tracked files: `git add` new
-  ones first. `.github/workflows/ci.yml` runs them on every push to
+  ones first. `tools/test.sh` runs one binary per test file and exits 1 on any
+  failure: judge it by its exit code, not `| tail` (2026-10-25/26 a `tail` showed
+  the last file's OK and hid two `test_matrix` failures until CI caught them;
+  the matrix tests use the real `matrix_diodes`, so changing it can break them).
+  `.github/workflows/ci.yml` runs them on every push to
   https://github.com/Grigoriym/esp32-piano (public since 2026-10-22, like the
   siblings). First run green 2026-10-13. `tools/piano_bridge.c` is formatted, not
   linted or tested. Right after a push, `gh run list -L1` still shows the
