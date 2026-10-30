@@ -1,5 +1,6 @@
 // esp32-piano's box, DRAFT (see README.md), from esp32-mukklet's case v2: the same
-// parts, plus a hole in the back for the 4-wire cable to the toy's MCP23017.
+// parts, plus a notch in the front strip for the 4-wire cable to the toy's MCP23017
+// (the box stands behind the toy, screen towards the player, so its front faces the toy).
 // A small wedge, the 1.69" ST7789V2 TFT (portrait) on
 // the front panel tilted back, the KY-040 knob on top, USB-C out the back.
 // Lifted from ../esp32-desk-display/enclosure/enclosure_v2.scad. The ESP32
@@ -231,14 +232,12 @@ usb_z = mini_z + (mini_t + mini_usb_top) / 2;
 usb_hole = [13, 8];
 usb_ledge_w = 17; // wider than the hole, so it joins the wall beside it
 usb_ledge_over = 2.5; // how much of the socket it covers
-cable_hole = [10, 6]; // the 4 wires to the toy; a plug goes on inside (ASSUMED: not sized from a real cable)
-cable_z = 30; // centre, on the back wall, in the middle (ASSUMED: over the ledge and the mini's plugs)
+cable_notch = [10, 6]; // in the top of the base's strip: the wires lie in it, the front plate closes it (ASSUMED: not sized from a real cable)
 
 echo(str("case ", W, " x ", D, " x ", H, " mm (W x D x H)"));
 echo(str("usb centre z ", usb_z, ", knob board face z ", ky_face_z));
 assert(mini_x0 - mini_gap - mini_wall > wall + clr, "mini cradle hits a side wall");
-assert(cable_z - cable_hole[1] / 2 > mini_z + mini_usb_top + 0.2 + 1 + usb_gap - mini_usb_out + usb_ledge_over + 1, "cable hole cuts into the USB ledge");
-assert(cable_z + cable_hole[1] / 2 < H - wall - 1, "cable hole cuts into the top");
+assert(skirt_h - strip_drop - cable_notch[1] > base_t + 1, "cable notch cuts into the floor");
 assert(mini_joint < mini_lift, "solder joints touch the floor");
 assert(tft_hole_z / 2 - tft_pilot / 2 - 0.6 > tft_glass_z0 + tft_glass_h + tft_glass_gap, "TFT post flats cut into the screw holes");
 assert(tft_hole_x / 2 - tft_post_d / 2 > tft_notch_w / 2, "TFT top posts off the ears");
@@ -432,7 +431,6 @@ module body() difference() {
   box([-1, -1, -1], [W + 1, D + 1, base_t]); // the walls stand on the base
   vents();
   translate([usb_x, D - wall - eps, usb_z]) stadium(usb_hole[0], usb_hole[1], wall + 2); // not into the ledge
-  translate([W / 2, D - wall - eps, cable_z]) stadium(cable_hole[0], cable_hole[1], wall + 2);
   translate([knob_x, knob_y, H - wall - 1]) cylinder(d = knob_hole, h = wall + 2);
 }
 
@@ -465,7 +463,11 @@ module mini_cradle() {
 // it sat inside the walls and the holes were 0.2 from its edge)
 module base() {
   x0 = wall + clr;
-  box([x0, 0, 0], [W - x0, wall, skirt_h - strip_drop]); // the strip under the screen, between the side walls
+  // the strip under the screen, between the side walls, with the cable's notch
+  difference() {
+    box([x0, 0, 0], [W - x0, wall, skirt_h - strip_drop]);
+    box([(W - cable_notch[0]) / 2, -1, skirt_h - strip_drop - cable_notch[1]], [(W + cable_notch[0]) / 2, wall + 1, skirt_h]);
+  }
   difference() {
     box([0, 0, 0], [W, D, base_t]);
     for (p = boss_xy) translate([p.x, p.y, -1]) {
