@@ -21,8 +21,8 @@ static void draw(canvas_t *c, void *ctx)
 static bool same(const ui_state_t *a, const ui_state_t *b)
 {
     return a->pc == b->pc && a->demo == b->demo && a->sound == b->sound && a->volume == b->volume
-           && a->octave == b->octave && a->beat == b->beat && a->beat_bpm == b->beat_bpm
-           && a->loop == b->loop;
+           && a->octave == b->octave && a->beat == b->beat && a->beat_bpm == b->beat_bpm && a->loop == b->loop
+           && a->screen == b->screen && a->keys == b->keys && a->held == b->held;
 }
 
 static void screen_task(void *arg)

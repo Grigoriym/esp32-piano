@@ -18,6 +18,7 @@
   --power: #c8323a;
   --i2c: #0f9aa8;
   --amp: #c2418f;
+  --knob: #8a6d1f;
   --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
   --font-body: "Nunito", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
@@ -25,13 +26,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558;
-    --board: #0b1030; --pin: #59607f; --row: #f0a050; --col: #b59bff; --gnd: #77a4ff; --tft: #5fd18a; --power: #ff6b70; --i2c: #4fd3e0; --amp: #f07ac0;
+    --board: #0b1030; --pin: #59607f; --row: #f0a050; --col: #b59bff; --gnd: #77a4ff; --tft: #5fd18a; --power: #ff6b70; --i2c: #4fd3e0; --amp: #f07ac0; --knob: #e0c060;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558;
-  --board: #0b1030; --pin: #59607f; --row: #f0a050; --col: #b59bff; --gnd: #77a4ff; --tft: #5fd18a; --power: #ff6b70; --i2c: #4fd3e0; --amp: #f07ac0;
+  --board: #0b1030; --pin: #59607f; --row: #f0a050; --col: #b59bff; --gnd: #77a4ff; --tft: #5fd18a; --power: #ff6b70; --i2c: #4fd3e0; --amp: #f07ac0; --knob: #e0c060;
   color-scheme: dark;
 }
 body { background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--font-body); margin: 0; }
@@ -80,6 +81,8 @@ li input:checked + span { color: var(--muted); text-decoration: line-through; }
     <div class="box"><svg id="mcp" viewBox="0 30 760 145" role="img" aria-label="The MCP23017 board's single row and where each pin goes"></svg></div>
     <h2>Screen</h2>
     <div class="box"><svg id="screen" viewBox="0 30 760 145" role="img" aria-label="The screen's pins and where each goes"></svg></div>
+    <h2>Knob (KY-040)</h2>
+    <div class="box"><svg id="knob" viewBox="0 30 760 145" role="img" aria-label="The knob's pins and where each goes"></svg></div>
     <h2>Amp</h2>
     <div class="box"><svg id="amp" viewBox="0 30 760 145" role="img" aria-label="The amp's pins and where each goes"></svg></div>
     <h2>Diode test (temporary)</h2>
@@ -104,7 +107,8 @@ const WIRE = { white: "#ffffff", green: "#1fa83a", yellow: "#f2c200", black: "#1
 const topRow = ["3V3","GND","D15","D2","D4","RX2","TX2","D5","D18","D19","D21","RX0","TX0","D22","D23"];
 const botRow = ["VIN","GND","D13","D12","D14","D27","D26","D25","D33","D32","D35","D34","VN","VP","EN"];
 const role = { "3V3": ["power", "+rail"], GND: ["gnd", "−rail"], D14: ["tft", "SCL"], D13: ["tft", "SDA"], D4: ["tft", "DC"], D15: ["tft", "CS"], D5: ["tft", "RES"],
-  D21: ["i2c", "SDA"], D22: ["i2c", "SCL"], D26: ["amp", "BCK"], D25: ["amp", "LCK"], D27: ["amp", "DIN"] };
+  D21: ["i2c", "SDA"], D22: ["i2c", "SCL"], D26: ["amp", "BCK"], D25: ["amp", "LCK"], D27: ["amp", "DIN"],
+  D18: ["knob", "CLK"], D19: ["knob", "DT"], D23: ["knob", "SW"] };
 let svg = document.getElementById("board");
 const NS = "http://www.w3.org/2000/svg";
 const el = (name, attrs, text) => {
@@ -130,7 +134,7 @@ function row(names, y, labelY, tagY) {
 }
 row(topRow, 80, 106, 46);
 row(botRow, 170, 152, 214);
-el("text", { x: 34, y: 244, fill: "var(--muted)", "font-size": 11 }, "teal = MCP23017   pink = amp   green = screen   red = 3V3   blue = GND   grey = empty");
+el("text", { x: 34, y: 244, fill: "var(--muted)", "font-size": 11 }, "teal = MCP23017   pink = amp   gold = knob   green = screen   red = 3V3   blue = GND   grey = empty");
 
 // The slot: 3 groups of 8 pads, EF7 first. AUD1 and AUD2 share one solder place.
 svg = document.getElementById("slot");
@@ -184,6 +188,10 @@ header("mcp", [["A2", null], ["A1", null], ["A0", null], ["RESET", null], ["NC/S
 // Its double row, pairs as printed (B0/A0 ...): GPAn takes ABn, GPBn takes EFn.
 header("mcp2", [["VCC/GND", null], ["ITB/ITA", null],
   ...[0, 1, 2, 3, 4, 5, 6, 7].map((n) => [`B${n}/A${n}`, `EF${n}/AB${n}`, "col"])], []);
+
+// The knob, in board order.
+header("knob", [["CLK", "D18", "knob"], ["DT", "D19", "knob"], ["SW", "D23", "knob"], ["+", "+rail", "power"], ["GND", "−rail", "gnd"]],
+  ["+ goes to 3V3, not 5 V: the board's pull-ups hang from it."]);
 
 // The amp, by its printed labels (not in board order): tested this way on the WROVER.
 header("amp", [["VCC", "+rail", "power"], ["GND", "−rail", "gnd"], ["BCK", "D26", "amp"], ["LCK", "D25", "amp"], ["DIN", "D27", "amp"],

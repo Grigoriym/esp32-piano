@@ -19,10 +19,12 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 
 FONT_DIR = "/usr/share/fonts/truetype/dejavu"
-# C name -> (file, pixel size). Must match the externs in font.h.
+# C name -> (file, pixel size, ranges). Must match the externs in font.h.
+ASCII = [(0x0020, 0x007E)]
 FONTS = {
-    "FONT_TITLE": ("DejaVuSans-Bold.ttf", 20),
-    "FONT_TEXT": ("DejaVuSans.ttf", 16),
+    "FONT_TITLE": ("DejaVuSans-Bold.ttf", 20, None),
+    "FONT_TEXT": ("DejaVuSans.ttf", 16, None),
+    "FONT_BIG": ("DejaVuSans-Bold.ttf", 44, ASCII),
 }
 RANGES = [
     (0x0020, 0x007E),  # ASCII
@@ -75,12 +77,12 @@ def pack(rows):
     return out
 
 
-def gen(name, file, size):
+def gen(name, file, size, ranges):
     font = ImageFont.truetype(os.path.join(FONT_DIR, file), size)
     ascent, descent = font.getmetrics()
     line_h = ascent + descent
     glyphs, bitmap = [], []
-    cps = [cp for lo, hi in RANGES for cp in range(lo, hi + 1) if cp not in SKIP]
+    cps = [cp for lo, hi in ranges or RANGES for cp in range(lo, hi + 1) if cp not in SKIP]
     for cp in sorted(cps + [MISSING]):
         x, y, w, h, adv, rows = missing_box(ascent) if cp == MISSING else render(font, chr(cp), line_h)
         glyphs.append((cp, w, h, x, y, adv, len(bitmap)))
@@ -118,8 +120,8 @@ def main():
         '#include "font.h"',
         "",
     ]
-    for name, (file, size) in FONTS.items():
-        more, n, nbytes = gen(name, file, size)
+    for name, (file, size, ranges) in FONTS.items():
+        more, n, nbytes = gen(name, file, size, ranges)
         lines += more
         print(f"{name}: {file} {size} px, {n} glyphs, {nbytes} bytes")
     with open(OUT, "w", encoding="utf-8") as f:

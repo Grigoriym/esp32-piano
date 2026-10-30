@@ -22,6 +22,7 @@
  *   UP    <name>
  *   GHOST? <names>  the pressed set contains a rectangle; one of them may be fake
  *   MIDI  <what>   what was sent (or "(not connected)")
+ *   KNOB  CW / CCW / PRESS
  * Changes are reported after DEBOUNCE equal scans in a row.
  *
  * The line-pair finder that mapped the grid is in git history (233c8c3).
@@ -33,6 +34,7 @@
 
 #include "demo.h"
 #include "driver/i2c_master.h"
+#include "encoder.h"
 #include "esp_rom_sys.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -170,8 +172,10 @@ static void send_key(const uint8_t *msg, size_t len, const char *what, void *ctx
     looper_capture(&looper, esp_timer_get_time(), msg, len, keymap.program);
 }
 
+static ui_screen_t screen_shown;
+
 /* What the screen shows, from the state of every part. */
-static void show(void)
+static void show(const matrix_t *m)
 {
     static const ui_loop_t LOOP[] = {
         [LOOPER_ARMED] = UI_LOOP_WAITING,
@@ -188,6 +192,11 @@ static void show(void)
     s.octave = keymap.octave;
     s.beat = beat ? beat->name : NULL;
     s.beat_bpm = beat ? beat->bpm : 0;
+    s.screen = screen_shown;
+    for (size_t r = 0; r < 4; r++) {
+        s.keys |= (uint32_t)m->sent[r] << (8 * r);
+        s.held |= (uint32_t)(m->stable[r] & ~m->sent[r]) << (8 * r);
+    }
     s.loop = looper.state != LOOPER_IDLE ? LOOP[looper.state]
              : looper.length_us          ? UI_LOOP_STOPPED
                                          : UI_LOOP_EMPTY;
@@ -215,6 +224,7 @@ static void on_cell(size_t r, size_t c, bool down, void *ctx)
 void app_main(void)
 {
     mcp_init();
+    ESP_ERROR_CHECK(encoder_init());
     screen_init();
     wifi_connect(WIFI_TIMEOUT_MS);
     midi_link_init("chicco-piano");
@@ -232,11 +242,19 @@ void app_main(void)
             report(prev, matrix.stable);
             matrix_sync(&matrix, on_cell, NULL);
         }
+        knob_event_t knob;
+        while (encoder_poll(&knob)) {
+            printf("KNOB  %s\n", knob == KNOB_CW ? "CW" : knob == KNOB_CCW ? "CCW" : "PRESS");
+            if (knob != KNOB_PRESS) {
+                int step = knob == KNOB_CW ? 1 : UI_SCREEN_COUNT - 1;
+                screen_shown = (ui_screen_t)((screen_shown + step) % UI_SCREEN_COUNT);
+            }
+        }
         int64_t t = esp_timer_get_time();
         demo_tick(&demo, t, send_midi, NULL);
         looper_tick(&looper, t, send_midi, NULL);
         rhythm_tick(&rhythm, t, send_midi, NULL);
-        show();
+        show(&matrix);
         vTaskDelay(pdMS_TO_TICKS(SCAN_PERIOD_MS));
     }
 }

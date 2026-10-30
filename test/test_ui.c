@@ -91,6 +91,42 @@ static void test_every_state_draws_inside_the_screen(void)
     TEST_ASSERT_EQUAL_HEX16(UI_BG, canvas_get(&c, CANVAS_W / 2, CANVAS_H - 2));
 }
 
+static void test_play_screen_lights_the_pressed_keys(void)
+{
+    const int y = UI_STRIP_Y + UI_STRIP_H - 2;
+    const int x1 = 18 + 2;                /* key 1 */
+    const int x2 = 18 + 7 * 204 / 32 + 2; /* key 8, a white key too */
+    s.screen = UI_SCREEN_PLAY;
+    ui_render(&c, &s);
+    uint16_t idle = canvas_get(&c, x1, y);
+    TEST_ASSERT_EQUAL_HEX16(idle, canvas_get(&c, x2, y));
+
+    s.keys = 1ul << 0;
+    ui_render(&c, &s);
+    TEST_ASSERT_NOT_EQUAL(idle, canvas_get(&c, x1, y));
+    TEST_ASSERT_EQUAL_HEX16(idle, canvas_get(&c, x2, y));
+
+    s.keys = 0;
+    s.held = 1ul << 7;
+    ui_render(&c, &s);
+    TEST_ASSERT_EQUAL_HEX16(UI_RED, canvas_get(&c, x2, y));
+}
+
+static void test_play_screen_draws_inside_the_screen(void)
+{
+    s.screen = UI_SCREEN_PLAY;
+    s.sound = "Distortion guitar";
+    s.beat = "SLOW ROCK";
+    s.beat_bpm = 116;
+    s.keys = 0xfffffffful;
+    s.held = 0xfffffffful;
+    ui_render(&c, &s);
+    /* every chord's longest name fits: A# (the widest root) with the longest suffix */
+    s.keys = 1ul << 5 | 1ul << 8 | 1ul << 11 | 1ul << 15; /* A#m7b5 */
+    ui_render(&c, &s);
+    TEST_ASSERT_EQUAL_HEX16(UI_BG, canvas_get(&c, CANVAS_W / 2, CANVAS_H - 2));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -99,5 +135,7 @@ int main(void)
     RUN_TEST(test_green_dot_only_while_the_pc_answers);
     RUN_TEST(test_red_only_while_recording);
     RUN_TEST(test_every_state_draws_inside_the_screen);
+    RUN_TEST(test_play_screen_lights_the_pressed_keys);
+    RUN_TEST(test_play_screen_draws_inside_the_screen);
     return UNITY_END();
 }

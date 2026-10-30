@@ -2,6 +2,8 @@
 
 #include <stdio.h>
 
+#include "chord.h"
+
 #define INK    RGB(232, 234, 246)
 #define MUTED  RGB(140, 148, 190)
 #define LINE   RGB(47, 53, 88)
@@ -75,10 +77,55 @@ static void loop(canvas_t *c, ui_loop_t l)
     }
 }
 
+static void beat_line(canvas_t *c, const ui_state_t *s, int y)
+{
+    canvas_text(c, &FONT_TEXT, LEFT, y, "Beat", MUTED);
+    if (s->beat) {
+        char beat[32];
+        snprintf(beat, sizeof(beat), "%s %d bpm", s->beat, s->beat_bpm);
+        canvas_text_right(c, &FONT_TEXT, RIGHT, y, beat, ACCENT);
+    } else {
+        canvas_text_right(c, &FONT_TEXT, RIGHT, y, "off", MUTED);
+    }
+}
+
+static void key_strip(canvas_t *c, const ui_state_t *s)
+{
+    for (int k = 0; k < UI_KEYS; k++) {
+        /* Key 1 is an F: the same pitches as a piano's black keys come out short. */
+        static const bool BLACK[12] = {false, true,  false, true,  false, false,
+                                       true,  false, true,  false, true,  false};
+        bool black = BLACK[(k + 5) % 12];
+        uint32_t bit = 1ul << k;
+        uint16_t color = s->keys & bit ? ACCENT : s->held & bit ? UI_RED : black ? LINE : MUTED;
+        int x = LEFT + k * (RIGHT - LEFT) / UI_KEYS;
+        canvas_fill(c, x, UI_STRIP_Y, 5, black ? UI_STRIP_H * 3 / 5 : UI_STRIP_H, color);
+    }
+}
+
+static void play_screen(canvas_t *c, const ui_state_t *s)
+{
+    char name[16];
+    chord_name(s->keys, name, sizeof(name));
+    const font_t *font = font_text_width(&FONT_BIG, name) <= RIGHT - LEFT ? &FONT_BIG : &FONT_TITLE;
+    canvas_text_center(c, font, 56, name, INK);
+    key_strip(c, s);
+    if (s->held) canvas_text_center(c, &FONT_TEXT, 164, "held back", UI_RED);
+
+    canvas_text(c, &FONT_TEXT, LEFT, 188, "Sound", MUTED);
+    canvas_text_right(c, &FONT_TEXT, RIGHT, 188, s->sound ? s->sound : "?", INK);
+    beat_line(c, s, 207);
+    loop(c, s->loop);
+}
+
 void ui_render(canvas_t *c, const ui_state_t *s)
 {
     canvas_fill(c, 0, 0, CANVAS_W, CANVAS_H, UI_BG);
     header(c, s);
+    if (s->screen == UI_SCREEN_PLAY) {
+        play_screen(c, s);
+        return;
+    }
 
     canvas_text(c, &FONT_TEXT, LEFT, 52, "Sound", MUTED);
     canvas_text(c, &FONT_TITLE, LEFT, 72, s->sound ? s->sound : "?", INK);
@@ -86,14 +133,6 @@ void ui_render(canvas_t *c, const ui_state_t *s)
     volume(c, s->volume);
     octave(c, s->octave);
 
-    canvas_text(c, &FONT_TEXT, LEFT, 188, "Beat", MUTED);
-    if (s->beat) {
-        char beat[32];
-        snprintf(beat, sizeof(beat), "%s %d bpm", s->beat, s->beat_bpm);
-        canvas_text_right(c, &FONT_TEXT, RIGHT, 188, beat, ACCENT);
-    } else {
-        canvas_text_right(c, &FONT_TEXT, RIGHT, 188, "off", MUTED);
-    }
-
+    beat_line(c, s, 188);
     loop(c, s->loop);
 }

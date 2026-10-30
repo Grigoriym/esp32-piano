@@ -30,6 +30,7 @@ typedef struct {
 
 extern const font_t FONT_TITLE; // bold, for the track title
 extern const font_t FONT_TEXT;  // everything else
+extern const font_t FONT_BIG;   // bold, ASCII only: the chord name
 
 // Decodes the UTF-8 sequence at *p and advances past it. Returns 0 at the
 // end of the string, FONT_MISSING for malformed input (skipping one byte).

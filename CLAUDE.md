@@ -303,6 +303,15 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - 2026-10-22: WALTZ is the Balkan button (the user's pick): accordion, beat
   `BALKAN` (čoček 2/4, 126 bpm, tempo by guess, not yet judged by ear). RESET
   and boot give full volume (127), the user's ask.
+- 2026-10-30: the ESP32 and screen go in a separate printed box, not inside the
+  toy (replaces that part of the 2026-10-17 plan). The wires leave through a hole
+  that's already in the toy's back (the user). Base: mukklet's case v2
+  (`../esp32-mukklet/enclosure/`, same TFT; it took two prints, its lessons are
+  in the model). A KY-040 knob changes screens, as on the siblings (the user):
+  wired 2026-10-30 on CLK D18, DT D19, SW D23 (mukklet's D25/D27 are the amp's
+  here). Turning switches Status / Play (`ui.c`; `chord.c` names the held keys,
+  host-tested); a press is only logged. Proposed, not yet agreed: MCP23017 in the
+  box; the free ESP32 mini for mukklet's cradle.
 
 ## Next step
 State on 2026-10-13 (end of session): **MVP done.** Every key and button
@@ -360,10 +369,12 @@ not yet judged by ear.
   14/14. Rule for every key: diode in the bottom comb's own stretch, before
   another key's line joins it, stripe toward the pad. Keys 6 and 7 done
   2026-10-26 (meter only: 0.6 V across each, ~1.0-1.1 V from key 14 / 15,
-  OL swapped). `matrix_diodes` has 1, 5, 6, 7, 8 (host tests pass; **not
-  flashed, not committed**). Next time the toy is connected: flash, every key
-  alone, then by ear with the back closed: 7+8+15 and 6+8+14 with no fake 16,
-  8+15+16 holding notes back instead of a fake 7.
+  OL swapped). Keys 30, 31, 32 done 2026-10-27 (meter: about 0.6 V across each).
+  `matrix_diodes` has 1, 5, 6, 7, 8, 30, 31, 32 (host tests pass; flashed
+  2026-10-30; the user played it reassembled: "keys seem to be fine"). Chords
+  not confirmed one by one. Still to do, by ear with the back closed: 7+8+15 and 6+8+14 with no fake 16,
+  8+15+16 holding notes back instead of a fake 7, and 6+8+30, 7+8+31, 5+8+29
+  with no fake 32. In `matrix_diodes` key k is row `(k-1)/8`, bit `(k-1)%8`.
   **Key 16 has no diode** (2026-10-26; the 2026-10-25 notes wrongly said "8 and
   16 soldered", and a plan to "move 16's diode" was built on that; re-measuring
   at the user's suggestion found it). Its bottom comb goes pad → bar → the box
@@ -371,7 +382,7 @@ not yet judged by ear.
   diode on its other contact (a diode works on either contact; there the stripe
   points toward the shared line), or key 8 moved off the box. The user: skip
   such keys, do the easy ones.
-  Next keys: any the user can reach, middle (9–24) first. Key k's diode makes
+  Next keys: any the user can reach (the user found 26–32 easy, 2026-10-27). Key k's diode makes
   k + any key in k's row + any key in k's column play clean (21 three-key
   chords per key).
 - **State 2026-10-22 (end of session):** the 16 toy lines run through the
@@ -388,6 +399,13 @@ not yet judged by ear.
 - Deferred: where the chip slot lands under the back shell (decides wire
   length; check by holding the back shell over the front one). Firmware
   updates with the case closed (OTA vs a USB hole), mounting.
+
+Future improvements:
+- A custom key board with a diode on all 32 keys (the user's idea, 2026-10-30,
+  parked): the current board can't take them all. Same grid, the old board stays
+  as a fallback. The hard part is the fit (pads under the domes, screw holes,
+  outline), not the circuit. First: a 1:1 flatbed scan, the clearance behind the
+  key board, what's on the domes' underside.
 
 Open items:
 - The 1N4148 from the 2026-10-22 test in the `AB0` wire (`docs/wiring.html`,
