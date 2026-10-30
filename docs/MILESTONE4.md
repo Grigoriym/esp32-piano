@@ -38,6 +38,10 @@ result when it is done.
       note the hours.
 
 ## Into the toy
+Changed 2026-10-30: the ESP32 and screen go in a box behind the toy, see
+`enclosure/README.md`. Steps 7, 9 and 10 follow that draft instead; the amp and
+batteries are set aside for now.
+
 - [ ] 7. Board choice: the DevKit (already wired, 51.49 × 28.36) or the
       ESP32 mini; check it against the flat strips (~36 × 117).
 - [ ] 8. Permanent wiring: 8-pin header strips on the old chip slot pads,

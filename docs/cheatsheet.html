@@ -171,7 +171,7 @@ label.check { display: flex; gap: 6px; align-items: center; color: var(--muted);
     <h2 id="ej-h">Ej, od kad sam se rodio (Sinan Sakić)</h2>
     <p>The chords, in A minor, as found on chord sites (pesmarica.rs, akordi-online.com). The tune itself isn't written here, only the chords to play under it or to sing over. Press <b>WALTZ</b> for the Balkan sound (accordion), then <b>SELECT</b> for its čoček beat, and change chord every bar (two beats).</p>
     <div class="groups" id="ej-chords"></div>
-    <p class="note-small">Why these hand positions: the keys are wired as a grid without diodes, so some three-key chords (5 + 8 + 13, for one) make a fourth key look pressed, and the toy then plays neither. These avoid that.</p>
+    <p class="note-small">Why these hand positions: the keys are wired as a grid and only some have diodes, so some three-key chords (12 + 15 + 20, for one) can make a fourth key look pressed, and the toy then holds notes back. These avoid that.</p>
     <div class="controls">
       <button id="ej-play" type="button">Listen to the intro</button>
       <span class="hint">Tap a chord to show its keys on the keyboard above; the intro plays at the metronome's tempo, one chord per two beats.</span>
@@ -465,7 +465,7 @@ label.check { display: flex; gap: 6px; align-items: center; color: var(--muted);
   document.getElementById("stop").addEventListener("click", stop);
   // Ej, od kad sam se rodio: chords as keys, voiced close together so the hand barely moves.
   // None has three corners of a grid rectangle (two keys in one block of 8, the third
-  // 8 keys from one of them): the toy has no diodes, so such a chord can't be told
+  // 8 keys from one of them): unless a diode rules it out, such a chord can't be told
   // from its fourth corner and the firmware holds the note back.
   const CHORDS = { Am: [5, 8, 12], F: [1, 5, 8], G: [3, 7, 10], C: [8, 12, 15], Dm: [1, 5, 10] };
   const INTRO = ["Am", "F", "G", "Am", "F", "G", "Am", "F", "G", "F", "G", "Am"];

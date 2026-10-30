@@ -101,6 +101,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   beat per style button, one bar of `x`/`X`/`.` steps per drum, switches at the
   bar line, velocity 70, not recorded by the looper). They send through
   `midi_out.h`'s callback. The line-pair finder that mapped the grid is in git (`233c8c3`).
+- `main/encoder.c` + `encoder_decode.c` (KY-040, from mukklet, without its press
+  gestures): `main.c` turns knob events into the screen shown and logs `KNOB ...`.
+  `chord.c` (pure) names the held keys for `ui.c`'s Play screen; `FONT_BIG`
+  (`tools/gen_font.py`, ASCII only) is its big chord name.
 - `main/wifi.c` (from mukklet, power save off: it holds packets up to a
   beacon interval) and `main/midi_link.c`: MIDI over UDP, protocol in
   `main/midi_link.h`. The toy is `chicco-piano.local` (mDNS, port 21928); the
@@ -133,13 +137,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `ABn` → `An`), the 10 kΩ pull-ups gone, all keys checked by the user. Screen (TFT 1.69",
   HSPI: SCL D14, SDA D13, CS D15, RES D5, DC D4, BLK open) works, shows
   `ui.c` (sound, volume, octave, beat, loop, DEMO, PC link); the user checked
-  it. Amp (drawn, not wired on the piano yet): BCK D26, LCK D25, DIN D27.
+  it. Knob: CLK D18, DT D19, SW D23, + on 3V3. Amp (drawn, not wired on the piano yet): BCK D26, LCK D25, DIN D27.
 - The BLE-MIDI version (NimBLE, `ble_midi.c`) is in git at `923500c`.
 - **The four checks** (from mukklet, `FIRMWARE_PLAYBOOK.md`): `tools/test.sh`
   (host tests in `test/`, gcc + ASan/UBSan, Unity from `$IDF_PATH`),
   `tools/format.sh --check`, `tools/lint.sh` (clang-tidy, its own
-  `build/clang` tree), `tools/size_check.sh` (46% flash free by CI's count,
-  2026-10-13). Format and lint only see git-tracked files: `git add` new
+  `build/clang` tree), `tools/size_check.sh` (35% flash free, 2026-10-30). Format and lint only see git-tracked files: `git add` new
   ones first. `tools/test.sh` runs one binary per test file and exits 1 on any
   failure: judge it by its exit code, not `| tail` (2026-10-25/26 a `tail` showed
   the last file's OK and hid two `test_matrix` failures until CI caught them;
@@ -387,6 +390,19 @@ not yet judged by ear.
   Next keys: any the user can reach (the user found 26–32 easy, 2026-10-27). Key k's diode makes
   k + any key in k's row + any key in k's column play clean (21 three-key
   chords per key).
+  What the 8 diodes change (calculated 2026-10-30 from the grid and
+  `matrix_ambiguous`, not played one by one): 4462 of 4960 three-key sets clean,
+  4288 without diodes. Blocked shapes are those with two keys 8 apart plus one in
+  a same row: major 1st inversion `k k+3 k+8`, minor 2nd inversion `k k+5 k+8`,
+  augmented, and 7ths built on them. Those now work only at: `1 4 9`, `5 8 13`,
+  `22 25 30`, `23 26 31`, `24 27 32` (major); `1 6 9`, `22 27 30`, `23 28 31`,
+  `24 29 32` (minor). Every other close major or minor voicing plays anywhere.
+- **State 2026-10-30 (end of session):** the toy is reassembled and played fine with
+  all 8 diodes flashed; the knob and Play screen work (the user saw them). Next: the
+  box. The draft is in `enclosure/README.md`; the user builds the cardboard mock-up
+  (`enclosure/cardboard.py`, the notch is cut by hand) and tries it behind the toy.
+  Soldering the 16 lines to the MCP23017, the 4-wire cable and the move to the mini
+  come after. The amp is set aside (the user: "forget about the amp for now").
 - **State 2026-10-22 (end of session):** the 16 toy lines run through the
   MCP23017, every key checked by the user; the amp passed its check on the
   WROVER. Next: the amp on the piano (wire it per `docs/wiring.html`, then
@@ -410,12 +426,15 @@ Future improvements:
   key board, what's on the domes' underside.
 
 Open items:
+- Homebox, KY-040 (needs the user's OK): one more `In use` (esp32-piano), Free 2.
+- Which way the knob turns isn't checked: with two screens either way toggles.
+  Pressing it does nothing yet.
 - The 1N4148 from the 2026-10-22 test in the `AB0` wire (`docs/wiring.html`,
   "Diode test"): out or still in? Not confirmed. Two diodes in series on key 5
   (~0.9 V) may exceed the MCP23017's input-low limit; key 5 played on
   2026-10-23, so either it's out or it's fine. Update the wiring doc either way.
 - Homebox toy entry (needs the user's OK): the key board is modified, one trace
-  cut and a 1N4148 on key 5 (2026-10-23).
+  cut and 1N4148s on keys 1, 5, 6, 7, 8, 30, 31, 32 (2026-10-23 to 27).
 - Homebox, needs the user's OK: the WROVER's port is `/dev/ttyUSB0`, CH340
   (`udevadm` ID_MODEL `USB_Serial`; the DevKit's is `CP2102_USB_to_UART...`),
   the entry still says "port not checked". The DevKit entry counts 2 in use
