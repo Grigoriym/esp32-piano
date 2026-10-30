@@ -18,3 +18,7 @@ __pycache__/
 
 # Claude Code local (machine-specific) settings
 .claude/settings.local.json
+
+# Enclosure output
+enclosure/stl/
+enclosure/cardboard*.pdf

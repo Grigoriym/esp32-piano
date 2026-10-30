@@ -305,13 +305,15 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   and boot give full volume (127), the user's ask.
 - 2026-10-30: the ESP32 and screen go in a separate printed box, not inside the
   toy (replaces that part of the 2026-10-17 plan). The wires leave through a hole
-  that's already in the toy's back (the user). Base: mukklet's case v2
+  that's already in the toy's back, can be widened (the user). They're soldered,
+  ~13 cm, to a temporary custom board with female pins; length can change. Base: mukklet's case v2
   (`../esp32-mukklet/enclosure/`, same TFT; it took two prints, its lessons are
   in the model). A KY-040 knob changes screens, as on the siblings (the user):
   wired 2026-10-30 on CLK D18, DT D19, SW D23 (mukklet's D25/D27 are the amp's
   here). Turning switches Status / Play (`ui.c`; `chord.c` names the held keys,
-  host-tested); a press is only logged. Proposed, not yet agreed: MCP23017 in the
-  box; the free ESP32 mini for mukklet's cradle.
+  host-tested); a press is only logged. The rest is a draft the user wants kept
+  loose ("we can always edit"): `enclosure/README.md` and `enclosure/enclosure.scad`
+  (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
 State on 2026-10-13 (end of session): **MVP done.** Every key and button
