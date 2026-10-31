@@ -136,8 +136,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   the top of its script. After changing a lesson or `matrix_diodes`:
   `tools/check_lesson_chords.py`, because some chords are held back and a lesson
   asking for one would wait forever (2026-10-31 it caught 3 first drafts).
-- `tools/gen_cat_sf2.py` + `tools/sounds/meow.wav` (public domain, see its README):
-  SLOW ROCK's program 19 is a cat. `pc_synth.sh` builds `build-host/cat.sf2` and
+- `tools/gen_cat_sf2.py` + `tools/sounds/` (free recordings, see its README; the
+  table `CATS` lists them): SLOW ROCK's program 19 is a cat, NEW AGE's 88 a deeper
+  Siamese (2026-10-31; ~0.9 s at F3, a ~0.15 s blip at C6). `pc_synth.sh` builds `build-host/cat.sf2` and
   loads it after FluidR3; the last SoundFont loaded with a program wins, so only 19
   changes. Tuning: rendered through FluidSynth, within 1 cent at F3 to C6 of the
   meow's centre pitch (it glides, as a meow does). A low note plays slower and longer

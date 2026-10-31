@@ -1,29 +1,37 @@
 #!/usr/bin/env python3
-"""Build the cat instrument: a SoundFont with one preset, bank 0 program 19.
+"""Build the cats: a SoundFont with one preset per sound in CATS.
 
-Usage: gen_cat_sf2.py <meow.wav> <out.sf2>
+Usage: gen_cat_sf2.py <out.sf2>
 
 FluidSynth takes a program from the last SoundFont loaded that has it, so with
-this one loaded after FluidR3 (tools/pc_synth.sh), program 19 (SLOW ROCK,
-main/keymap.c) is the cat and every other program stays as it was. Without it,
-program 19 is FluidR3's church organ.
+this one loaded after FluidR3 (tools/pc_synth.sh), these programs (the style
+buttons, main/keymap.c) are cats and every other program stays as it was.
+
+To change a cat: put a mono 16-bit wav of one meow in tools/sounds/, starting
+where the sound starts, measure its pitch, and edit its line here.
 """
 import array
 import math
+import pathlib
 import struct
 import sys
 import wave
 
-PROGRAM = 19
-# The meow's pitch, measured: 579 Hz energy-weighted median of its fundamental,
-# MIDI 73.74. It glides between 544 and 602 Hz (10th-90th percentile) while it
-# sounds, the way a meow does, so this is its centre, not a steady note.
-ROOT_KEY = 74
-ROOT_CENTS = 26  # the sample sits 26 cents under its root key: correct it up
-GAIN = 0.9       # peak after normalising
+SOUNDS = pathlib.Path(__file__).resolve().parent / "sounds"
+
+# A meow glides, so the pitch is its centre: the energy-weighted median of its
+# fundamental, as MIDI note root + (-cents / 100). cents corrects it up to root.
+CATS = [
+    # file, program, name, root, cents
+    ("meow.wav", 19, "Cat", 74, 26),         # SLOW ROCK: 579 Hz, 544-602 Hz
+    ("siamese.wav", 88, "Siamese", 59, 33),  # NEW AGE: 242 Hz, 214-255 Hz
+]
+GAIN = 0.9  # peak after normalising
 FADE_IN_S = 0.004
 FADE_OUT_S = 0.08
 RELEASE_S = 0.2  # after the key comes up
+
+GEN_RELEASE, GEN_INSTRUMENT, GEN_SAMPLE, GEN_SAMPLE_MODES, GEN_ROOT_OVERRIDE = 38, 41, 53, 54, 58
 
 
 def chunk(tag, data):
@@ -40,7 +48,7 @@ def name20(s):
 
 
 def read_samples(path):
-    with wave.open(path) as w:
+    with wave.open(str(path)) as w:
         if w.getnchannels() != 1 or w.getsampwidth() != 2:
             sys.exit(f"{path}: needs mono 16 bit")
         rate = w.getframerate()
@@ -58,10 +66,38 @@ def read_samples(path):
     return out, rate
 
 
-def build(samples, rate):
-    # 46 zero samples after each sample: the format's rule.
-    smpl = samples.tobytes() + bytes(2 * 46)
-    n = len(samples)
+def build():
+    smpl, shdr, phdr, inst, pbag, ibag, pgen, igen = b"", b"", b"", b"", b"", b"", b"", b""
+    release_tc = round(1200 * math.log2(RELEASE_S))
+    igen_count = 0
+    # Presets in program order, as SoundFont files usually keep them.
+    for i, (file, program, name, root, cents) in enumerate(sorted(CATS, key=lambda c: c[1])):
+        samples, rate = read_samples(SOUNDS / file)
+        start = len(smpl) // 2
+        end = start + len(samples)
+        smpl += samples.tobytes() + bytes(2 * 46)  # 46 zero samples after each: the format's rule
+        shdr += struct.pack("<20sIIIIIBbHH", name20(name), start, end, start, end, rate, root, cents, 0, 1)
+        phdr += struct.pack("<20sHHHIII", name20(name), program, 0, i, 0, 0, 0)
+        pbag += struct.pack("<HH", i, 0)
+        pgen += struct.pack("<HH", GEN_INSTRUMENT, i)
+        inst += struct.pack("<20sH", name20(name), i)
+        ibag += struct.pack("<HH", igen_count, 0)
+        gens = [
+            (GEN_RELEASE, release_tc & 0xFFFF),
+            (GEN_ROOT_OVERRIDE, root),
+            (GEN_SAMPLE_MODES, 0),  # one shot: the meow plays once, no loop
+            (GEN_SAMPLE, i),        # must be last
+        ]
+        igen += b"".join(struct.pack("<HH", g, v) for g, v in gens)
+        igen_count += len(gens)
+    n = len(CATS)
+    phdr += struct.pack("<20sHHHIII", name20("EOP"), 0, 0, n, 0, 0, 0)
+    pbag += struct.pack("<HH", n, 0)
+    pgen += struct.pack("<HH", 0, 0)
+    inst += struct.pack("<20sH", name20("EOI"), n)
+    ibag += struct.pack("<HH", igen_count, 0)
+    igen += struct.pack("<HH", 0, 0)
+    shdr += struct.pack("<20sIIIIIBbHH", name20("EOS"), 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
     info = riff_list(
         b"INFO",
@@ -70,41 +106,26 @@ def build(samples, rate):
         chunk(b"INAM", b"Chicco Piano Cat\0\0"),
     )
     sdta = riff_list(b"sdta", chunk(b"smpl", smpl))
-
-    GEN_INSTRUMENT, GEN_RELEASE, GEN_SAMPLE_MODES, GEN_SAMPLE = 41, 38, 54, 53
-    GEN_ROOT_OVERRIDE = 58
-    release_tc = round(1200 * math.log2(RELEASE_S))
-    igens = [
-        (GEN_RELEASE, release_tc & 0xFFFF),
-        (GEN_ROOT_OVERRIDE, ROOT_KEY),
-        (GEN_SAMPLE_MODES, 0),  # one shot: the meow plays once, no loop
-        (GEN_SAMPLE, 0),        # must be last
-    ]
     pdta = riff_list(
         b"pdta",
-        chunk(b"phdr", struct.pack("<20sHHHIII", name20("Cat"), PROGRAM, 0, 0, 0, 0, 0)
-              + struct.pack("<20sHHHIII", name20("EOP"), 0, 0, 1, 0, 0, 0)),
-        chunk(b"pbag", struct.pack("<HH", 0, 0) + struct.pack("<HH", 1, 0)),
+        chunk(b"phdr", phdr),
+        chunk(b"pbag", pbag),
         chunk(b"pmod", bytes(10)),
-        chunk(b"pgen", struct.pack("<HH", GEN_INSTRUMENT, 0) + struct.pack("<HH", 0, 0)),
-        chunk(b"inst", struct.pack("<20sH", name20("Cat"), 0) + struct.pack("<20sH", name20("EOI"), 1)),
-        chunk(b"ibag", struct.pack("<HH", 0, 0) + struct.pack("<HH", len(igens), 0)),
+        chunk(b"pgen", pgen),
+        chunk(b"inst", inst),
+        chunk(b"ibag", ibag),
         chunk(b"imod", bytes(10)),
-        chunk(b"igen", b"".join(struct.pack("<HH", g, v) for g, v in igens) + struct.pack("<HH", 0, 0)),
-        chunk(b"shdr",
-              struct.pack("<20sIIIIIBbHH", name20("meow"), 0, n, 0, n, rate, ROOT_KEY,
-                          ROOT_CENTS, 0, 1)
-              + struct.pack("<20sIIIIIBbHH", name20("EOS"), 0, 0, 0, 0, 0, 0, 0, 0, 0)),
+        chunk(b"igen", igen),
+        chunk(b"shdr", shdr),
     )
     return chunk(b"RIFF", b"sfbk" + info + sdta + pdta)
 
 
 def main():
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 2:
         sys.exit(__doc__)
-    samples, rate = read_samples(sys.argv[1])
-    with open(sys.argv[2], "wb") as f:
-        f.write(build(samples, rate))
+    with open(sys.argv[1], "wb") as f:
+        f.write(build())
 
 
 if __name__ == "__main__":

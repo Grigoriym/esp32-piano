@@ -16,7 +16,7 @@ static const char *const BUTTONS[4][N_COLS] = {
 static const uint8_t STYLE_PROGRAM[N_COLS] = {
     19, /* SLOW ROCK: cat (tools/gen_cat_sf2.py takes over this program on the PC) */
     0,  /* ROCK: piano, the default sound */
-    88, /* NEW AGE: new age pad */
+    88, /* NEW AGE: Siamese cat (same way) */
     81, /* DISCO: saw lead */
     56, /* MARCH: trumpet */
     21, /* WALTZ: accordion, the Balkan sound (rhythm.c: BALKAN beat) */
@@ -27,7 +27,7 @@ static const uint8_t STYLE_PROGRAM[N_COLS] = {
 const char *keymap_program_name(uint8_t program)
 {
     static const char *const NAMES[N_COLS] = {
-        "Cat", "Piano", "New age pad", "Saw lead", "Trumpet", "Accordion", "Marimba", "Electric piano",
+        "Cat", "Piano", "Siamese cat", "Saw lead", "Trumpet", "Accordion", "Marimba", "Electric piano",
     };
     if (program == 0) return "Piano";
     for (size_t c = 0; c < N_COLS; c++) {
