@@ -245,6 +245,19 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   inference). Dead spots: don't probe or solder there.
 - **Every button is live**: a press of VOLUME− (or a style button) during a
   test can make the toy go quiet. RESET restores the defaults.
+- **A bad `cat.sf2` fails silently**: `pc_synth.sh` throws FluidSynth's output away and
+  the program falls back to FluidR3's (19 = organ). 2026-10-31 that happened with an odd
+  INFO string; what caught it was comparing renders of the program with and without the
+  file. To see the error: `fluidsynth -ni -F out.wav <FluidR3> build-host/cat.sf2 x.mid`.
+  Measuring a meow's pitch: scale the window and the search range with the note; a
+  fixed window read a correctly tuned note 58 cents off, and F3 as its third harmonic.
+- **Testing the pages from here:** the Chrome extension needs Brave open and refuses
+  `file://` (serve `docs/` on 127.0.0.1); `brave-browser --headless` hangs here even on
+  about:blank; `firefox --headless --screenshot` works, and a copy of the page with a
+  test script appended can POST its results to a small local server.
+- **Flashing failed once on each of the last 3 flashes, 2026-10-31** (`No serial data
+  received`, `Serial data stream stopped`); each retry ended in `Done`. Cause unknown,
+  the cable or USB connection not checked. Read the `Done`, it isn't a given here.
 - esptool prints `Detected crystal freq 15.44 MHz ... Unsupported crystal`
   on this DevKit; flashing and boot work regardless.
 - FluidSynth fed `noteon` commands on stdin stayed silent; a small `.mid`
@@ -335,7 +348,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 ## Next step
 **State 2026-10-31:** a side trip from the box: `docs/learn-piano.html` and the style
 buttons' sounds (SLOW ROCK piano, ROCK cat, NEW AGE Siamese; their beats unchanged). The
-user wants to rework the other buttons too (drum animals, beats). The box plan below still stands.
+user wants to rework the other buttons too (drum animals, beats).
+**Next, the user's call at the end of 2026-10-31: make `docs/learn-piano.html` better**
+(what exactly: ask, no list given). Not checked yet: the page hearing the real toy
+(tested with simulated notes in headless Firefox and by eye in Brave at 127.0.0.1; MIDI
+permission never granted there, opening it as `file://` in Brave not seen working) and
+the cats and the swapped sounds by ear (tuning rendered through FluidSynth, flashed). The box plan below still stands.
 
 State on 2026-10-13 (end of session): **MVP done.** Every key and button
 reaches FluidSynth over WiFi (the service starts from the app menu, on demand
