@@ -23,7 +23,7 @@ SOUNDS = pathlib.Path(__file__).resolve().parent / "sounds"
 # fundamental, as MIDI note root + (-cents / 100). cents corrects it up to root.
 CATS = [
     # file, program, name, root, cents
-    ("meow.wav", 19, "Cat", 74, 26),         # SLOW ROCK: 579 Hz, 544-602 Hz
+    ("meow.wav", 19, "Cat", 74, 26),         # ROCK: 579 Hz, 544-602 Hz
     ("siamese.wav", 88, "Siamese", 59, 33),  # NEW AGE: 242 Hz, 214-255 Hz
 ]
 GAIN = 0.9  # peak after normalising

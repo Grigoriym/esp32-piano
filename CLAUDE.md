@@ -137,7 +137,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `tools/check_lesson_chords.py`, because some chords are held back and a lesson
   asking for one would wait forever (2026-10-31 it caught 3 first drafts).
 - `tools/gen_cat_sf2.py` + `tools/sounds/` (free recordings, see its README; the
-  table `CATS` lists them): SLOW ROCK's program 19 is a cat, NEW AGE's 88 a deeper
+  table `CATS` lists them): ROCK's program 19 is a cat, NEW AGE's 88 a deeper
   Siamese (2026-10-31; ~0.9 s at F3, a ~0.15 s blip at C6). `pc_synth.sh` builds `build-host/cat.sf2` and
   loads it after FluidR3; the last SoundFont loaded with a program wins, so only 19
   changes. Tuning: rendered through FluidSynth, within 1 cent at F3 to C6 of the
@@ -333,9 +333,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
-**State 2026-10-31:** a side trip from the box: `docs/learn-piano.html` and the cat on
-SLOW ROCK. The user wants to rework the other buttons too (drum animals, beats); only
-the cat is decided. The box plan below still stands.
+**State 2026-10-31:** a side trip from the box: `docs/learn-piano.html` and the style
+buttons' sounds (SLOW ROCK piano, ROCK cat, NEW AGE Siamese; their beats unchanged). The
+user wants to rework the other buttons too (drum animals, beats). The box plan below still stands.
 
 State on 2026-10-13 (end of session): **MVP done.** Every key and button
 reaches FluidSynth over WiFi (the service starts from the app menu, on demand
