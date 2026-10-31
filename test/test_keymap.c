@@ -120,6 +120,14 @@ static void test_buttons(void)
     TEST_ASSERT_EQUAL(3, rec.n);
 }
 
+static void test_rock_button_is_the_default_piano(void)
+{
+    keymap_event(&k, 4, 5, true, midi_rec, &rec); /* WALTZ: accordion */
+    keymap_event(&k, 4, 1, true, midi_rec, &rec); /* ROCK */
+    TEST_ASSERT_EQUAL(0, k.program);
+    TEST_ASSERT_EQUAL_STRING("Piano", keymap_program_name(k.program));
+}
+
 static void test_program_names(void)
 {
     TEST_ASSERT_EQUAL_STRING("Piano", keymap_program_name(k.program));
@@ -139,6 +147,7 @@ int main(void)
     RUN_TEST(test_volume_steps_and_clamps);
     RUN_TEST(test_reset_restores_the_defaults);
     RUN_TEST(test_buttons);
+    RUN_TEST(test_rock_button_is_the_default_piano);
     RUN_TEST(test_program_names);
     return UNITY_END();
 }
