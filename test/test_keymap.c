@@ -123,6 +123,7 @@ static void test_buttons(void)
 static void test_program_names(void)
 {
     TEST_ASSERT_EQUAL_STRING("Piano", keymap_program_name(k.program));
+    TEST_ASSERT_EQUAL_STRING("Cat", keymap_program_name(19));
     TEST_ASSERT_EQUAL_STRING("Trumpet", keymap_program_name(56));
     TEST_ASSERT_EQUAL_STRING("Electric piano", keymap_program_name(4));
     TEST_ASSERT_EQUAL_STRING("?", keymap_program_name(127));

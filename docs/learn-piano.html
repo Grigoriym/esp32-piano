@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Learn Piano</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Same palette as cheatsheet.html. Layout: lesson list on the left, the lesson on
+   the right, and the toy's own 32 keys under every exercise. */
+:root {
+  --bg: #f6f7fb; --panel: #ffffff; --ink: #1c2240; --muted: #5b6283; --line: #d9dcea;
+  --chick: #f5c518; --chick-ink: #3a2c00; --red: #d8343a; --blue: #2e6bd8; --green: #2f9e57;
+  --white-key: #ffffff; --black-key: #1c2240; --left: #2e6bd8; --left-ink: #ffffff;
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558;
+    --red: #ff6b70; --blue: #77a4ff; --green: #5fd18a; --chick-ink: #2a2000;
+    --white-key: #e9ebf5; --black-key: #070914; --left: #77a4ff; --left-ink: #0b1030; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558;
+  --red: #ff6b70; --blue: #77a4ff; --green: #5fd18a; --chick-ink: #2a2000;
+  --white-key: #e9ebf5; --black-key: #070914; --left: #77a4ff; --left-ink: #0b1030; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--font-body); }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; line-height: 1.15; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; }
+.layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); gap: 28px; max-width: 1240px; margin: 0 auto; padding: 24px 16px 56px; align-items: start; }
+@media (max-width: 860px) { .layout { grid-template-columns: minmax(0, 1fr); } nav { position: static !important; max-height: none !important; } }
+
+nav { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+nav h1 { font-size: 1.6rem; }
+.status { display: flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--muted); }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.on { background: var(--green); }
+.unit { font: 600 .8rem var(--font-body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 8px 0 2px; }
+.lesson-link { display: flex; gap: 8px; width: 100%; text-align: left; background: none; border: 0; color: var(--ink); font: 600 .95rem var(--font-body); padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+.lesson-link:hover { background: var(--panel); }
+.lesson-link[aria-current="true"] { background: var(--panel); box-shadow: inset 3px 0 0 var(--chick); }
+.tick { width: 1.1em; flex: none; color: var(--green); font-weight: 700; }
+
+main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+main > h2 { font-size: clamp(1.6rem, 4vw, 2.1rem); }
+.body { display: flex; flex-direction: column; gap: 10px; }
+.bridge { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--chick); border-radius: 10px; padding: 10px 14px; max-width: 68ch; }
+.bridge b:first-child { font-family: var(--font-display); font-weight: 600; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab { font: 600 .9rem var(--font-body); background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 5px 14px; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button.act { font: 600 .95rem var(--font-body); color: var(--chick-ink); background: var(--chick); border: 0; border-radius: 999px; padding: 7px 16px; cursor: pointer; }
+button.act.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.bpm { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: .9rem; }
+.bpm input { width: 62px; font: 500 .95rem var(--font-mono); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; }
+.prompt { font: 600 1.5rem var(--font-display); min-height: 1.6em; }
+.feedback { min-height: 1.5em; color: var(--muted); }
+.feedback.bad { color: var(--red); font-weight: 700; }
+.feedback.good { color: var(--green); font-weight: 700; }
+
+.steps { display: flex; flex-wrap: wrap; gap: 4px 3px; }
+.step { min-width: 46px; padding: 3px 5px 5px; border-radius: 8px; border: 2px solid transparent; text-align: center; display: flex; flex-direction: column; align-items: center; }
+.step .nm { font: 700 .82rem var(--font-mono); white-space: nowrap; }
+.step .fg { font: 500 .72rem var(--font-mono); color: var(--muted); white-space: nowrap; }
+.step .ch { font: 600 .95rem var(--font-display); }
+.step.cur { border-color: var(--chick); background: color-mix(in srgb, var(--chick) 18%, transparent); }
+.step.ok { color: var(--green); }
+.step.ok .fg { color: var(--green); }
+.step.off { color: #b77900; background: color-mix(in srgb, var(--chick) 22%, transparent); }
+.step.miss { color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); }
+.mini { display: block; }
+.mini line, .bigstaff line { stroke: var(--muted); stroke-width: 1; }
+.mini .ink, .bigstaff .ink { fill: currentColor; stroke: currentColor; }
+.mini .hollow, .bigstaff .hollow { fill: none; stroke: currentColor; stroke-width: 1.6; }
+.mini .stem { stroke: currentColor; stroke-width: 1.3; }
+.mini text, .bigstaff text { fill: currentColor; font-family: var(--font-body); }
+.bigstaff { width: 240px; max-width: 100%; height: auto; color: var(--ink); }
+
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; position: sticky; bottom: 0; background: var(--panel); padding-block: 6px; }
+#kbd { display: block; width: 100%; min-width: 760px; height: auto; touch-action: manipulation; user-select: none; }
+#kbd .k { cursor: pointer; }
+#kbd .w rect { fill: var(--white-key); stroke: var(--muted); stroke-width: 1; }
+#kbd .b rect { fill: var(--black-key); stroke: var(--muted); stroke-width: 1; }
+#kbd text { font-family: var(--font-mono); pointer-events: none; }
+#kbd .lbl { fill: #5b6283; font-size: 12px; font-weight: 500; }
+#kbd .lbl.c { fill: #1c2240; font-weight: 700; font-size: 13px; }
+#kbd .k.t-R rect { fill: var(--chick); }
+#kbd .k.t-L rect { fill: var(--left); }
+#kbd .k.t-any rect { fill: var(--chick); }
+#kbd .k.held rect { fill: var(--green); }
+#kbd .k.wrong rect { fill: var(--red); }
+#kbd .fing { font-size: 15px; font-weight: 700; text-anchor: middle; display: none; }
+#kbd .k.t-R .fing, #kbd .k.t-any .fing { display: block; fill: #3a2c00; }
+#kbd .k.t-L .fing { display: block; fill: var(--left-ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: .85rem; color: var(--muted); }
+.sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.next { align-self: flex-start; }
+footer { font-size: .85rem; color: var(--muted); }
+a { color: var(--blue); }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav aria-label="Lessons">
+    <h1>Learn Piano</h1>
+    <div class="status"><span class="dot" id="dot"></span><span id="status">Looking for the toy. If the browser asks about MIDI devices, allow it.</span></div>
+    <div id="lesson-list"></div>
+  </nav>
+  <main>
+    <h2 id="title"></h2>
+    <div class="body" id="body"></div>
+    <section class="panel" aria-label="Exercise">
+      <div class="tabs" id="tabs" role="tablist"></div>
+      <div class="controls" id="controls"></div>
+      <div id="stage"></div>
+      <div class="feedback" id="feedback" role="status"></div>
+      <div class="scroll"><svg id="kbd" role="img" aria-label="The toy's 32 keys, F3 to C6"></svg></div>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--chick)"></span>right hand, number = finger</span>
+        <span><span class="sw" style="background:var(--left)"></span>left hand</span>
+        <span><span class="sw" style="background:var(--green)"></span>held down</span>
+        <span>Click keys if the toy is off. A chord: click its keys one by one.</span>
+      </div>
+    </section>
+    <button class="act ghost next" id="next" type="button">Next lesson →</button>
+    <footer>The toy should be on its default octave: RESET sets it. Keys on the toy make the sound; this page only listens, and plays sound itself for Listen, the click and clicked keys.</footer>
+  </main>
+</div>
+<script>
+/* ---- notes ---- */
+const LOW = 53, HIGH = 84;   /* the toy at its default octave: key 1 = F3, key 32 = C6 */
+const SHARP = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const LETTER = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+function midi(s) {
+  const m = /^([A-G])([#b]?)(\d)$/.exec(s);
+  return 12 * (+m[3] + 1) + LETTER[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
+}
+const isBlack = n => SHARP[n % 12].length > 1;
+const pretty = s => s.replace('#', '♯').replace('b', '♭');
+
+/* A score is a string of steps: [Name:]NOTE+NOTE/FINGER+FINGER/BEATS.
+   A finger is 1-5 (right hand) or L1-L5 (left). Beats default to 1. */
+function seq(text) {
+  return text.trim().split(/\s+/).map(tok => {
+    let label = '';
+    const colon = tok.indexOf(':');
+    if (colon >= 0) { label = tok.slice(0, colon); tok = tok.slice(colon + 1); }
+    const [ns, fs, bs] = tok.split('/');
+    const names = ns.split('+');
+    return {
+      label, names, notes: names.map(midi),
+      fingers: (fs || '').split('+').map(f => f.startsWith('L') ? { hand: 'L', n: f.slice(1) } : { hand: 'R', n: f }),
+      beats: bs ? +bs : 1,
+    };
+  });
+}
+const WHITE_C_TO_B = ['C4','D4','E4','F4','G4','A4','B4'];
+
+/* ---- lessons ---- */
+const LESSONS = [
+{ unit: 'The map', title: 'Twos and threes', body: `
+  <p>A piano has no strings to choose from. Each key is one note, and the black keys are your map: they come in groups of <b>two</b> and <b>three</b>, again and again.</p>
+  <p><b>C</b> is the white key just left of a group of two. <b>F</b> is the white key just left of a group of three. Find those two and you can find anything.</p>
+  <div class="bridge"><b>From guitar:</b> moving one key to the right, black or white, is one fret up. Twelve keys are twelve frets, an octave.</div>`,
+  ex: [
+    { type: 'find', name: 'Find C', pool: ['C'], rounds: 8 },
+    { type: 'find', name: 'Find F', pool: ['F'], rounds: 8 },
+    { type: 'find', name: 'C or F', pool: ['C', 'F'], rounds: 10 },
+  ] },
+{ unit: 'The map', title: 'All the note names', body: `
+  <p>White keys run <b>A B C D E F G</b>, then start over. A black key is named after its neighbour: one up from F is <b>F♯</b>, one down from B is <b>B♭</b>.</p>
+  <p>E to F and B to C have no black key between them. They are already one step apart.</p>
+  <div class="bridge"><b>From guitar:</b> the same two gaps as on the fretboard, where E–F and B–C are one fret. Your open G, B and high E strings are the keys G3, B3 and E4 on the toy, exactly the same pitches. Low E, A and D are below its range until you press TEMPO−.</div>`,
+  ex: [
+    { type: 'find', name: 'White keys', pool: ['C','D','E','F','G','A','B'], rounds: 14 },
+    { type: 'find', name: 'Black keys', pool: ['F#','G#','A#','C#','D#','Bb','Eb'], rounds: 10 },
+    { type: 'seq', name: 'Your open strings', bpm: 60, score: 'G3/3/2 B3/3/2 E4/3/2' },
+  ] },
+
+{ unit: 'Right hand', title: 'Five fingers on five keys', body: `
+  <p>Put your right thumb on the C in the middle (C4), and one finger on each white key up to G. Curve your fingers as if holding an orange, wrist level and loose.</p>
+  <p>A key sounds while it's down and stops when it comes up. To play smoothly, let one key rise as the next goes down. The toy doesn't know how hard you press, so press lightly.</p>
+  <div class="bridge"><b>From guitar:</b> numbers change. On piano the <b>thumb is 1</b> and the pinky 5. Your fretting hand has index as 1, so this will trip you for a week.</div>`,
+  ex: [
+    { type: 'seq', name: 'Up and down', bpm: 60, staff: true, score: 'C4/1 D4/2 E4/3 F4/4 G4/5 F4/4 E4/3 D4/2 C4/1/2' },
+    { type: 'seq', name: 'Skips', bpm: 60, staff: true, score: 'C4/1 E4/3 D4/2 F4/4 E4/3 G4/5 F4/4 D4/2 C4/1/2' },
+    { type: 'seq', name: 'Fingers alone', bpm: 60, staff: true, score: 'C4/1 C4/1 D4/2 D4/2 E4/3 E4/3 F4/4 F4/4 G4/5 G4/5 G4/5/2' },
+  ] },
+{ unit: 'Right hand', title: 'First tune: Ode to Joy', body: `
+  <p>Same hand position, no moving. Start with <b>Wait for me</b>, which waits for each note. When it stops feeling like a search, try <b>In time</b>.</p>
+  <p>The long-short at the end of each line is the only tricky rhythm: three quarters of the time on the first note, then a quick one.</p>`,
+  ex: [
+    { type: 'seq', name: 'First line', bpm: 80, staff: true, score: 'E4/3 E4/3 F4/4 G4/5 G4/5 F4/4 E4/3 D4/2 C4/1 C4/1 D4/2 E4/3 E4/3/1.5 D4/2/0.5 D4/2/2' },
+    { type: 'seq', name: 'Second line', bpm: 80, staff: true, score: 'E4/3 E4/3 F4/4 G4/5 G4/5 F4/4 E4/3 D4/2 C4/1 C4/1 D4/2 E4/3 D4/2/1.5 C4/1/0.5 C4/1/2' },
+  ] },
+{ unit: 'Right hand', title: 'Thumb under: the C major scale', body: `
+  <p>Five fingers run out before the scale does. So after finger 3 on E, the <b>thumb slides under</b> to F, and the hand carries on. Coming down, finger 3 crosses over the thumb.</p>
+  <p>Move the thumb early, while finger 3 is still down. The hand stays level; the elbow doesn't jump.</p>
+  <div class="bridge"><b>From guitar:</b> it's the major scale you already know, whole whole half whole whole whole half. C major is all the white keys. Thumb under plays the part of a position shift.</div>`,
+  ex: [
+    { type: 'seq', name: 'Up', bpm: 60, staff: true, score: 'C4/1 D4/2 E4/3 F4/1 G4/2 A4/3 B4/4 C5/5/2' },
+    { type: 'seq', name: 'Down', bpm: 60, staff: true, score: 'C5/5 B4/4 A4/3 G4/2 F4/1 E4/3 D4/2 C4/1/2' },
+    { type: 'seq', name: 'Joy to the World', bpm: 70, staff: true, score: 'C5/5 B4/4/0.75 A4/3/0.25 G4/2/1.5 F4/1/0.5 E4/3 D4/2 C4/1/1.5' },
+  ] },
+
+{ unit: 'Reading', title: 'Notes on the staff', body: `
+  <p>The five lines are <b>E G B D F</b> from the bottom, the spaces between them <b>F A C E</b>. Middle C (C4) sits on its own short line just below.</p>
+  <p>Don't read every note from scratch: find C4, the G on the second line and the top F, and count from whichever is close.</p>
+  <div class="bridge"><b>From guitar:</b> guitar music is written an octave above where it sounds. Piano music isn't. The same dot on the staff is a key one octave higher than your guitar note.</div>`,
+  ex: [
+    { type: 'staff', name: 'C to G', pool: ['C4','D4','E4','F4','G4'], rounds: 10 },
+    { type: 'staff', name: 'Up to C5', pool: ['C4','D4','E4','F4','G4','A4','B4','C5'], rounds: 14 },
+    { type: 'staff', name: 'Whole staff', pool: ['E4','F4','G4','A4','B4','C5','D5','E5','F5'], rounds: 14 },
+  ] },
+
+{ unit: 'Chords', title: 'Chords you already know', body: `
+  <p>A chord in its basic shape is three keys: root, then count up. <b>Major: 4 keys, then 3. Minor: 3 keys, then 4.</b> Fingers 1, 3 and 5. Press all three together.</p>
+  <p>That shape works from any key, the same way a barre shape slides up the neck. There's nothing like open-chord fingerings to memorise.</p>
+  <div class="bridge"><b>From guitar:</b> a guitar C has six strings but only three different notes, C E G. On piano you play just those three.</div>`,
+  ex: [
+    { type: 'seq', name: 'C F G', bpm: 50, score: 'C:C4+E4+G4/1+3+5/4 F:F4+A4+C5/1+3+5/4 G:G4+B4+D5/1+3+5/4 C:C4+E4+G4/1+3+5/4' },
+    { type: 'seq', name: 'Am Dm Em', bpm: 50, score: 'Am:A4+C5+E5/1+3+5/4 Dm:D4+F4+A4/1+3+5/4 Em:E4+G4+B4/1+3+5/4 Am:A4+C5+E5/1+3+5/4' },
+    { type: 'seq', name: 'With black keys', bpm: 50, score: 'D:D4+F#4+A4/1+3+5/4 E:E4+G#4+B4/1+3+5/4 A:A4+C#5+E5/1+3+5/4 Bb:Bb4+D5+F5/2+3+5/4' },
+  ] },
+{ unit: 'Chords', title: 'Change without jumping', body: `
+  <p>Jumping the whole hand between chords is slow and sounds choppy. Reorder the notes and the next chord is close by: C E G goes to C F A by moving two fingers, and the C stays down.</p>
+  <p>The notes of a chord can go in any order and it's still that chord. This is called an inversion.</p>
+  <div class="bridge"><b>From guitar:</b> the same idea as keeping a finger planted between Am and C. These four chords are the pop loop you've played a thousand times.</div>`,
+  ex: [
+    { type: 'seq', name: 'C F C', bpm: 60, score: 'C:C4+E4+G4/1+3+5/4 F:C4+F4+A4/1+3+5/4 C:C4+E4+G4/1+3+5/4' },
+    { type: 'seq', name: 'C G Am F', bpm: 60, score: 'C:C4+E4+G4/1+3+5/4 G:D4+G4+B4/1+3+5/4 Am:C4+E4+A4/1+2+5/4 F:C4+F4+A4/1+3+5/4 C:C4+E4+G4/1+3+5/4' },
+    { type: 'seq', name: 'Am F C G', bpm: 60, score: 'Am:C4+E4+A4/1+2+5/4 F:C4+F4+A4/1+3+5/4 C:C4+E4+G4/1+3+5/4 G:D4+G4+B4/1+3+5/4 Am:C4+E4+A4/1+2+5/4' },
+  ] },
+
+{ unit: 'Left hand', title: 'Wake up the left hand', body: `
+  <p>The left hand is a mirror: the <b>pinky is 5 and the thumb is 1</b>, so the numbers run backwards as you go up. Pinky on the lowest key, F3, thumb on C4.</p>
+  <p>It's the weak one, and on guitar it did a completely different job. Slow is fine.</p>
+  <div class="bridge"><b>From guitar:</b> think of it as your bass strings. It mostly plays the root of the chord.</div>`,
+  ex: [
+    { type: 'seq', name: 'Up and down', bpm: 60, score: 'F3/L5 G3/L4 A3/L3 B3/L2 C4/L1 B3/L2 A3/L3 G3/L4 F3/L5/2' },
+    { type: 'seq', name: 'Bass notes', bpm: 60, score: 'C:C4/L1/2 G:G3/L4/2 Am:A3/L3/2 F:F3/L5/2 C:C4/L1/2' },
+  ] },
+{ unit: 'Left hand', title: 'Hands together', body: `
+  <p>The usual piano setup: left hand plays the root, right hand plays the chord. Practise each hand alone until it's boring, then together, much slower than you want to.</p>
+  <p>The right hand sits up around C5 to leave the left hand room. In <b>Both at once</b> it plays two notes, because the bass already gives the root, and because this toy's wiring can't play every four-key combination.</p>`,
+  ex: [
+    { type: 'seq', name: 'Bass, then chord', bpm: 60, score: 'C:C4/L1/2 C5+E5+G5/1+3+5/2 G:G3/L4/2 D5+G5+B5/1+3+5/2 Am:A3/L3/2 C5+E5+A5/1+2+5/2 F:F3/L5/2 C5+F5+A5/1+3+5/2' },
+    { type: 'seq', name: 'Both at once', bpm: 50, score: 'C:C4+E5+G5/L1+3+5/4 G:G3+D5+B5/L4+1+5/4 Am:A3+C5+E5/L3+1+3/4 F:F3+C5+A5/L5+1+5/4 C:C4+E5+G5/L1+3+5/4' },
+    { type: 'seq', name: 'Ode to Joy, both hands', bpm: 70, score: 'C4+E5/L1+3 E5/3 F5/4 G5/5 G3+G5/L4+5 F5/4 E5/3 D5/2 C4+C5/L1+1 C5/1 D5/2 E5/3 G3+E5/L4+3/1.5 D5/2/0.5 D5/2/2' },
+  ] },
+
+{ unit: 'Blues', title: 'Twelve bars in C', body: `
+  <p>You know this form: four bars of C, two of F, two of C, then G, F, C, C. Here it is with the seventh added, so each chord has four notes. One chord per bar.</p>
+  <div class="bridge"><b>From guitar:</b> same I–IV–V as on guitar. On piano, C7 is C E G with B♭ on top.</div>`,
+  ex: [
+    { type: 'seq', name: 'The chords', bpm: 50, score: 'C7:C4+E4+G4+Bb4/1+2+3+5/4 F7:C4+Eb4+F4+A4/1+2+3+5/4 G7:D4+F4+G4+B4/1+2+3+5/4 C7:C4+E4+G4+Bb4/1+2+3+5/4' },
+    { type: 'seq', name: 'All 12 bars', bpm: 70, score: 'C7:C4+E4+G4+Bb4/1+2+3+5/4 C7:C4+E4+G4+Bb4/1+2+3+5/4 C7:C4+E4+G4+Bb4/1+2+3+5/4 C7:C4+E4+G4+Bb4/1+2+3+5/4 F7:C4+Eb4+F4+A4/1+2+3+5/4 F7:C4+Eb4+F4+A4/1+2+3+5/4 C7:C4+E4+G4+Bb4/1+2+3+5/4 C7:C4+E4+G4+Bb4/1+2+3+5/4 G7:D4+F4+G4+B4/1+2+3+5/4 F7:C4+Eb4+F4+A4/1+2+3+5/4 C7:C4+E4+G4+Bb4/1+2+3+5/4 C7:C4+E4+G4+Bb4/1+2+3+5/4' },
+    { type: 'seq', name: 'Minor pentatonic', bpm: 60, score: 'C4/1 Eb4/2 F4/3 G4/1 Bb4/2 C5/3 Bb4/2 G4/1 F4/3 Eb4/2 C4/1/2' },
+  ] },
+];
+
+/* ---- progress: a per-viewer convenience, the page works without it ---- */
+const STORE = 'chicco-learn-v1';
+let saved = { done: {}, lesson: 0 };
+try { saved = Object.assign(saved, JSON.parse(localStorage.getItem(STORE) || '{}')); } catch (e) { /* no storage */ }
+function save() { try { localStorage.setItem(STORE, JSON.stringify(saved)); } catch (e) { /* no storage */ } }
+
+/* ---- keyboard ---- */
+const $ = id => document.getElementById(id);
+const keyEls = {};
+function buildKeyboard() {
+  const W = 34, H = 150, BW = 22, BH = 92;
+  const whites = [];
+  for (let n = LOW; n <= HIGH; n++) if (!isBlack(n)) whites.push(n);
+  const svg = $('kbd');
+  svg.setAttribute('viewBox', `0 0 ${whites.length * W + 2} ${H + 2}`);
+  let xs = {}, html = '';
+  whites.forEach((n, i) => {
+    xs[n] = i * W + 1;
+    const octave = Math.floor(n / 12) - 1, name = SHARP[n % 12];
+    html += `<g class="k w" data-n="${n}"><title>${name}${octave}, key ${n - 52}</title><rect x="${xs[n]}" y="1" width="${W}" height="${H}" rx="3"/>
+      <text class="lbl${name === 'C' ? ' c' : ''}" x="${xs[n] + W / 2}" y="${H - 8}" text-anchor="middle">${name === 'C' ? 'C' + octave : name}</text>
+      <text class="fing" x="${xs[n] + W / 2}" y="${H - 30}"></text></g>`;
+  });
+  for (let n = LOW; n <= HIGH; n++) {
+    if (!isBlack(n)) continue;
+    const x = xs[n - 1] + W - BW / 2;
+    html += `<g class="k b" data-n="${n}"><title>${SHARP[n % 12]}${Math.floor(n / 12) - 1}, key ${n - 52}</title><rect x="${x}" y="1" width="${BW}" height="${BH}" rx="3"/>
+      <text class="fing" x="${x + BW / 2}" y="${BH - 12}"></text></g>`;
+  }
+  svg.innerHTML = html;
+  svg.querySelectorAll('.k').forEach(el => { keyEls[+el.dataset.n] = el; });
+  svg.addEventListener('pointerdown', e => {
+    const g = e.target.closest('.k');
+    if (!g) return;
+    e.preventDefault();
+    const n = +g.dataset.n;
+    audio();
+    tone(n, 0.5);
+    clicked = n;
+    /* A chord can't be clicked at once: while a chord is asked for, a clicked target stays down. */
+    const st = current();
+    if (st && st.notes.length > 1 && st.notes.includes(n)) latched.add(n);
+    noteOn(n);
+  });
+  addEventListener('pointerup', () => {
+    if (clicked !== null && !latched.has(clicked)) noteOff(clicked);
+    clicked = null;
+  });
+}
+let clicked = null;
+const latched = new Set();
+const held = new Set();
+let targets = {};   /* note -> { hand, n } */
+function paint() {
+  for (const n in keyEls) {
+    const el = keyEls[n], t = targets[n];
+    el.classList.remove('t-R', 't-L', 't-any');
+    if (t) {
+      el.classList.add(t.hand ? 't-' + t.hand : 't-any');
+      el.querySelector('.fing').textContent = t.n || '';
+    }
+    el.classList.toggle('held', held.has(+n));
+  }
+}
+function flashWrong(n) {
+  const el = keyEls[n];
+  if (!el) return;
+  el.classList.add('wrong');
+  setTimeout(() => el.classList.remove('wrong'), 350);
+}
+function setTargets(step) {
+  targets = {};
+  if (step) step.notes.forEach((n, i) => { targets[n] = step.fingers[i] || { hand: 'R', n: '' }; });
+  paint();
+}
+
+/* ---- sound for Listen, the click and clicked keys ---- */
+let ac = null;
+function audio() {
+  if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+  if (ac.state === 'suspended') ac.resume();
+  return ac;
+}
+let scheduled = [];
+function tone(n, dur, when) {
+  const t = when === undefined ? ac.currentTime : when;
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = 'triangle';
+  o.frequency.value = 440 * Math.pow(2, (n - 69) / 12);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(0.28, t + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.002, t + Math.max(dur, 0.2));
+  o.connect(g).connect(ac.destination);
+  o.start(t);
+  o.stop(t + Math.max(dur, 0.2) + 0.02);
+  scheduled.push(o);
+}
+function click(when, strong) {
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.frequency.value = strong ? 1500 : 1000;
+  g.gain.setValueAtTime(strong ? 0.4 : 0.25, when);
+  g.gain.exponentialRampToValueAtTime(0.001, when + 0.05);
+  o.connect(g).connect(ac.destination);
+  o.start(when);
+  o.stop(when + 0.06);
+  scheduled.push(o);
+}
+function silence() {
+  scheduled.forEach(o => { try { o.stop(); } catch (e) { /* already ended */ } });
+  scheduled = [];
+}
+
+/* ---- the running exercise ---- */
+let lessonIdx = 0, exIdx = 0, ex = null;
+let run = null;     /* { mode: 'wait' | 'time' | 'listen' | 'find', ... } */
+let raf = 0;
+
+function current() {
+  if (!run || !ex || ex.type !== 'seq') return null;
+  return run.steps ? run.steps[run.i] : null;
+}
+function say(text, cls) {
+  const f = $('feedback');
+  f.textContent = text || '';
+  f.className = 'feedback' + (cls ? ' ' + cls : '');
+}
+function markDone() {
+  saved.done[lessonIdx + '.' + exIdx] = true;
+  save();
+  renderList();
+  renderTabs();
+}
+function stopRun() {
+  cancelAnimationFrame(raf);
+  silence();
+  latched.forEach(n => held.delete(n));
+  latched.clear();
+  run = null;
+}
+
+/* Hint for a note in the right place an octave off: usually TEMPO+/- was pressed. */
+function octaveHint(n, wanted) {
+  if (wanted.some(w => (w - n) % 12 === 0)) {
+    say('Right note, wrong octave. If the whole toy is off, RESET puts it back.', 'bad');
+    return true;
+  }
+  return false;
+}
+
+function noteOn(n) {
+  held.add(n);
+  if (!run) { paint(); return; }
+  if (run.mode === 'wait') waitOn(n);
+  else if (run.mode === 'time') timeOn(n);
+  else if (run.mode === 'find') findOn(n);
+  paint();
+}
+function noteOff(n) { held.delete(n); paint(); }
+
+/* -- find and staff drills -- */
+function pick(pool, last) {
+  let p;
+  do { p = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && p === last);
+  return p;
+}
+function startDrill() {
+  stopRun();
+  run = { mode: 'find', right: 0, wrong: 0, ask: null, misses: 0 };
+  nextAsk();
+}
+function drillMatches(n) {
+  if (ex.type === 'staff') return n === midi(run.ask);
+  const m = /^([A-G])([#b]?)$/.exec(run.ask);
+  return n % 12 === midi(m[1] + m[2] + '4') % 12;
+}
+function nextAsk() {
+  run.ask = pick(ex.pool, run.ask);
+  run.misses = 0;
+  targets = {};
+  if (ex.type === 'staff') {
+    $('stage').innerHTML = `<div class="prompt">Which key is this?</div>${bigStaff(run.ask)}`;
+  } else {
+    $('stage').innerHTML = `<div class="prompt">Press any ${pretty(run.ask)}</div>`;
+  }
+  paint();
+}
+function showAnswer() {
+  targets = {};
+  for (let n = LOW; n <= HIGH; n++) if (drillMatches(n)) targets[n] = { n: '' };
+}
+function findOn(n) {
+  if (drillMatches(n)) {
+    run.right++;
+    if (run.right >= ex.rounds) {
+      targets = {};
+      $('stage').innerHTML = `<div class="prompt">Done: ${ex.rounds} found, ${run.wrong} wrong along the way.</div>`;
+      say(run.wrong === 0 ? 'Clean run.' : 'Another go gets it faster.', 'good');
+      markDone();
+      run = null;
+      renderControls();
+      return;
+    }
+    say(`${run.right} of ${ex.rounds}`);
+    nextAsk();
+  } else {
+    run.wrong++;
+    run.misses++;
+    flashWrong(n);
+    if (ex.type === 'staff' && (n - midi(run.ask)) % 12 === 0) say('Right note, wrong octave.', 'bad');
+    else say('Not that one.', 'bad');
+    if (run.misses >= 2) showAnswer();
+  }
+}
+
+/* -- wait for me -- */
+function startWait() {
+  stopRun();
+  run = { mode: 'wait', steps: ex.steps, i: 0, wrong: 0 };
+  say('');
+  renderSteps();
+  setTargets(run.steps[0]);
+  markStep();
+}
+function waitOn(n) {
+  const st = run.steps[run.i];
+  if (!st.notes.includes(n)) {
+    run.wrong++;
+    flashWrong(n);
+    if (!octaveHint(n, st.notes)) say('Not that one: follow the coloured key.', 'bad');
+    return;
+  }
+  say('');
+  if (!st.notes.every(x => held.has(x))) return;  /* a chord: the rest still to come */
+  stepEls()[run.i].classList.add('ok');
+  latched.forEach(x => held.delete(x));
+  latched.clear();
+  run.i++;
+  if (run.i >= run.steps.length) {
+    setTargets(null);
+    say(run.wrong === 0 ? 'Clean run. Try it In time.' : `Done, ${run.wrong} wrong along the way. Again until it's zero.`, 'good');
+    markDone();
+    run = null;
+    renderControls();
+    return;
+  }
+  setTargets(run.steps[run.i]);
+  markStep();
+}
+
+/* -- in time, and listen -- */
+function schedule(mode) {
+  stopRun();
+  audio();
+  const spb = 60 / currentBpm();
+  const start = ac.currentTime + 0.2;
+  const count = mode === 'time' ? 4 : 0;
+  const t0 = start + count * spb;
+  let beat = 0;
+  const steps = ex.steps.map(s => {
+    const out = Object.assign({}, s, { at: t0 + beat * spb, len: s.beats * spb, hit: new Set(), dts: [], result: null });
+    beat += s.beats;
+    return out;
+  });
+  const total = Math.ceil(beat);
+  run = { mode, steps, i: 0, spb, t0, end: t0 + beat * spb, wrong: 0 };
+  renderSteps();
+  if (mode === 'time') {
+    for (let b = -count; b < total; b++) click(t0 + b * spb, ((b % 4) + 4) % 4 === 0);
+    say('Four clicks, then go.');
+  } else {
+    steps.forEach(s => s.notes.forEach(n => tone(n, s.len * 1.1, s.at)));
+    say('Listen. The keys light up as it plays.');
+  }
+  setTargets(steps[0]);
+  markStep();
+  renderControls();
+  raf = requestAnimationFrame(tick);
+}
+function tick() {
+  if (!run || (run.mode !== 'time' && run.mode !== 'listen')) return;
+  const now = ac.currentTime, tol = run.spb * 0.45;
+  /* Close the steps whose window has passed. */
+  if (run.mode === 'time') {
+    run.steps.forEach((s, i) => {
+      if (s.result || now <= s.at + Math.min(tol, s.len * 0.75)) return;
+      s.result = 'miss';
+      stepEls()[i].classList.add('miss');
+    });
+  }
+  /* The current step is the one sounding: show the next one a little early. */
+  const lead = run.mode === 'time' ? run.spb * 0.4 : 0.02;
+  let i = run.i;
+  while (i + 1 < run.steps.length && now >= run.steps[i + 1].at - lead) i++;
+  if (i !== run.i) { run.i = i; setTargets(run.steps[i]); markStep(); }
+  if (now > run.end + 0.15) { finishTimed(); return; }
+  raf = requestAnimationFrame(tick);
+}
+function timeOn(n) {
+  const now = ac.currentTime, tol = run.spb * 0.45;
+  let best = null, bestDt = Infinity;
+  run.steps.forEach(s => {
+    if (s.result || s.hit.has(n) || !s.notes.includes(n)) return;
+    const dt = now - s.at;
+    if (Math.abs(dt) <= Math.min(tol, s.len * 0.75 + 0.05) && Math.abs(dt) < Math.abs(bestDt)) { best = s; bestDt = dt; }
+  });
+  if (!best) { run.wrong++; flashWrong(n); return; }
+  best.hit.add(n);
+  best.dts.push(bestDt);
+  if (best.hit.size < best.notes.length) return;
+  const worst = Math.max(...best.dts.map(Math.abs));
+  best.result = worst <= run.spb * 0.22 ? 'ok' : 'off';
+  stepEls()[run.steps.indexOf(best)].classList.add(best.result);
+}
+function finishTimed() {
+  const mode = run.mode, steps = run.steps, wrong = run.wrong;
+  setTargets(null);
+  if (mode === 'time') {
+    const ok = steps.filter(s => s.result === 'ok').length;
+    const off = steps.filter(s => s.result === 'off').length;
+    const miss = steps.filter(s => s.result === 'miss' || !s.result).length;
+    say(`${ok} of ${steps.length} on time, ${off} a bit off, ${miss} missed, ${wrong} extra.`, ok === steps.length && !wrong ? 'good' : '');
+    if (ok === steps.length && !wrong) markDone();
+  } else say('');
+  run = null;
+  renderControls();
+}
+
+/* ---- rendering ---- */
+function currentBpm() {
+  const v = +($('bpm-in') ? $('bpm-in').value : 60);
+  return Math.min(200, Math.max(20, v || 60));
+}
+function stepEls() { return $('stage').querySelectorAll('.step'); }
+function markStep() {
+  const els = stepEls();
+  els.forEach(e => e.classList.remove('cur'));
+  if (els[run.i]) els[run.i].classList.add('cur');
+}
+
+/* Staff positions: C4 = 0, D4 = 1 ... the bottom line, E4, is 2. */
+function staffPos(name) {
+  const m = /^([A-G])([#b]?)(\d)$/.exec(name);
+  return 'CDEFGAB'.indexOf(m[1]) + 7 * (+m[3] - 4);
+}
+function miniStaff(step) {
+  const gap = 8, w = 44, bottom = 66, h = 96;
+  const y = p => bottom - (p - 2) * gap / 2;
+  let s = '';
+  for (let l = 0; l < 5; l++) s += `<line x1="0" x2="${w}" y1="${bottom - l * gap}" y2="${bottom - l * gap}"/>`;
+  const x = w / 2 + 2;
+  const ps = step.names.map(staffPos);
+  ps.forEach((p, i) => {
+    for (let q = 0; q >= p; q -= 2) s += `<line x1="${x - 9}" x2="${x + 9}" y1="${y(q)}" y2="${y(q)}"/>`;
+    for (let q = 12; q <= p; q += 2) s += `<line x1="${x - 9}" x2="${x + 9}" y1="${y(q)}" y2="${y(q)}"/>`;
+    const hollow = step.beats >= 2;
+    s += `<ellipse class="${hollow ? 'hollow' : 'ink'}" cx="${x}" cy="${y(p)}" rx="5.2" ry="3.8" transform="rotate(-20 ${x} ${y(p)})"/>`;
+    const acc = step.names[i].includes('#') ? '♯' : step.names[i].includes('b') ? '♭' : '';
+    if (acc) s += `<text x="${x - 16}" y="${y(p) + 5}" font-size="14">${acc}</text>`;
+    if ([1.5, 3, 0.75].includes(step.beats)) s += `<circle class="ink" cx="${x + 9}" cy="${y(p) - 1}" r="1.5"/>`;
+  });
+  if (step.beats < 4) {
+    const top = Math.max(...ps), low = Math.min(...ps);
+    const up = (top + low) / 2 < 6;
+    const sx = up ? x + 5 : x - 5;
+    const y1 = up ? y(low) : y(top), y2 = up ? y(top) - 26 : y(low) + 26;
+    s += `<line class="stem" x1="${sx}" x2="${sx}" y1="${y1}" y2="${y2}"/>`;
+    const flags = step.beats <= 0.25 ? 2 : step.beats < 1 ? 1 : 0;
+    for (let f = 0; f < flags; f++) {
+      const yf = y2 + (up ? 6 : -6) * f;
+      s += `<line class="stem" x1="${sx}" x2="${sx + 8}" y1="${yf}" y2="${yf + (up ? 9 : -9)}"/>`;
+    }
+  }
+  return `<svg class="mini" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">${s}</svg>`;
+}
+function bigStaff(name) {
+  const gap = 14, bottom = 96, w = 240, h = 132;
+  const y = p => bottom - (p - 2) * gap / 2;
+  let s = '';
+  for (let l = 0; l < 5; l++) s += `<line x1="4" x2="${w - 4}" y1="${bottom - l * gap}" y2="${bottom - l * gap}"/>`;
+  const x = 150, p = staffPos(name);
+  for (let q = 0; q >= p; q -= 2) s += `<line x1="${x - 18}" x2="${x + 18}" y1="${y(q)}" y2="${y(q)}"/>`;
+  for (let q = 12; q <= p; q += 2) s += `<line x1="${x - 18}" x2="${x + 18}" y1="${y(q)}" y2="${y(q)}"/>`;
+  s += `<text x="10" y="${bottom - 8}" font-size="62">𝄞</text>`;
+  s += `<ellipse class="ink" cx="${x}" cy="${y(p)}" rx="9" ry="6.6" transform="rotate(-20 ${x} ${y(p)})"/>`;
+  return `<svg class="bigstaff" viewBox="0 0 ${w} ${h}" role="img" aria-label="A note on the staff">${s}</svg>`;
+}
+function renderSteps() {
+  const staff = ex.staff;
+  $('stage').innerHTML = `<div class="steps">${ex.steps.map(s => `
+    <div class="step">
+      ${s.label ? `<div class="ch">${pretty(s.label)}</div>` : ''}
+      ${staff ? miniStaff(s) : ''}
+      <div class="nm">${s.names.length > 1 && s.label ? '' : s.names.map(pretty).join('+')}</div>
+      <div class="fg">${s.fingers.map(f => (f.hand === 'L' ? 'L' : '') + f.n).join(' ')}${s.beats !== 1 ? ` · ${s.beats}b` : ''}</div>
+    </div>`).join('')}</div>`;
+}
+function renderControls() {
+  const box = $('controls');
+  if (ex.type !== 'seq') {
+    box.innerHTML = `<button class="act" id="go" type="button">Start over</button>`;
+    $('go').onclick = startDrill;
+    return;
+  }
+  const bpmValue = $('bpm-in') ? $('bpm-in').value : ex.bpm;
+  const active = run && (run.mode === 'time' || run.mode === 'listen');
+  box.innerHTML = `
+    <button class="act" id="wait" type="button">Wait for me</button>
+    <button class="act ghost" id="time" type="button">In time</button>
+    <button class="act ghost" id="listen" type="button">Listen</button>
+    ${active ? '<button class="act ghost" id="stop" type="button">Stop</button>' : ''}
+    <label class="bpm">Speed <input id="bpm-in" type="number" min="20" max="200" step="5" value="${bpmValue}"> bpm</label>`;
+  $('wait').onclick = () => { startWait(); renderControls(); };
+  $('time').onclick = () => schedule('time');
+  $('listen').onclick = () => schedule('listen');
+  if (active) $('stop').onclick = () => { stopRun(); say(''); startWait(); renderControls(); };
+}
+function renderTabs() {
+  const l = LESSONS[lessonIdx];
+  $('tabs').innerHTML = l.ex.map((e, i) => `<button class="tab" role="tab" aria-selected="${i === exIdx}" data-i="${i}" type="button">${saved.done[lessonIdx + '.' + i] ? '✓ ' : ''}${e.name}</button>`).join('');
+  $('tabs').querySelectorAll('.tab').forEach(b => { b.onclick = () => openExercise(+b.dataset.i); });
+}
+function renderList() {
+  let html = '', unit = '';
+  LESSONS.forEach((l, i) => {
+    if (l.unit !== unit) { unit = l.unit; html += `<div class="unit">${unit}</div>`; }
+    const all = l.ex.every((_, j) => saved.done[i + '.' + j]);
+    html += `<button class="lesson-link" type="button" data-i="${i}" aria-current="${i === lessonIdx}"><span class="tick">${all ? '✓' : ''}</span>${l.title}</button>`;
+  });
+  $('lesson-list').innerHTML = html;
+  $('lesson-list').querySelectorAll('.lesson-link').forEach(b => { b.onclick = () => openLesson(+b.dataset.i); });
+}
+function openExercise(i) {
+  stopRun();
+  exIdx = i;
+  ex = LESSONS[lessonIdx].ex[i];
+  if (ex.type === 'seq' && !ex.steps) ex.steps = seq(ex.score);
+  say('');
+  targets = {};
+  $('controls').innerHTML = '';
+  renderTabs();
+  renderControls();
+  if (ex.type === 'seq') startWait();
+  else startDrill();
+  renderControls();
+}
+function openLesson(i) {
+  lessonIdx = i;
+  saved.lesson = i;
+  save();
+  const l = LESSONS[i];
+  $('title').textContent = l.title;
+  $('body').innerHTML = l.body;
+  $('next').style.display = i + 1 < LESSONS.length ? '' : 'none';
+  renderList();
+  openExercise(0);
+  scrollTo(0, 0);
+}
+$('next').onclick = () => openLesson(lessonIdx + 1);
+
+/* ---- the toy: Web MIDI. Keys are on channel 1; the demo, the looper and the
+   drums (channels 2, 3, 10) are ignored. ---- */
+function setStatus(on, text) {
+  $('dot').classList.toggle('on', on);
+  $('status').textContent = text;
+}
+function onMidi(e) {
+  const [st, d1, d2] = e.data;
+  const type = st & 0xf0, ch = st & 0x0f;
+  if (ch !== 0) return;
+  if (type === 0x90 && d2 > 0) noteOn(d1);
+  else if (type === 0x80 || type === 0x90) noteOff(d1);
+}
+function bindInputs(access) {
+  let name = null;
+  access.inputs.forEach(input => {
+    const toy = /chicco/i.test(input.name);
+    input.onmidimessage = toy ? onMidi : null;
+    if (toy) name = input.name;
+  });
+  if (name) setStatus(true, 'Toy connected');
+  else setStatus(false, 'Toy not found. Start “Chicco Piano” from the app menu.');
+}
+function startMidi() {
+  if (!navigator.requestMIDIAccess) {
+    setStatus(false, 'This browser has no Web MIDI. Use Brave or Chrome.');
+    return;
+  }
+  navigator.requestMIDIAccess().then(access => {
+    bindInputs(access);
+    access.onstatechange = () => bindInputs(access);
+  }).catch(() => setStatus(false, 'MIDI permission refused: allow it in the address bar and reload.'));
+}
+
+buildKeyboard();
+openLesson(Math.min(saved.lesson || 0, LESSONS.length - 1));
+startMidi();
+</script>
+</body>
+</html>

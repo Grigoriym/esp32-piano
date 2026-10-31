@@ -15,9 +15,14 @@ if [ ! -x build-host/piano_bridge ] || [ tools/piano_bridge.c -nt build-host/pia
     gcc -O2 -Wall -o build-host/piano_bridge tools/piano_bridge.c -lasound || exit 1
 fi
 
+CAT=build-host/cat.sf2
+if [ ! -f "$CAT" ] || [ tools/gen_cat_sf2.py -nt "$CAT" ] || [ tools/sounds/meow.wav -nt "$CAT" ]; then
+    python3 tools/gen_cat_sf2.py tools/sounds/meow.wav "$CAT" || exit 1
+fi
+
 fluidsynth -a pipewire -m alsa_seq -g 1.0 -is \
     -o audio.period-size=256 -o audio.periods=2 -o midi.autoconnect=0 \
-    "$SF2" >/dev/null 2>&1 &
+    "$SF2" "$CAT" >/dev/null 2>&1 &
 SYNTH=$!
 build-host/piano_bridge &
 BRIDGE=$!

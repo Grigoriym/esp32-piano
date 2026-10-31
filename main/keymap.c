@@ -14,7 +14,7 @@ static const char *const BUTTONS[4][N_COLS] = {
 
 /* General MIDI programs for the style buttons, AB4 EF0-EF7 order. */
 static const uint8_t STYLE_PROGRAM[N_COLS] = {
-    19, /* SLOW ROCK: church organ */
+    19, /* SLOW ROCK: cat (tools/gen_cat_sf2.py takes over this program on the PC) */
     30, /* ROCK: distortion guitar */
     88, /* NEW AGE: new age pad */
     81, /* DISCO: saw lead */
@@ -27,8 +27,8 @@ static const uint8_t STYLE_PROGRAM[N_COLS] = {
 const char *keymap_program_name(uint8_t program)
 {
     static const char *const NAMES[N_COLS] = {
-        "Church organ", "Distortion guitar", "New age pad", "Saw lead",
-        "Trumpet",      "Accordion",         "Marimba",     "Electric piano",
+        "Cat",     "Distortion guitar", "New age pad", "Saw lead",
+        "Trumpet", "Accordion",         "Marimba",     "Electric piano",
     };
     if (program == 0) return "Piano";
     for (size_t c = 0; c < N_COLS; c++) {

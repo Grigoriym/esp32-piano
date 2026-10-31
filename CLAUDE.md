@@ -130,6 +130,19 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   sam se rodio" (from chord sites; no melody, none found). Published as a private artifact:
   https://claude.ai/artifact/Ttss3MnAfWboWeEaJDS2zC (republish from this file
   after a mapping change).
+- `docs/learn-piano.html` (2026-10-31): local piano course for a guitarist, one
+  file, no build. Hears the toy's channel 1 through Web MIDI (Brave: allow MIDI;
+  port "Chicco Piano", so the service must run). Lessons are the `LESSONS` data at
+  the top of its script. After changing a lesson or `matrix_diodes`:
+  `tools/check_lesson_chords.py`, because some chords are held back and a lesson
+  asking for one would wait forever (2026-10-31 it caught 3 first drafts).
+- `tools/gen_cat_sf2.py` + `tools/sounds/meow.wav` (public domain, see its README):
+  SLOW ROCK's program 19 is a cat. `pc_synth.sh` builds `build-host/cat.sf2` and
+  loads it after FluidR3; the last SoundFont loaded with a program wins, so only 19
+  changes. Tuning: rendered through FluidSynth, within 1 cent at F3 to C6 of the
+  meow's centre pitch (it glides, as a meow does). A low note plays slower and longer
+  (F3 ~3 s, C6 ~0.5 s). The beat on SELECT is unchanged. FluidSynth refuses an SF2
+  whose INFO strings have an odd length.
 - `docs/how-scan-works.html`: animated explainer of the row-by-row scan and the ghost (local page).
 - `docs/wiring.html`: **the wiring doc**, every DevKit pin and what goes on it
   (local page, open in a browser; not published). Update it with every
@@ -319,6 +332,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
+**State 2026-10-31:** a side trip from the box: `docs/learn-piano.html` and the cat on
+SLOW ROCK. The user wants to rework the other buttons too (drum animals, beats); only
+the cat is decided. The box plan below still stands.
+
 State on 2026-10-13 (end of session): **MVP done.** Every key and button
 reaches FluidSynth over WiFi (the service starts from the app menu, on demand
 since 2026-10-24), DEMO plays the Megalovania intro. Latency (estimate from parts, 2026-10-13): ~10-20 ms
