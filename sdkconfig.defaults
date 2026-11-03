@@ -4,3 +4,9 @@ CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
 CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
 # One tick = 1 ms: the key scan runs every 2 ms (MIDI latency)
 CONFIG_FREERTOS_HZ=1000
+# Console at 921600: MIDI also goes over the USB cable (main/midi_link.c), framed
+# between the log lines, and must not wait behind them. tools/serial_log.py reads
+# at this rate; the ROM's own boot lines stay at 115200 and look garbled.
+CONFIG_ESP_CONSOLE_UART_CUSTOM=y
+CONFIG_ESP_CONSOLE_UART_CUSTOM_NUM_0=y
+CONFIG_ESP_CONSOLE_UART_BAUDRATE=921600

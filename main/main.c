@@ -36,6 +36,7 @@
 #include "driver/i2c_master.h"
 #include "encoder.h"
 #include "esp_rom_sys.h"
+#include "esp_system.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -244,7 +245,10 @@ void app_main(void)
     screen_init();
     wifi_connect(WIFI_TIMEOUT_MS);
     midi_link_init("chicco-piano");
-    printf("\nesp32-piano key scanner: %u x %u, MIDI over WiFi\n", N_ROWS, N_COLS);
+    printf("\nesp32-piano key scanner: %u x %u, MIDI over WiFi and the USB cable\n", N_ROWS, N_COLS);
+    /* The ROM's own rst: line is at 115200, unreadable at the console's 921600. */
+    printf("reset reason: %d (1 power on, 3 software, 4 panic, 9 brownout: esp_reset_reason_t)\n",
+           (int)esp_reset_reason());
 
     matrix_t matrix;
     matrix_init(&matrix);

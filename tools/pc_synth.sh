@@ -9,6 +9,9 @@
 set -u
 cd "$(dirname "$0")/.."
 SF2=${SF2:-/usr/share/sounds/sf2/FluidR3_GM.sf2}
+# The toy's DevKit on the USB cable (CP2102): MIDI comes that way too when plugged
+# in. The bridge holds it exclusively: stop the service to flash.
+CABLE=${CABLE:-/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0}
 
 if [ ! -x build-host/piano_bridge ] || [ tools/piano_bridge.c -nt build-host/piano_bridge ]; then
     mkdir -p build-host
@@ -29,7 +32,7 @@ fluidsynth -a pipewire -m alsa_seq -g 1.0 -is \
     -o audio.period-size=256 -o audio.periods=2 -o midi.autoconnect=0 \
     "$SF2" "$CAT" "$KIT" >/dev/null 2>&1 &
 SYNTH=$!
-build-host/piano_bridge &
+build-host/piano_bridge chicco-piano.local "$CABLE" &
 BRIDGE=$!
 trap 'kill $SYNTH $BRIDGE 2>/dev/null' EXIT
 

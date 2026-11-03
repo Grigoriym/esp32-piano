@@ -121,7 +121,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   Measured over WiFi with 4-35 ms ping: beat steps within 0.8 ms of the grid, was up
   to 24 ms off (audible hiccups). The bridge logs each timed message that came after
   its time (`late: X ms ...`) and each live note slower than 30 ms over the fastest
-  recent packets (`slow key: X ms ...`). Lead raised to 150 ms on 2026-11-03: at
+  recent packets (`slow key: X ms ...`). **Since 2026-11-03 the same packets also go over
+  the USB cable** (console UART at 921600, frames `0xF5 len packet sum` between the
+  log lines, sent while the bridge says `HELLO` on the cable): the bridge plays
+  whichever copy comes first (shared sequence number) and logs `playing what comes
+  over the cable|WiFi` when that changes. Either works alone. The toy's log lines
+  then go to `build-host/toy-serial.log` (truncated at each service start). Lead raised to 150 ms on 2026-11-03: at
   60 ms, 4-26 of ~2000 timed messages a minute came late.
 - `tools/piano_bridge.c` (PC, links `-lasound`): owns the ALSA port
   "Chicco Piano" (stays while it runs, toy on or off), says HELLO, drops the
@@ -198,6 +203,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - Firmware: ESP-IDF in C, like the siblings. No Arduino.
 
 ### Traps found here
+- **The service holds the toy's serial port (exclusive) since 2026-11-03: stop it to
+  flash or capture** (`systemctl --user stop chicco-piano`, then start it again).
+  esptool then fails with a busy port instead of garbage. The bridge opens the port
+  without resetting the board (RTS dropped before DTR; pyserial resets it). The
+  console is at 921600: `tools/serial_log.py` reads at that rate, the ROM's `rst:`
+  lines (115200) come out garbled, so the app prints `reset reason: N` itself.
 - **This PC runs ufw, which drops UDP that isn't a reply.** The toy must
   answer from the port the HELLO went to (21928); sending from a second socket
   (another source port) made every packet vanish with no error on either side.

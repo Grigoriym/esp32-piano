@@ -16,7 +16,12 @@
  *   holds a delayed message until its time: WiFi jitter (15-25 ms seen,
  *   2026-11-03) then doesn't reach the beat, which is sent MIDI_LINK_LEAD_US
  *   early.
- * The toy is found as <hostname>.local (mDNS). */
+ * The toy is found as <hostname>.local (mDNS).
+ *
+ * The same packets also go over the USB cable (the console UART, 921600 baud)
+ * while the bridge says "HELLO\n" there once a second: framed as 0xF5, length,
+ * packet, 8-bit sum of the packet, between the log lines. Once, not twice. Both
+ * ways carry the same sequence number, so the bridge plays the first to arrive. */
 #define MIDI_LINK_PORT 21928
 #define MIDI_LINK_LEAD_US \
     150000 /* how early sequenced MIDI (beat, DEMO, loop) is sent; 60 ms let ~1% arrive late */
@@ -24,7 +29,7 @@
 /* Starts mDNS and the HELLO listener; call after WiFi is up (or retrying). */
 void midi_link_init(const char *hostname);
 
-/* True while a HELLO came in the last 3 s. */
+/* True while a HELLO came in the last 3 s, over WiFi or the cable. */
 bool midi_link_connected(void);
 
 /* Send one MIDI message (status byte + data bytes) to sound at once; dropped

@@ -21,7 +21,8 @@ import time
 import serial
 
 PORT = os.environ.get("PORT", "/dev/ttyUSB0")  # the DevKit (CP2102)
-MAX_BYTES = 200_000  # 115200 baud can't legitimately produce more in ~20s
+BAUD = 921600  # the console (sdkconfig.defaults); the ROM boot lines are at 115200 and look garbled
+MAX_BYTES = 2_000_000  # 921600 baud can't legitimately produce more in ~20s
 stopped = False
 
 
@@ -33,7 +34,7 @@ def stop(*_):
 def capture(seconds):
     buf = b""
     try:
-        with serial.Serial(PORT, 115200, timeout=0.2) as s:
+        with serial.Serial(PORT, BAUD, timeout=0.2) as s:
             s.dtr = False
             s.rts = True  # hold EN low -> reset
             time.sleep(0.1)

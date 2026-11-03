@@ -7,8 +7,13 @@
  * the fastest packets of the last few seconds (the slowest WiFi trip then only
  * eats into the toy's lead instead of shifting the beat).
  *
+ * The same packets come over the USB cable too (main/midi_link.h): the serial
+ * port is opened when given, HELLO goes there as well, and whichever copy of a
+ * message comes first plays. The toy's log lines on the cable go to
+ * build-host/toy-serial.log. The port is held exclusively: stop this to flash.
+ *
  * Build: gcc -O2 -Wall -o build-host/piano_bridge tools/piano_bridge.c -lasound
- * Usage: piano_bridge [host]   (default chicco-piano.local)
+ * Usage: piano_bridge [host [serial port]]   (default chicco-piano.local, no cable)
  */
 #define _GNU_SOURCE /* ppoll */
 #include <alsa/asoundlib.h>
@@ -20,17 +25,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <termios.h>
 #include <time.h>
 #include <unistd.h>
 
-#define PORT        21928
-#define RECENT      16      /* sequence numbers remembered for dropping copies */
-#define HEADER      8       /* sequence, send time, delay */
-#define PENDING     512     /* delayed messages waiting */
-#define SAMPLES     128     /* clock samples kept */
-#define WINDOW_US   5000000 /* clock offset: the fastest packet of the last 5 s (clocks drift) */
-#define RESET_US    1000000 /* an offset this far off: the toy restarted */
-#define SLOW_KEY_US 30000   /* a live key this much slower than the fastest packets is logged */
+#define PORT           21928
+#define BEHIND         2000 /* a sequence number further back than this: the toy restarted */
+#define SERIAL_LOG     "build-host/toy-serial.log"
+#define SERIAL_LOG_MAX (20 * 1024 * 1024)
+#define HEADER         8       /* sequence, send time, delay */
+#define PENDING        512     /* delayed messages waiting */
+#define SAMPLES        128     /* clock samples kept */
+#define WINDOW_US      5000000 /* clock offset: the fastest packet of the last 5 s (clocks drift) */
+#define RESET_US       1000000 /* an offset this far off: the toy restarted */
+#define SLOW_KEY_US    30000   /* a live key this much slower than the fastest packets is logged */
 
 static double now_s(void)
 {
@@ -138,9 +148,127 @@ static bool resolve(const char *host, struct sockaddr_in *out)
     return true;
 }
 
+/* Sequence numbers seen: a copy (the second WiFi copy, or the WiFi one after
+ * the cable's) is dropped, however late it comes. */
+static uint8_t seen[65536 / 8];
+static uint16_t highest;
+static bool any_seen;
+
+static bool seen_bit(uint16_t s)
+{
+    return seen[s / 8] & (1u << (s % 8));
+}
+
+static void mark(uint16_t s, bool on)
+{
+    if (on) {
+        seen[s / 8] |= (uint8_t)(1u << (s % 8));
+    } else {
+        seen[s / 8] &= (uint8_t)~(1u << (s % 8));
+    }
+}
+
+static bool is_copy(uint16_t s)
+{
+    int diff = (int16_t)(s - highest);
+    if (!any_seen || diff < -BEHIND) { /* first, or the toy restarted */
+        memset(seen, 0, sizeof(seen));
+        any_seen = true;
+        highest = s;
+        mark(s, true);
+        return false;
+    }
+    if (diff > 0) {
+        for (uint16_t i = highest + 1; i != (uint16_t)(s + 1); i++) mark(i, false);
+        highest = s;
+        mark(s, true);
+        return false;
+    }
+    bool copy = seen_bit(s);
+    mark(s, true);
+    return copy;
+}
+
+/* The cable, raw at 921600. Opening raises DTR and RTS together, which doesn't
+ * reset the board; dropping RTS before DTR keeps EN up (dropping DTR first
+ * would reset it, as pyserial does). */
+static int serial_open(const char *path)
+{
+    int fd = open(path, O_RDWR | O_NOCTTY | O_NONBLOCK);
+    if (fd < 0) return -1;
+    int bits = TIOCM_RTS;
+    ioctl(fd, TIOCMBIC, &bits);
+    bits = TIOCM_DTR;
+    ioctl(fd, TIOCMBIC, &bits);
+    if (ioctl(fd, TIOCEXCL) != 0) { /* esptool then says the port is busy */
+        close(fd);
+        return -1;
+    }
+    struct termios tio;
+    tcgetattr(fd, &tio);
+    cfmakeraw(&tio);
+    tio.c_cflag &= ~(HUPCL | CRTSCTS);
+    tio.c_cflag |= CLOCAL | CREAD;
+    cfsetispeed(&tio, B921600);
+    cfsetospeed(&tio, B921600);
+    tcsetattr(fd, TCSANOW, &tio);
+    return fd;
+}
+
+/* Splits the cable's bytes into frames (0xF5, length, packet, sum) and log text. */
+typedef struct {
+    uint8_t buf[16];
+    int n, want; /* want 0: in text */
+    char line[256];
+    int line_n;
+    FILE *log;
+} serial_parser_t;
+
+/* Feeds one byte; returns the packet length when a frame completed (in p->buf). */
+static int serial_feed(serial_parser_t *p, uint8_t c)
+{
+    if (p->want == 0) {
+        if (c == 0xf5) {
+            p->want = -1; /* length next */
+            return 0;
+        }
+        if (c == '\n' || p->line_n == (int)sizeof(p->line) - 1) {
+            if (p->log) {
+                fprintf(p->log, "%.*s\n", p->line_n, p->line);
+                fflush(p->log);
+                if (ftell(p->log) > SERIAL_LOG_MAX) rewind(p->log);
+            }
+            p->line_n = 0;
+        } else if (c != '\r') {
+            p->line[p->line_n++] = (char)c;
+        }
+        return 0;
+    }
+    if (p->want == -1) {
+        if (c < HEADER + 1 || c > HEADER + 3) { /* not a frame: back to text */
+            p->want = 0;
+            return 0;
+        }
+        p->want = c + 1; /* packet + sum */
+        p->n = 0;
+        return 0;
+    }
+    p->buf[p->n++] = c;
+    if (p->n < p->want) return 0;
+    int len = p->want - 1;
+    p->want = 0;
+    uint8_t sum = 0;
+    for (int i = 0; i < len; i++) sum += p->buf[i];
+    return sum == p->buf[len] ? len : 0;
+}
+
 int main(int argc, char **argv)
 {
     const char *host = argc > 1 ? argv[1] : "chicco-piano.local";
+    const char *serial_path = argc > 2 ? argv[2] : NULL;
+    int ser = -1;
+    double next_serial_try = 0;
+    serial_parser_t sp = {.log = fopen(SERIAL_LOG, "w")};
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     snd_seq_t *seq;
@@ -162,8 +290,7 @@ int main(int argc, char **argv)
     struct sockaddr_in toy;
     bool have_toy = false;
     double next_hello = 0, last_data = -10;
-    uint16_t recent[RECENT];
-    int n_recent = 0, recent_at = 0;
+    int last_via = 0;
 
     printf("bridge up, looking for %s\n", host);
     while (true) {
@@ -178,6 +305,16 @@ int main(int argc, char **argv)
             if (have_toy) {
                 sendto(sock, "HELLO", 5, 0, (struct sockaddr *)&toy, sizeof(toy));
             }
+            if (serial_path && ser < 0 && t >= next_serial_try) {
+                next_serial_try = t + 2.0;
+                ser = serial_open(serial_path);
+                if (ser >= 0) printf("cable: %s open\n", serial_path);
+            }
+            if (ser >= 0 && write(ser, "HELLO\n", 6) != 6) {
+                printf("cable: gone\n");
+                close(ser);
+                ser = -1;
+            }
         }
 
         /* Wake for the next due message, or the next HELLO. */
@@ -188,65 +325,86 @@ int main(int argc, char **argv)
         }
         if (wait < 0) wait = 0;
         struct timespec timeout = {.tv_sec = wait / 1000000, .tv_nsec = (wait % 1000000) * 1000};
-        struct pollfd pfd = {.fd = sock, .events = POLLIN};
-        int ready = ppoll(&pfd, 1, &timeout, NULL);
+        struct pollfd pfd[2] = {{.fd = sock, .events = POLLIN}, {.fd = ser, .events = POLLIN}};
+        int ready = ppoll(pfd, ser >= 0 ? 2 : 1, &timeout, NULL);
         play_due(seq, port, parser);
         if (ready <= 0) {
             continue;
         }
-        uint8_t buf[16];
-        struct sockaddr_in from;
-        socklen_t from_len = sizeof(from);
-        ssize_t n = recvfrom(sock, buf, sizeof(buf), 0, (struct sockaddr *)&from, &from_len);
-        if (n < HEADER + 1) {
-            continue;
-        }
-        int64_t arrived = now_us();
-        if (now_s() - last_data > 5.0) { /* first data, or after a quiet spell */
-            printf("toy at %s\n", inet_ntoa(from.sin_addr));
-        }
-        last_data = now_s();
-        /* Every copy is a clock sample. */
-        int64_t sent = clock_map((uint32_t)buf[2] << 24 | buf[3] << 16 | buf[4] << 8 | buf[5], arrived);
-
-        uint16_t s = (uint16_t)(buf[0] << 8 | buf[1]);
-        bool dup = false;
-        for (int i = 0; i < n_recent; i++) {
-            dup |= recent[i] == s;
-        }
-        if (dup) {
-            continue;
-        }
-        recent[recent_at] = s;
-        recent_at = (recent_at + 1) % RECENT;
-        n_recent = n_recent < RECENT ? n_recent + 1 : RECENT;
-
-        int delay = (buf[6] << 8 | buf[7]) * 100;
-        int len = (int)n - HEADER;
-        const uint8_t *msg = &buf[HEADER];
-        bool note_on = len == 3 && (msg[0] & 0xf0) == 0x90 && msg[2];
-        if (delay == 0 || len > 3) {
-            /* A live key: how much slower than the fastest recent packet it came. */
-            if (note_on && arrived - sent > SLOW_KEY_US) {
-                printf("slow key: %lld ms (ch %d note %d)\n", (long long)(arrived - sent) / 1000,
-                       (msg[0] & 15) + 1, msg[1]);
+        /* Packets that came in now: from the cable (any number) and one from WiFi. */
+        uint8_t pkts[64][16];
+        int lens[64], n_pkts = 0, n_cable = 0;
+        if (ser >= 0 && (pfd[1].revents & (POLLERR | POLLHUP))) {
+            printf("cable: gone\n");
+            close(ser);
+            ser = -1;
+        } else if (ser >= 0 && (pfd[1].revents & POLLIN)) {
+            uint8_t raw[512];
+            ssize_t got = read(ser, raw, sizeof(raw));
+            for (ssize_t i = 0; i < got; i++) {
+                int len = serial_feed(&sp, raw[i]);
+                if (len && n_pkts < 63) {
+                    memcpy(pkts[n_pkts], sp.buf, len);
+                    lens[n_pkts++] = len;
+                }
             }
-            play(seq, port, parser, msg, len);
-            continue;
         }
-        int64_t at = sent + delay;
-        if (at <= arrived) { /* the head start wasn't enough: plays now, late */
-            printf("late: %lld ms after its time (ch %d %s %d)\n", (long long)(arrived - at) / 1000,
-                   (msg[0] & 15) + 1, note_on ? "note" : "msg", len > 1 ? msg[1] : 0);
+        n_cable = n_pkts;
+        if (pfd[0].revents & POLLIN) {
+            struct sockaddr_in from;
+            socklen_t from_len = sizeof(from);
+            ssize_t got =
+                recvfrom(sock, pkts[n_pkts], sizeof(pkts[0]), 0, (struct sockaddr *)&from, &from_len);
+            if (got >= HEADER + 1) {
+                lens[n_pkts++] = (int)got;
+                if (now_s() - last_data > 5.0) { /* first data, or after a quiet spell */
+                    printf("toy at %s\n", inet_ntoa(from.sin_addr));
+                }
+                last_data = now_s();
+            }
         }
-        if (at <= arrived || n_pending == PENDING) {
-            play(seq, port, parser, msg, len);
-        } else {
-            pending_t *p = &pending[n_pending++];
-            p->at = at;
-            p->order = order++;
-            memcpy(p->msg, msg, len);
-            p->len = len;
+        for (int k = 0; k < n_pkts; k++) {
+            const uint8_t *buf = pkts[k];
+            ssize_t n = lens[k];
+            int64_t arrived = now_us();
+            /* Every copy is a clock sample. */
+            int64_t sent = clock_map((uint32_t)buf[2] << 24 | buf[3] << 16 | buf[4] << 8 | buf[5], arrived);
+            if (is_copy((uint16_t)(buf[0] << 8 | buf[1]))) {
+                continue;
+            }
+            int via = k < n_cable ? 1 : 2; /* which way this one came first */
+            if (via != last_via) {
+                printf("playing what comes over %s\n", via == 1 ? "the cable" : "WiFi");
+                last_via = via;
+            }
+
+            int delay = (buf[6] << 8 | buf[7]) * 100;
+            int len = (int)n - HEADER;
+            const uint8_t *msg = &buf[HEADER];
+            bool note_on = len == 3 && (msg[0] & 0xf0) == 0x90 && msg[2];
+            if (delay == 0 || len > 3) {
+                /* A live key: how much slower than the fastest recent packet it came. */
+                if (note_on && arrived - sent > SLOW_KEY_US) {
+                    printf("slow key: %lld ms (ch %d note %d)\n", (long long)(arrived - sent) / 1000,
+                           (msg[0] & 15) + 1, msg[1]);
+                }
+                play(seq, port, parser, msg, len);
+                continue;
+            }
+            int64_t at = sent + delay;
+            if (at <= arrived) { /* the head start wasn't enough: plays now, late */
+                printf("late: %lld ms after its time (ch %d %s %d)\n", (long long)(arrived - at) / 1000,
+                       (msg[0] & 15) + 1, note_on ? "note" : "msg", len > 1 ? msg[1] : 0);
+            }
+            if (at <= arrived || n_pending == PENDING) {
+                play(seq, port, parser, msg, len);
+            } else {
+                pending_t *p = &pending[n_pending++];
+                p->at = at;
+                p->order = order++;
+                memcpy(p->msg, msg, len);
+                p->len = len;
+            }
         }
     }
 }
