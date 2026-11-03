@@ -166,8 +166,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   bar as key numbers, each playable in the browser (WebAudio saw + the beat). The user
   tries one and proposes changes. Pieces are the `PIECES` data at the top of its
   script (layers of keys as `notes`, of chick pads as `pads` with `PADS` below; a
-  piece's `plan` is its song plan). #1 has 5 parts since 2026-11-03: bass, chords,
-  arpeggio and clap roll fill the looper's 4 layers, the hook is played live. After changing a chord or `matrix_diodes`: `tools/check_riff_chords.py`
+  piece's `plan` is its song plan). The page opens on a list of the songs; each song
+  is its own view (`#<slug>`, e.g. `#2-night-drive`). 2026-11-03: #1 First Drop (bass,
+  chords, arpeggio, hook; the clap roll was dropped at the user's ask, pad layers still
+  work) and #2 Night Drive (F G Am Am: octave bass, held chords, hook). After changing a chord or `matrix_diodes`: `tools/check_riff_chords.py`
   (some key sets are held back and would never sound). Its Listen buttons play
   "as the toy plays it" (clips from `tools/render_riffs.py`: the same FluidSynth and
   FluidR3, the EDM beat and velocities read from the firmware sources, into gitignored

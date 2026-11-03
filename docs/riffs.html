@@ -56,6 +56,12 @@ label.slow { display: flex; gap: 6px; align-items: center; font-size: .9rem; col
 .plan { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
 .plan b { font-family: var(--font-display); font-weight: 600; }
 .pads-note { font-size: .9rem; color: var(--muted); }
+.songs { display: flex; flex-direction: column; gap: 12px; }
+.song-card { display: flex; flex-direction: column; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; color: var(--ink); text-decoration: none; }
+.song-card:hover { border-color: var(--ink); }
+.back { color: var(--muted); text-decoration: none; font-weight: 600; font-size: .9rem; }
+.back:hover { color: var(--ink); }
+[hidden] { display: none !important; }
 .bars { display: flex; flex-direction: column; gap: 4px; }
 .bar { display: grid; grid-template-columns: 64px 1fr; gap: 8px; align-items: center; }
 .bar-label { font: 600 .8rem var(--font-body); color: var(--muted); }
@@ -83,7 +89,7 @@ label.slow { display: flex; gap: 6px; align-items: center; font-size: .9rem; col
 <main>
   <header>
     <h1>Chicco Riffs</h1>
-    <p class="muted">Things to play over the EDM beat. Listen first (clips: <code>tools/render_riffs.py</code> after a change), then try it on the toy, then tell Claude what to change.</p>
+    <p class="muted">Songs to play over the EDM beat, one layer at a time. Listen first (clips: <code>tools/render_riffs.py</code> after a change), then try it on the toy, then tell Claude what to change.</p>
   </header>
 
   <section class="howto">
@@ -102,6 +108,7 @@ label.slow { display: flex; gap: 6px; align-items: center; font-size: .9rem; col
     </ol>
   </section>
 
+  <section id="songs" class="songs"></section>
   <div id="pieces"></div>
 </main>
 
@@ -113,6 +120,7 @@ label.slow { display: flex; gap: 6px; align-items: center; font-size: .9rem; col
 const PIECES = [
   {
     name: '#1 First Drop',
+    about: 'The four-chord loop of a hundred dance tracks: an offbeat bass, stabbed chords, a running arpeggio and a hook on top.',
     bpm: 124,
     bars: 4,
     chords: ['Am', 'F', 'C', 'G'],
@@ -137,20 +145,46 @@ const PIECES = [
         tip: 'The chord\'s three keys one after another, up and back, on every 8th: the same keys as the Chords layer, so the hand shape is one you know. Even and light, like a ticking clock.',
         notes: '0:15/2 2:17/2 4:19/2 6:17/2 8:15/2 10:17/2 12:19/2 14:17/2 16:13/2 18:15/2 20:17/2 22:15/2 24:13/2 26:15/2 28:17/2 30:15/2 32:17/2 34:19/2 36:21/2 38:19/2 40:17/2 42:19/2 44:21/2 46:19/2 48:14/2 50:16/2 52:18/2 54:16/2 56:14/2 58:16/2 60:18/2 62:16/2',
       },
-      {
-        name: 'Clap roll', color: 'roll', hand: 'one finger, chick pad',
-        tip: 'Only in bar 4: claps that get faster, 4 steps apart, then 2, then every step. It pulls the loop into its next round, the classic "here it comes" before a drop.',
-        pads: '48:clap/1 52:clap/1 56:clap/1 58:clap/1 60:clap/1 61:clap/1 62:clap/1 63:clap/1',
-      },
     ],
     plan: [
       ['Intro', 'DISCO, then SELECT. Record the Bass (RECORD, play, RECORD) and let it go round twice.'],
       ['Build', 'Add the Chords as a layer (RECORD, play, RECORD). Then the Arpeggio the same way.'],
-      ['Fill', 'Add the Clap roll: from now on every round ends rolling into the next.'],
-      ['Drop', 'Play the Hook live over everything, twice round. (The loop is full: 4 layers.)'],
+      ['Drop', 'Play the Hook live over everything, twice round.'],
       ['Breakdown', 'REPLAY: the loop stops, the drums go on. Play the Hook alone over them.'],
       ['Drop again', 'REPLAY: everything comes back on the next bar line. Hook once more.'],
       ['End', 'SELECT stops the drums, REPLAY the loop. A layer went wrong on the way? Press the knob to undo it.'],
+    ],
+  },
+  {
+    name: '#2 Night Drive',
+    about: 'Climbing chords that land on A minor, a bouncing octave bass and long held chords: one hand shape each, the hook repeats its rhythm every bar.',
+    bpm: 124,
+    bars: 4,
+    chords: ['F', 'G', 'Am', 'Am'],
+    layers: [
+      {
+        name: 'Bass', color: 'bass', hand: 'left hand, thumb and little finger',
+        tip: 'Octave bass: the low key on every beat, the same note an octave up (7 keys higher) on the "and" in between. Spread the hand once and rock it; only the place moves each bar.',
+        notes: '0:6/2 2:13/2 4:6/2 6:13/2 8:6/2 10:13/2 12:6/2 14:13/2 16:7/2 18:14/2 20:7/2 22:14/2 24:7/2 26:14/2 28:7/2 30:14/2 32:8/2 34:15/2 36:8/2 38:15/2 40:8/2 42:15/2 44:8/2 46:15/2 48:8/2 50:15/2 52:8/2 54:15/2 56:8/2 58:15/2 60:8/2 62:15/2',
+      },
+      {
+        name: 'Chords', color: 'chords', hand: 'right hand, 3 fingers',
+        tip: 'Press on beat 1 and hold the whole bar: the easiest part. The shape climbs one key each bar, then stays for the last two.',
+        notes: '0:13+15+17/16 16:14+16+18/16 32:15+17+19/16 48:15+17+19/16',
+      },
+      {
+        name: 'Hook', color: 'hook', hand: 'right hand',
+        tip: 'Bars 1 to 3 are one rhythm (long, long, short, long, long) that starts a key higher each bar and walks down. Bar 4 just lands: hold, then two steps down to the A.',
+        notes: '0:27/3 3:26/3 6:24/2 8:22/4 12:24/4 16:28/3 19:26/3 22:25/2 24:23/4 28:25/4 32:29/3 35:28/3 38:26/2 40:24/4 44:26/4 48:26/8 56:24/4 60:22/4',
+      },
+    ],
+    plan: [
+      ['Intro', 'DISCO, then SELECT. Record the Bass and let it bounce twice round.'],
+      ['Build', 'Add the Chords as a layer: one press a bar, held.'],
+      ['Drop', 'Add the Hook as a layer, or play it live over everything.'],
+      ['Breakdown', 'REPLAY: only the drums. Play the Chords alone, held, over them.'],
+      ['Drop again', 'REPLAY: everything is back on the next bar line.'],
+      ['End', 'SELECT stops the drums, REPLAY the loop.'],
     ],
   },
 ];
@@ -408,8 +442,35 @@ function renderPiece(piece) {
   return box;
 }
 
+/* Two views: the list of songs (no hash) and one song (#its-slug). */
 const root = document.getElementById('pieces');
-PIECES.forEach(p => root.append(renderPiece(p)));
+const list = document.getElementById('songs');
+const howto = document.querySelector('.howto');
+const views = {};
+for (const p of PIECES) {
+  const box = renderPiece(p);
+  const back = el('a', 'back', '← All songs');
+  back.href = '#';
+  box.prepend(back);
+  views[slug(p.name)] = box;
+  root.append(box);
+  const card = el('a', 'song-card');
+  card.href = '#' + slug(p.name);
+  card.append(el('h2', null, p.name), el('p', 'muted', p.about || ''));
+  const chips = el('div', 'chips');
+  [`${p.bpm} bpm`, p.chords.join(' – '), p.layers.map(l => l.name).join(', ')].forEach(t => chips.append(el('span', 'chip', t)));
+  card.append(chips);
+  list.append(card);
+}
+function route() {
+  stop();
+  const box = views[location.hash.slice(1)];
+  for (const v of Object.values(views)) v.hidden = v !== box;
+  list.hidden = howto.hidden = !!box;
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+route();
 document.addEventListener('keydown', e => { if (e.key === 'Escape') stop(); });
 </script>
 </body>
