@@ -117,8 +117,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `MIDI_LINK_LEAD_US` (60 ms) ahead and the bridge plays them at their time (toy
   clock mapped from the fastest packets of the last 5 s); live keys play at once.
   Measured over WiFi with 4-35 ms ping: beat steps within 0.8 ms of the grid, was up
-  to 24 ms off (audible hiccups). The bridge logs `late: N of M` once a minute when
-  a timed message came after its time.
+  to 24 ms off (audible hiccups). The bridge logs each timed message that came after
+  its time (`late: X ms ...`) and each live note slower than 30 ms over the fastest
+  recent packets (`slow key: X ms ...`). Lead raised to 150 ms on 2026-11-03: at
+  60 ms, 4-26 of ~2000 timed messages a minute came late.
 - `tools/piano_bridge.c` (PC, links `-lasound`): owns the ALSA port
   "Chicco Piano" (stays while it runs, toy on or off), says HELLO, drops the
   copies. `tools/pc_synth.sh` builds it into `build-host/`, starts it with

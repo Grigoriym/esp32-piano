@@ -23,14 +23,14 @@
 #include <time.h>
 #include <unistd.h>
 
-#define PORT      21928
-#define RECENT    16      /* sequence numbers remembered for dropping copies */
-#define HEADER    8       /* sequence, send time, delay */
-#define PENDING   512     /* delayed messages waiting */
-#define SAMPLES   128     /* clock samples kept */
-#define WINDOW_US 5000000 /* clock offset: the fastest packet of the last 5 s (clocks drift) */
-#define RESET_US  1000000 /* an offset this far off: the toy restarted */
-#define STATS_S   60
+#define PORT        21928
+#define RECENT      16      /* sequence numbers remembered for dropping copies */
+#define HEADER      8       /* sequence, send time, delay */
+#define PENDING     512     /* delayed messages waiting */
+#define SAMPLES     128     /* clock samples kept */
+#define WINDOW_US   5000000 /* clock offset: the fastest packet of the last 5 s (clocks drift) */
+#define RESET_US    1000000 /* an offset this far off: the toy restarted */
+#define SLOW_KEY_US 30000   /* a live key this much slower than the fastest packets is logged */
 
 static double now_s(void)
 {
@@ -161,8 +161,7 @@ int main(int argc, char **argv)
 
     struct sockaddr_in toy;
     bool have_toy = false;
-    double next_hello = 0, last_data = -10, next_stats = now_s() + STATS_S;
-    int n_late = 0, n_sched = 0;
+    double next_hello = 0, last_data = -10;
     uint16_t recent[RECENT];
     int n_recent = 0, recent_at = 0;
 
@@ -224,26 +223,30 @@ int main(int argc, char **argv)
 
         int delay = (buf[6] << 8 | buf[7]) * 100;
         int len = (int)n - HEADER;
+        const uint8_t *msg = &buf[HEADER];
+        bool note_on = len == 3 && (msg[0] & 0xf0) == 0x90 && msg[2];
         if (delay == 0 || len > 3) {
-            play(seq, port, parser, &buf[HEADER], len);
+            /* A live key: how much slower than the fastest recent packet it came. */
+            if (note_on && arrived - sent > SLOW_KEY_US) {
+                printf("slow key: %lld ms (ch %d note %d)\n", (long long)(arrived - sent) / 1000,
+                       (msg[0] & 15) + 1, msg[1]);
+            }
+            play(seq, port, parser, msg, len);
             continue;
         }
         int64_t at = sent + delay;
-        n_sched++;
-        if (at <= arrived) n_late++;
+        if (at <= arrived) { /* the head start wasn't enough: plays now, late */
+            printf("late: %lld ms after its time (ch %d %s %d)\n", (long long)(arrived - at) / 1000,
+                   (msg[0] & 15) + 1, note_on ? "note" : "msg", len > 1 ? msg[1] : 0);
+        }
         if (at <= arrived || n_pending == PENDING) {
-            play(seq, port, parser, &buf[HEADER], len);
+            play(seq, port, parser, msg, len);
         } else {
             pending_t *p = &pending[n_pending++];
             p->at = at;
             p->order = order++;
-            memcpy(p->msg, &buf[HEADER], len);
+            memcpy(p->msg, msg, len);
             p->len = len;
-        }
-        if (now_s() >= next_stats) {
-            next_stats = now_s() + STATS_S;
-            if (n_late) printf("late: %d of %d timed messages (they played at once)\n", n_late, n_sched);
-            n_late = n_sched = 0;
         }
     }
 }
