@@ -109,7 +109,13 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   beacon interval) and `main/midi_link.c`: MIDI over UDP, protocol in
   `main/midi_link.h`. The toy is `chicco-piano.local` (mDNS, port 21928); the
   PC sends `HELLO` once a second, the toy sends each MIDI message twice with a
-  sequence number back to where the HELLO came from.
+  sequence number back to where the HELLO came from. Since 2026-11-03 each packet also
+  carries the toy's send time and a delay: the beat, DEMO and loop run
+  `MIDI_LINK_LEAD_US` (60 ms) ahead and the bridge plays them at their time (toy
+  clock mapped from the fastest packets of the last 5 s); live keys play at once.
+  Measured over WiFi with 4-35 ms ping: beat steps within 0.8 ms of the grid, was up
+  to 24 ms off (audible hiccups). The bridge logs `late: N of M` once a minute when
+  a timed message came after its time.
 - `tools/piano_bridge.c` (PC, links `-lasound`): owns the ALSA port
   "Chicco Piano" (stays while it runs, toy on or off), says HELLO, drops the
   copies. `tools/pc_synth.sh` builds it into `build-host/`, starts it with
@@ -206,8 +212,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   serial capture (USB on, toy batteries out, 3.3 V only): the log names the
   key. Found key 5 that way (2026-10-22); key 1 is at the end away from
   `9105B` (`docs/MATRIX.md`).
-  aseqdump shows order, not timing: tempos and bar-line timing are checked by
-  the host tests and by ear.
+  aseqdump shows order, not timing. Timing as the PC gets it: `timeout -s INT 40
+  arecordmidi -p 128:0 -b 60 -t 1000 out.mid` (1 tick = 1 ms), then the drum
+  note-ons' distance from the step grid (2026-11-03; a style switch mid-capture
+  changes the tempo, cut it off before fitting).
 - **A whole row or column of keys dead = check that line's jumper first.**
   2026-10-13: keys 25–32 silent, D25 (`AB3`) had come off the breadboard.
   Check it by continuity from the DevKit pin to the slot pad while wiggling
