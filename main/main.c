@@ -165,6 +165,14 @@ static void send_midi(const uint8_t *msg, size_t len, const char *what, void *ct
     if (what) printf("MIDI  %s%s\n", what, midi_link_connected() ? "" : " (not connected)");
 }
 
+/* Sequenced MIDI (beat, DEMO, loop), worked out MIDI_LINK_LEAD_US ahead: ctx
+ * points to the time it should sound. */
+static void send_at(const uint8_t *msg, size_t len, const char *what, void *ctx)
+{
+    if (len) midi_link_send_at(msg, len, *(const int64_t *)ctx);
+    if (what) printf("MIDI  %s%s\n", what, midi_link_connected() ? "" : " (not connected)");
+}
+
 /* What keymap sends: also what the looper records. */
 static void send_key(const uint8_t *msg, size_t len, const char *what, void *ctx)
 {
@@ -209,16 +217,19 @@ static void show(const matrix_t *m)
 static void on_cell(size_t r, size_t c, bool down, void *ctx)
 {
     int64_t now = esp_timer_get_time();
+    /* What the sequencers send from here (their note offs on a stop) goes after
+     * what they already sent ahead, so it can't arrive before a note on. */
+    int64_t at = now + MIDI_LINK_LEAD_US;
     switch (keymap_event(&keymap, r, c, down, send_key, NULL)) {
-        case KEYMAP_DEMO: demo_toggle(&demo, now, send_midi, NULL); break;
-        case KEYMAP_RECORD: looper_record(&looper, now, send_midi, NULL); break;
-        case KEYMAP_REPLAY: looper_replay(&looper, now, send_midi, NULL); break;
-        case KEYMAP_SELECT: rhythm_toggle(&rhythm, keymap.style, now, send_midi, NULL); break;
+        case KEYMAP_DEMO: demo_toggle(&demo, now, send_at, &at); break;
+        case KEYMAP_RECORD: looper_record(&looper, now, send_at, &at); break;
+        case KEYMAP_REPLAY: looper_replay(&looper, now, send_at, &at); break;
+        case KEYMAP_SELECT: rhythm_toggle(&rhythm, keymap.style, now, send_at, &at); break;
         case KEYMAP_STYLE: rhythm_select(&rhythm, keymap.style); break;
         case KEYMAP_RESET:
-            if (demo.on) demo_toggle(&demo, now, send_midi, NULL);
-            if (rhythm.on) rhythm_toggle(&rhythm, keymap.style, now, send_midi, NULL);
-            looper_clear(&looper, send_midi, NULL);
+            if (demo.on) demo_toggle(&demo, now, send_at, &at);
+            if (rhythm.on) rhythm_toggle(&rhythm, keymap.style, now, send_at, &at);
+            looper_clear(&looper, send_at, &at);
             break;
         case KEYMAP_NONE: break;
     }
@@ -254,9 +265,14 @@ void app_main(void)
             }
         }
         int64_t t = esp_timer_get_time();
-        demo_tick(&demo, t, send_midi, NULL);
-        looper_tick(&looper, t, send_midi, NULL);
-        rhythm_tick(&rhythm, t, send_midi, NULL);
+        /* The sequencers run MIDI_LINK_LEAD_US ahead; the PC plays each message at
+         * its time. The beat sends at most one step a call, due at its next_us;
+         * DEMO and the loop are stamped with the tick's time (off by up to a scan). */
+        int64_t ahead = t + MIDI_LINK_LEAD_US;
+        int64_t beat_due = rhythm.next_us;
+        demo_tick(&demo, ahead, send_at, &ahead);
+        looper_tick(&looper, ahead, send_at, &ahead);
+        rhythm_tick(&rhythm, ahead, send_at, &beat_due);
         show(&matrix);
         vTaskDelay(pdMS_TO_TICKS(SCAN_PERIOD_MS));
     }

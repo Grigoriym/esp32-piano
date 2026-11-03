@@ -74,16 +74,28 @@ bool midi_link_connected(void)
 
 void midi_link_send(const uint8_t *msg, size_t len)
 {
+    midi_link_send_at(msg, len, 0);
+}
+
+void midi_link_send_at(const uint8_t *msg, size_t len, int64_t at_us)
+{
     if (sock < 0 || len == 0 || len > 3 || !midi_link_connected()) {
         return;
     }
     taskENTER_CRITICAL(&lock);
     struct sockaddr_in to = peer;
     taskEXIT_CRITICAL(&lock);
-    uint8_t pkt[5] = {seq >> 8, seq & 0xff};
-    memcpy(&pkt[2], msg, len);
+    int64_t now = esp_timer_get_time();
+    int64_t delay = (at_us - now) / 100;
+    delay = delay < 0 ? 0 : delay > 0xffff ? 0xffff : delay;
+    uint32_t sent = (uint32_t)now;
+    uint8_t pkt[11] = {
+        seq >> 8,           seq & 0xff,  sent >> 24, (sent >> 16) & 0xff,
+        (sent >> 8) & 0xff, sent & 0xff, delay >> 8, delay & 0xff,
+    };
+    memcpy(&pkt[8], msg, len);
     seq++;
     for (int i = 0; i < COPIES; i++) {
-        sendto(sock, pkt, 2 + len, 0, (struct sockaddr *)&to, sizeof(to));
+        sendto(sock, pkt, 8 + len, 0, (struct sockaddr *)&to, sizeof(to));
     }
 }
