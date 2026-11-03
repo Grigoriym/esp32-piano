@@ -97,8 +97,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   and what every key and button plays), `demo.c` (DEMO: Megalovania intro,
   channel 2, 100 bpm, velocity 70), `looper.c` (RECORD/REPLAY/knob press: a looper
   that starts at the first note; with the beat on (`looper_set_grid`, from main
-  every scan) it starts on that note's bar line and rounds to whole bars, a late
-  RECORD's notes are dropped; RECORD while playing adds a layer (up to 4, keys on
+  every scan) it starts on that note's bar line, its length is first note to
+  RECORD rounded to whole bars (from the bar line, a bass begun on step 6 made a
+  5-bar loop with an empty bar, 2026-11-03), notes past the end before the first
+  note's place wrap to the start, a late RECORD's next-pass notes are dropped; RECORD while playing adds a layer (up to 4, keys on
   channels 3-6 each with its instrument, drums on 10), the knob's press undoes
   one (2026-11-03); RESET erases it), `rhythm.c` (SELECT: a drum
   beat per style button, one bar of `x`/`X`/`.` steps per drum, switches at the

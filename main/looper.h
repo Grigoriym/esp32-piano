@@ -14,9 +14,10 @@
  * with the first note (keys and drums, what keymap sends). RECORD again closes
  * the loop, which keeps playing. While the beat runs (looper_set_grid) the loop
  * is in time with it: it starts at the bar line of the first note (a note up to
- * a 16th early counts as on it), its length is rounded to whole bars, and notes
- * played after that length (a late RECORD) are dropped, as they belong to the
- * next pass. Without the beat the loop is as long as played.
+ * a 16th early counts as on it) and its length is the time from the first note
+ * to RECORD, rounded to whole bars. Notes past that length that come before the
+ * first note's place finish a phrase begun mid-bar and wrap to the start; the
+ * others (the next pass, played before a late RECORD) are dropped. Without the beat the loop is as long as played.
  *
  * RECORD while the loop plays adds a layer on top, recorded as the loop goes
  * round, until RECORD again; up to LOOPER_LAYERS. Each layer's keys play on

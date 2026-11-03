@@ -90,6 +90,31 @@ static void start_playing(looper_t *l, int64_t start_us, int64_t played_us, midi
     log_msg(send, ctx, what);
 }
 
+/* Notes played past the loop's length: those before where the loop's first note
+ * comes again finish a phrase that started mid-bar and go to the pass's start;
+ * the rest are the next pass played before a late RECORD and are dropped. */
+static void wrap_tail(looper_t *l)
+{
+    uint32_t first = l->ev[0].t_us;
+    uint32_t sixteenth = (uint32_t)(l->grid_bar_us / 16);
+    size_t out = 0;
+    for (size_t i = 0; i < l->n; i++) {
+        looper_event_t e = l->ev[i];
+        if (e.t_us >= l->length_us) {
+            e.t_us -= l->length_us;
+            if (e.t_us >= l->length_us || e.t_us + sixteenth >= first) continue;
+        }
+        l->ev[out++] = e;
+    }
+    l->n = out;
+    for (size_t i = 1; i < l->n; i++) { /* the wrapped ones to the front, in order */
+        looper_event_t e = l->ev[i];
+        size_t j = i;
+        for (; j > 0 && l->ev[j - 1].t_us > e.t_us; j--) l->ev[j] = l->ev[j - 1];
+        l->ev[j] = e;
+    }
+}
+
 /* Ends the first layer's recording: the loop plays on, or nothing was recorded. */
 static void close_loop(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
 {
@@ -101,9 +126,11 @@ static void close_loop(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx
     int64_t played = now_us - l->start_us;
     l->n_layers = 1;
     if (l->grid_bar_us) {
-        int64_t bars = (played + l->grid_bar_us / 2) / l->grid_bar_us;
+        /* Bars as played: from the first note, which may come mid-bar. */
+        int64_t phrase = played - l->ev[0].t_us;
+        int64_t bars = (phrase + l->grid_bar_us / 2) / l->grid_bar_us;
         l->length_us = (uint32_t)((bars < 1 ? 1 : bars) * l->grid_bar_us);
-        l->n = first_after(l, (int64_t)l->length_us - 1); /* a late RECORD: the next pass's notes */
+        wrap_tail(l);
         /* Carry on where the beat is: what was just played live isn't played again. */
         int64_t pass = floor_div(played, l->length_us);
         int64_t start = l->start_us + pass * l->length_us;

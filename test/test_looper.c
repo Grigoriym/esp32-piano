@@ -231,6 +231,29 @@ static void test_an_early_record_rounds_up_and_waits_for_the_pass_end(void)
     TEST_ASSERT_EQUAL(1, count(start, 0x90 | LOOP_CH, 60));
 }
 
+/* A 4-bar phrase starting 1.5 s into bar 1 (the bass on the "and" of beat 2):
+ * notes 60..67 every second from 3.5 s, the last one in bar 5. */
+static void test_a_phrase_begun_mid_bar_keeps_its_length_and_wraps(void)
+{
+    looper_set_grid(&l, 0, BAR);
+    looper_record(&l, 500000, midi_rec, &rec);
+    for (int i = 0; i < 8; i++) {
+        note(3500000 + i * 1000000, KEY_CH, (uint8_t)(60 + i), true);
+        note(3700000 + i * 1000000, KEY_CH, (uint8_t)(60 + i), false);
+    }
+    looper_record(&l, 11200000, midi_rec, &rec); /* 7.7 s after the first note */
+    TEST_ASSERT_EQUAL(4 * BAR, l.length_us);
+    TEST_ASSERT_EQUAL(16, l.n);
+    TEST_ASSERT_EQUAL(500000, l.ev[0].t_us); /* the last note, wrapped to the front */
+    TEST_ASSERT_EQUAL(67, l.ev[0].msg[1]);
+    size_t start = rec.n;
+    run(11200000, 18400000);
+    TEST_ASSERT_EQUAL(0, count(start, 0x90 | LOOP_CH, 67)); /* played live in this pass */
+    TEST_ASSERT_EQUAL(1, count(start, 0x90 | LOOP_CH, 60)); /* at 11.5 s */
+    run(18400000, 18600000);
+    TEST_ASSERT_EQUAL(1, count(start, 0x90 | LOOP_CH, 67)); /* at 18.5 s, no empty bar */
+}
+
 static void test_replay_with_the_beat_starts_at_the_next_bar_line(void)
 {
     looper_set_grid(&l, 0, BAR);
@@ -383,6 +406,7 @@ int main(void)
     RUN_TEST(test_a_16th_early_counts_as_on_the_bar);
     RUN_TEST(test_a_late_record_drops_the_next_pass_notes);
     RUN_TEST(test_an_early_record_rounds_up_and_waits_for_the_pass_end);
+    RUN_TEST(test_a_phrase_begun_mid_bar_keeps_its_length_and_wraps);
     RUN_TEST(test_replay_with_the_beat_starts_at_the_next_bar_line);
     RUN_TEST(test_a_layer_plays_on_its_own_channel_with_its_instrument);
     RUN_TEST(test_a_layer_note_is_not_played_again_in_its_own_pass);
