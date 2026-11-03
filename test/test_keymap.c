@@ -106,18 +106,19 @@ static void test_buttons(void)
     TEST_ASSERT_EQUAL(DEFAULT_STYLE, k.style);
     TEST_ASSERT_EQUAL(KEYMAP_STYLE, keymap_event(&k, 4, 5, true, midi_rec, &rec)); /* WALTZ: accordion */
     assert_msg(0, 0xc0, 21, 0);
+    assert_msg(1, 0xc9, 0, 0); /* the standard drum kit */
     TEST_ASSERT_EQUAL(21, k.program);
     TEST_ASSERT_EQUAL(5, k.style);
     keymap_event(&k, 7, 0, true, midi_rec, &rec); /* DOG: bass drum */
     keymap_event(&k, 7, 0, false, midi_rec, &rec);
-    assert_msg(1, 0x90 | DRUM_CH, 36, VELOCITY);
-    assert_msg(2, 0x80 | DRUM_CH, 36, 0);
+    assert_msg(2, 0x90 | DRUM_CH, 36, VELOCITY);
+    assert_msg(3, 0x80 | DRUM_CH, 36, 0);
     TEST_ASSERT_EQUAL(KEYMAP_DEMO, keymap_event(&k, 7, 5, true, midi_rec, &rec));
     TEST_ASSERT_EQUAL(KEYMAP_NONE, keymap_event(&k, 7, 5, false, midi_rec, &rec));
     TEST_ASSERT_EQUAL(KEYMAP_RECORD, keymap_event(&k, 5, 5, true, midi_rec, &rec));
     TEST_ASSERT_EQUAL(KEYMAP_REPLAY, keymap_event(&k, 5, 6, true, midi_rec, &rec));
     TEST_ASSERT_EQUAL(KEYMAP_SELECT, keymap_event(&k, 7, 4, true, midi_rec, &rec));
-    TEST_ASSERT_EQUAL(3, rec.n);
+    TEST_ASSERT_EQUAL(4, rec.n);
 }
 
 static void test_first_style_button_is_the_default_piano(void)
@@ -148,10 +149,23 @@ static void test_edm_keys_play_a_minor(void)
     key(3, true);  /* C2 */
     key(8, true);  /* A2: the next octave starts at key 8 */
     key(32, true); /* 4 octaves and 3 steps up: D6 */
-    assert_msg(1, 0x90, 33, EDM_VELOCITY);
-    assert_msg(2, 0x90, 36, EDM_VELOCITY);
-    assert_msg(3, 0x90, 45, EDM_VELOCITY);
-    assert_msg(4, 0x90, 86, EDM_VELOCITY);
+    assert_msg(2, 0x90, 33, EDM_VELOCITY);
+    assert_msg(3, 0x90, 36, EDM_VELOCITY);
+    assert_msg(4, 0x90, 45, EDM_VELOCITY);
+    assert_msg(5, 0x90, 86, EDM_VELOCITY);
+}
+
+static void test_edm_mode_switches_the_drum_kit(void)
+{
+    keymap_event(&k, 4, EDM_STYLE, true, midi_rec, &rec);
+    assert_msg(1, 0xc9, EDM_KIT, 0);
+    keymap_event(&k, 4, 0, true, midi_rec, &rec); /* SLOW ROCK */
+    assert_msg(3, 0xc9, 0, 0);
+    keymap_event(&k, 4, EDM_STYLE, true, midi_rec, &rec);
+    rec.n = 0;
+    keymap_event(&k, 5, 4, true, midi_rec, &rec); /* RESET */
+    TEST_ASSERT_EQUAL_HEX8(0xc9, rec.e[rec.n - 1].msg[0]);
+    TEST_ASSERT_EQUAL(0, rec.e[rec.n - 1].msg[1]);
 }
 
 static void test_edm_mode_ends_with_another_style_or_reset(void)
@@ -184,6 +198,7 @@ int main(void)
     RUN_TEST(test_first_style_button_is_the_default_piano);
     RUN_TEST(test_program_names);
     RUN_TEST(test_edm_keys_play_a_minor);
+    RUN_TEST(test_edm_mode_switches_the_drum_kit);
     RUN_TEST(test_edm_mode_ends_with_another_style_or_reset);
     RUN_TEST(test_edm_octave_buttons_still_shift);
     return UNITY_END();

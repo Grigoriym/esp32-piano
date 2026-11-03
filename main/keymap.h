@@ -18,7 +18,8 @@
  * SELECT (rhythm.h: the drum beat of the last style button, k->style).
  *
  * EDM mode (DISCO, until another style button or RESET): the keys play only
- * the notes of A natural minor, 7 keys an octave, so no key sounds wrong. */
+ * the notes of A natural minor, 7 keys an octave, so no key sounds wrong, and
+ * the drum channel plays EDM_KIT (every other style: kit 0). */
 #define KEY_CH         0
 #define DRUM_CH        9
 #define LOOP_CH        2  /* the looper's keys (DEMO_CH is 1) */
@@ -30,6 +31,7 @@
 #define MAX_OCTAVE     2
 #define DEFAULT_STYLE  1  /* ROCK: SELECT's beat before a style button is pressed */
 #define EDM_STYLE      3  /* DISCO: EDM mode, the keys play A natural minor */
+#define EDM_KIT        30 /* drum program in EDM mode: tools/gen_edm_kit_sf2.py on the PC */
 #define SCALE_ROOT     33 /* EDM mode: key 1 = A1, then one key per scale step (key 8 = A2) */
 
 typedef struct {

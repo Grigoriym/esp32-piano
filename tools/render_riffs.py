@@ -2,7 +2,8 @@
 """Render docs/riffs.html's pieces with the toy's own sound, for the page's Listen buttons.
 
 Same FluidSynth and SoundFont as tools/pc_synth.sh (gain 0.3, not its 1.0: at 1.0 #1 peaks ~9 dB over full scale), the EDM beat read from
-main/rhythm.c, the keys' program and velocity from main/keymap.{c,h}: what the toy
+main/rhythm.c, the keys' program and velocity and the drum kit (tools/gen_edm_kit_sf2.py) from
+main/keymap.{c,h}: what the toy
 plays in EDM mode. Each piece gives <slug>-all.mp3 and one file per layer, two
 passes of the piece each, in docs/riffs-audio/ (gitignored). Run after changing a
 piece, the EDM beat or the EDM velocities. Needs node, fluidsynth, ffmpeg.
@@ -20,6 +21,7 @@ import wave
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs/riffs-audio"
 SF2 = os.environ.get("SF2", "/usr/share/sounds/sf2/FluidR3_GM.sf2")
+KIT = ROOT / "build-host/edm_kit.sf2"
 RATE = 44100
 PASSES = 2
 
@@ -53,7 +55,8 @@ def keys_setup():
     vel = int(re.search(r"#define EDM_VELOCITY\s+(\d+)", h)[1])
     root = int(re.search(r"#define SCALE_ROOT\s+(\d+)", h)[1])
     program = int(re.search(r"(\d+), /\* DISCO", c)[1])
-    return vel, root, program
+    kit = int(re.search(r"#define EDM_KIT\s+(\d+)", h)[1])
+    return vel, root, program, kit
 
 
 MINOR = [0, 2, 3, 5, 7, 8, 10]
@@ -82,10 +85,11 @@ def midi_file(bpm, steps, events):
 
 def render(piece, layers, beat, keys, path):
     bpm, lanes, dvel, dacc = beat
-    kvel, root, program = keys
+    kvel, root, program, kit = keys
     bar_steps = piece["bars"] * 16
     total = bar_steps * PASSES
-    ev = [(0, 0, bytes([0xC0, program])), (0, 0, bytes([0xB0, 7, 127])), (0, 0, bytes([0xB9, 7, 127]))]
+    ev = [(0, 0, bytes([0xC0, program])), (0, 0, bytes([0xC9, kit])), (0, 0, bytes([0xB0, 7, 127])),
+          (0, 0, bytes([0xB9, 7, 127]))]
     for s in range(total):
         for note, hits in lanes:
             hit = hits[s % len(hits)]
@@ -106,7 +110,7 @@ def render(piece, layers, beat, keys, path):
     with tempfile.TemporaryDirectory() as d:
         mid, raw = pathlib.Path(d, "x.mid"), pathlib.Path(d, "x.wav")
         mid.write_bytes(midi_file(bpm, total, ev))
-        subprocess.run(["fluidsynth", "-ni", "-g", "0.3", "-r", str(RATE), "-F", str(raw), SF2, str(mid)],
+        subprocess.run(["fluidsynth", "-ni", "-g", "0.3", "-r", str(RATE), "-F", str(raw), SF2, str(KIT), str(mid)],
                        check=True, capture_output=True)
         # Exactly the piece's length, so the loop and the page's playhead line up.
         frames = round(total * 60 / bpm / 4 * RATE)
@@ -122,6 +126,8 @@ def render(piece, layers, beat, keys, path):
 
 def main():
     OUT.mkdir(exist_ok=True)
+    KIT.parent.mkdir(exist_ok=True)
+    subprocess.run([sys.executable, str(ROOT / "tools/gen_edm_kit_sf2.py"), str(KIT)], check=True)
     beat, keys = edm_beat(), keys_setup()
     for piece in pieces():
         base = slug(piece["name"])

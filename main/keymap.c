@@ -85,6 +85,8 @@ static void reset(keymap_t *k, midi_send_fn send, void *ctx)
     send_volume(k, send, ctx);
     uint8_t program[2] = {0xc0 | KEY_CH, 0};
     send(program, 2, "program 0", ctx);
+    uint8_t kit[2] = {0xc0 | DRUM_CH, 0};
+    send(kit, 2, "drum kit 0", ctx);
 }
 
 static int clamp(int v, int lo, int hi)
@@ -99,6 +101,21 @@ uint8_t keymap_key_note(const keymap_t *k, size_t key)
         return (uint8_t)(SCALE_ROOT + 12 * (k->octave + (int)key / 7) + MINOR[key % 7]);
     }
     return (uint8_t)(BASE_NOTE + 12 * k->octave + (int)key);
+}
+
+/* A style button: the keys' instrument, and the drum kit (EDM_KIT in EDM mode). */
+static void style_button(keymap_t *k, size_t c, midi_send_fn send, void *ctx)
+{
+    char what[32];
+    snprintf(what, sizeof(what), "program %u", STYLE_PROGRAM[c]);
+    k->program = STYLE_PROGRAM[c];
+    k->style = c;
+    uint8_t msg[2] = {0xc0 | KEY_CH, k->program};
+    send(msg, 2, what, ctx);
+    uint8_t kit = c == EDM_STYLE ? EDM_KIT : 0;
+    snprintf(what, sizeof(what), "drum kit %u", kit);
+    uint8_t kit_msg[2] = {0xc0 | DRUM_CH, kit};
+    send(kit_msg, 2, what, ctx);
 }
 
 keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_send_fn send, void *ctx)
@@ -120,11 +137,7 @@ keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_se
     }
     if (!down) return KEYMAP_NONE;
     if (r == 4) {
-        snprintf(what, sizeof(what), "program %u", STYLE_PROGRAM[c]);
-        k->program = STYLE_PROGRAM[c];
-        k->style = c;
-        uint8_t msg[2] = {0xc0 | KEY_CH, k->program};
-        send(msg, 2, what, ctx);
+        style_button(k, c, send, ctx);
         return KEYMAP_STYLE;
     }
     if (r == 5 && c <= 1) { /* TEMPO+ / TEMPO- */
