@@ -130,12 +130,16 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   sam se rodio" (from chord sites; no melody, none found). Published as a private artifact:
   https://claude.ai/artifact/Ttss3MnAfWboWeEaJDS2zC (republish from this file
   after a mapping change).
-- `docs/learn-piano.html` (2026-10-31): local piano course for a guitarist, one
-  file, no build. Hears the toy's channel 1 through Web MIDI (Brave: allow MIDI;
-  port "Chicco Piano", so the service must run). Lessons are the `LESSONS` data at
-  the top of its script. After changing a lesson or `matrix_diodes`:
-  `tools/check_lesson_chords.py`, because some chords are held back and a lesson
-  asking for one would wait forever (2026-10-31 it caught 3 first drafts).
+- EDM mode (2026-11-03, the user wants to make simple electronic music, not learn
+  piano): DISCO makes the keys play only A natural minor (`keymap_key_note`: key 1 =
+  A1, 7 keys an octave, key 8 = A2), keys at velocity 70 (the saw lead drowned the
+  beat), beat `EDM` 124 bpm four on the floor. Another style button or RESET ends it.
+- `docs/riffs.html` (2026-11-03, replaced `docs/learn-piano.html`, which is in git at
+  `076f9c7`): pieces to play over the EDM beat, layers (bass, chords, hook) shown bar by
+  bar as key numbers, each playable in the browser (WebAudio saw + the beat). The user
+  tries one and proposes changes. Pieces are the `PIECES` data at the top of its
+  script. After changing a chord or `matrix_diodes`: `tools/check_riff_chords.py`
+  (some key sets are held back and would never sound).
 - `tools/gen_cat_sf2.py` + `tools/sounds/` (free recordings, see its README; the
   table `CATS` lists them): ROCK's program 19 is a cat, NEW AGE's 88 a deeper
   Siamese (2026-10-31; ~0.9 s at F3, a ~0.15 s blip at C6). `pc_synth.sh` builds `build-host/cat.sf2` and
@@ -346,14 +350,11 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
-**State 2026-10-31:** a side trip from the box: `docs/learn-piano.html` and the style
-buttons' sounds (SLOW ROCK piano, ROCK cat, NEW AGE Siamese; their beats unchanged). The
-user wants to rework the other buttons too (drum animals, beats).
-**Next, the user's call at the end of 2026-10-31: make `docs/learn-piano.html` better**
-(what exactly: ask, no list given). Not checked yet: the page hearing the real toy
-(tested with simulated notes in headless Firefox and by eye in Brave at 127.0.0.1; MIDI
-permission never granted there, opening it as `file://` in Brave not seen working) and
-the cats and the swapped sounds by ear (tuning rendered through FluidSynth, flashed). The box plan below still stands.
+**State 2026-11-03:** EDM mode on DISCO and `docs/riffs.html` with piece #1 (Am F C
+G: bass, chords, hook). Next: the user tries #1 on the toy and says what to change. Then
+a looper in time with the beat (bar-synced, layers/overdub), scale lock elsewhere,
+EDM sounds (bass, pad, lead) and a knob effect / drop button, as the user wants.
+Not checked by ear yet: the cats and swapped sounds (2026-10-31). The box plan below still stands.
 
 State on 2026-10-13 (end of session): **MVP done.** Every key and button
 reaches FluidSynth over WiFi (the service starts from the app menu, on demand

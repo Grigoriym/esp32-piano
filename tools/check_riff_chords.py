@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Check every chord in docs/learn-piano.html against main/matrix.c.
+"""Check every chord in docs/riffs.html against main/matrix.c.
 
 Some key combinations are held back by the toy (no diode on every key), so a
-lesson asking for one would wait forever. For each chord: press its keys, add
+riff asking for one would never sound. For each chord: press its keys, add
 the fake keys the wiring makes (a diode on the diagonal corner blocks one), run
 the real matrix_sync, and require exactly the pressed keys to play.
-Run after changing a lesson or matrix_diodes. Exit 1 on any failure.
+Run after changing a riff or matrix_diodes. Exit 1 on any failure.
 """
 import pathlib
 import re
@@ -14,7 +14,6 @@ import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-LETTER = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 HARNESS = r"""
 #include <stdio.h>
 #include <string.h>
@@ -41,22 +40,16 @@ int main(void) {
 """
 
 
-def midi(name):
-    m = re.fullmatch(r"([A-G])([#b]?)(\d)", name)
-    return 12 * (int(m[3]) + 1) + LETTER[m[1]] + {"#": 1, "b": -1, "": 0}[m[2]]
-
-
 def main():
-    page = (ROOT / "docs/learn-piano.html").read_text()
+    page = (ROOT / "docs/riffs.html").read_text()
     chords = set()
-    for score in re.findall(r"score: '([^']+)'", page):
-        for tok in score.split():
-            names = tok.split(":")[-1].split("/")[0].split("+")
-            keys = [midi(n) - 52 for n in names]
+    for notes in re.findall(r"notes: '([^']+)'", page):
+        for tok in notes.split():
+            keys = [int(k) for k in tok.split(":")[1].split("/")[0].split("+")]
             if not all(1 <= k <= 32 for k in keys):
                 sys.exit(f"off the keyboard: {tok}")
             if len(keys) > 1:
-                chords.add(" ".join(map(str, sorted(keys))) + " | " + " ".join(names))
+                chords.add(" ".join(map(str, sorted(keys))) + " | " + tok)
     with tempfile.TemporaryDirectory() as d:
         src, exe = pathlib.Path(d, "h.c"), pathlib.Path(d, "h")
         src.write_text(HARNESS)

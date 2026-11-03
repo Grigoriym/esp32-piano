@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chicco Riffs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+:root {
+  --bg: #f6f7fb; --panel: #ffffff; --ink: #1c2240; --muted: #5b6283; --line: #d9dcea; --beat: #eef0f8;
+  --chick: #f5c518; --bass: #2e6bd8; --chords: #9b4dca; --hook: #e0602a; --on: #2f9e57;
+  --white-key: #ffffff; --black-key: #1c2240;
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558; --beat: #232848;
+    --bass: #77a4ff; --chords: #c88cf0; --hook: #ff8a55; --on: #5fd18a;
+    --white-key: #e9ebf5; --black-key: #070914; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558; --beat: #232848;
+  --bass: #77a4ff; --chords: #c88cf0; --hook: #ff8a55; --on: #5fd18a;
+  --white-key: #e9ebf5; --black-key: #070914; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--font-body); }
+main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; line-height: 1.15; }
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.1rem; }
+p { margin: 0; max-width: 68ch; }
+.muted { color: var(--muted); }
+.howto { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--chick); border-radius: 10px; padding: 12px 16px; }
+.howto ol { margin: 6px 0 0; padding-left: 1.3em; }
+.piece { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.piece-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 600 .85rem var(--font-body); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; color: var(--muted); }
+button { font: 600 .9rem var(--font-body); background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+button:hover { border-color: var(--ink); }
+button.playing { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+label.slow { display: flex; gap: 6px; align-items: center; font-size: .9rem; color: var(--muted); }
+.layer { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 14px; }
+.layer-head { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.tip { font-size: .95rem; }
+.bars { display: flex; flex-direction: column; gap: 4px; }
+.bar { display: grid; grid-template-columns: 64px 1fr; gap: 8px; align-items: center; }
+.bar-label { font: 600 .8rem var(--font-body); color: var(--muted); }
+.bar-label b { color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: .95rem; }
+.steps { position: relative; display: grid; grid-template-columns: repeat(16, 1fr); height: 34px; border-radius: 6px; overflow: hidden; background: var(--panel); border: 1px solid var(--line); }
+.cell { border-right: 1px solid transparent; }
+.cell.beat { background: var(--beat); }
+.cell.now { background: color-mix(in srgb, var(--on) 35%, transparent); }
+.note { grid-row: 1; margin: 3px 1px; border-radius: 5px; color: #fff; font: 700 .8rem var(--font-mono); display: flex; align-items: center; justify-content: center; white-space: nowrap; overflow: hidden; position: relative; z-index: 1; }
+.counts { display: grid; grid-template-columns: 64px 1fr; gap: 8px; }
+.counts div { display: grid; grid-template-columns: repeat(16, 1fr); font: 500 .7rem var(--font-mono); color: var(--muted); text-align: center; }
+.strip { display: flex; gap: 2px; height: 70px; align-items: flex-start; overflow: hidden; }
+.k { flex: 1 1 0; min-width: 0; height: 100%; border: 1px solid var(--line); border-radius: 0 0 4px 4px; background: var(--white-key); display: flex; align-items: flex-end; justify-content: center; font: 700 .65rem var(--font-mono); color: var(--muted); padding-bottom: 3px; }
+.k.black { background: var(--black-key); height: 62%; border-color: var(--black-key); }
+.k.used { color: #fff; }
+.strip-caption { font-size: .8rem; color: var(--muted); }
+@media (max-width: 560px) {
+  .bar, .counts { grid-template-columns: 44px 1fr; }
+  .note { font-size: .62rem; }
+  .k { font-size: .5rem; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Chicco Riffs</h1>
+    <p class="muted">Things to play over the EDM beat. Listen first, then try it on the toy, then tell Claude what to change.</p>
+  </header>
+
+  <section class="howto">
+    <h3>On the toy</h3>
+    <ol>
+      <li>Start <b>Chicco Piano</b> from the app menu.</li>
+      <li>Press <b>DISCO</b> (EDM mode: every key is in A minor, so nothing sounds wrong), then <b>SELECT</b> for the beat.</li>
+      <li>Play the numbers below. Keys 1, 8, 15, 22, 29 are all A: each run of 7 keys is one octave.</li>
+      <li>Chords are always <b>a key, skip one, a key, skip one, a key</b>.</li>
+    </ol>
+    <p class="muted" style="margin-top:6px">One layer at a time for now: the toy's looper isn't in time with the beat yet.</p>
+  </section>
+
+  <div id="pieces"></div>
+</main>
+
+<script>
+/* The pieces. A layer's notes: "step:keys/length", steps are 16ths from the
+ * start (16 a bar), keys joined with + for a chord. Keys are the toy's numbers
+ * in EDM mode (key 1 = A1, A natural minor, 7 keys an octave).
+ * After changing a chord: tools/check_riff_chords.py (some key sets are held back). */
+const PIECES = [
+  {
+    name: '#1 First Drop',
+    bpm: 124,
+    bars: 4,
+    chords: ['Am', 'F', 'C', 'G'],
+    layers: [
+      {
+        name: 'Bass', color: 'bass', hand: 'left hand',
+        tip: 'One key a bar, on the "and" between the kicks: kick, key, kick, key. That bounce is most of what makes it sound like dance music.',
+        notes: '2:8/2 6:8/2 10:8/2 14:8/2 18:6/2 22:6/2 26:6/2 30:6/2 34:10/2 38:10/2 42:10/2 46:10/2 50:7/2 54:7/2 58:7/2 62:7/2',
+      },
+      {
+        name: 'Chords', color: 'chords', hand: 'right hand, 3 fingers',
+        tip: 'Three hits a bar, evenly spaced, then a rest: count along with the grid, hits on "1", "a", "+". Same hand shape every time, it only slides.',
+        notes: '0:15+17+19/2 3:15+17+19/2 6:15+17+19/2 16:13+15+17/2 19:13+15+17/2 22:13+15+17/2 32:17+19+21/2 35:17+19+21/2 38:17+19+21/2 48:14+16+18/2 51:14+16+18/2 54:14+16+18/2',
+      },
+      {
+        name: 'Hook', color: 'hook', hand: 'right hand',
+        tip: 'The tune. Bars 1 and 3 start the same; bars 2 and 4 are long notes walking down. Learn it two bars at a time.',
+        notes: '0:22/2 3:22/2 6:24/2 8:26/4 12:25/2 14:24/2 16:24/6 24:22/4 28:20/4 32:22/2 35:22/2 38:24/2 40:26/4 44:28/2 46:26/2 48:25/6 56:23/4 60:21/4',
+      },
+    ],
+  },
+];
+
+const MINOR = [0, 2, 3, 5, 7, 8, 10];
+const keyNote = k => 33 + 12 * Math.floor((k - 1) / 7) + MINOR[(k - 1) % 7];
+const freq = n => 440 * Math.pow(2, (n - 69) / 12);
+const BLACK = [false, true, false, true, false, false, true, false, true, false, true, false];
+const isBlack = k => BLACK[(k - 1 + 5) % 12]; /* key 1 is an F on the toy's body */
+
+function parse(notes) {
+  return notes.trim().split(/\s+/).map(tok => {
+    const [, step, keys, len] = tok.match(/^(\d+):([\d+]+)\/(\d+)$/);
+    return { step: +step, keys: keys.split('+').map(Number), len: +len };
+  });
+}
+
+/* ---- sound: a saw lead like the toy's, and the EDM beat ---- */
+let ctx = null;
+let noiseBuf = null;
+function audio() {
+  if (!ctx) {
+    ctx = new AudioContext();
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  return ctx;
+}
+function saw(n, t, dur, vol) {
+  const o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+  o.type = 'sawtooth'; o.frequency.value = freq(n);
+  f.type = 'lowpass'; f.frequency.value = 2800;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t + 0.01);
+  g.gain.setValueAtTime(vol, t + dur - 0.03);
+  g.gain.linearRampToValueAtTime(0, t + dur);
+  o.connect(f).connect(g).connect(ctx.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+function noise(t, dur, type, fq, vol) {
+  const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+  s.buffer = noiseBuf; f.type = type; f.frequency.value = fq;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  s.connect(f).connect(g).connect(ctx.destination);
+  s.start(t); s.stop(t + dur);
+}
+function kick(t) {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+  g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+  o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + 0.3);
+}
+/* The firmware's EDM beat (main/rhythm.c). */
+const BEAT = {
+  kick: 'X...X...X...X...', clap: '....X.......X...',
+  hat: '.x.x.x.x.x.x.x.x', open: '..x...x...x...x.',
+};
+function drums(step, t) {
+  const i = step % 16;
+  if (BEAT.kick[i] !== '.') kick(t);
+  if (BEAT.clap[i] !== '.') noise(t, 0.15, 'bandpass', 1500, 0.5);
+  if (BEAT.hat[i] !== '.') noise(t, 0.04, 'highpass', 8000, 0.15);
+  if (BEAT.open[i] !== '.') noise(t, 0.2, 'highpass', 7000, 0.18);
+}
+
+/* ---- the player: one at a time ---- */
+let player = null;
+function stop() {
+  if (!player) return;
+  clearInterval(player.timer);
+  cancelAnimationFrame(player.raf);
+  player.button.classList.remove('playing');
+  player.button.textContent = player.label;
+  document.querySelectorAll('.cell.now').forEach(c => c.classList.remove('now'));
+  player = null;
+}
+function play(piece, layers, button, slow) {
+  const again = player && player.button === button;
+  stop();
+  if (again) return;
+  audio().resume();
+  const stepDur = 60 / (piece.bpm * (slow ? 0.5 : 1)) / 4;
+  const total = piece.bars * 16;
+  const events = layers.flatMap(l => parse(l.notes).map(e => ({ ...e, vol: l.vol })));
+  const start = ctx.currentTime + 0.1;
+  let next = 0;
+  player = { button, label: button.textContent };
+  button.classList.add('playing');
+  button.textContent = 'Stop';
+  const schedule = () => {
+    while (start + next * stepDur < ctx.currentTime + 0.15) {
+      const t = start + next * stepDur, s = next % total;
+      drums(s, t);
+      for (const e of events) {
+        if (e.step === s) for (const k of e.keys) saw(keyNote(k), t, e.len * stepDur * 0.95, e.vol / e.keys.length);
+      }
+      next++;
+    }
+  };
+  schedule();
+  player.timer = setInterval(schedule, 25);
+  const cells = layers.map(l => l.cells);
+  let shown = -1;
+  const draw = () => {
+    const s = Math.floor((ctx.currentTime - start) / stepDur);
+    if (s >= 0 && s !== shown) {
+      const cur = s % total;
+      for (const cs of cells) {
+        if (shown >= 0) cs[shown % total].classList.remove('now');
+        cs[cur].classList.add('now');
+      }
+      shown = s;
+    }
+    player.raf = requestAnimationFrame(draw);
+  };
+  player.raf = requestAnimationFrame(draw);
+}
+
+/* ---- the page ---- */
+const COUNT = ['1', 'e', '+', 'a', '2', 'e', '+', 'a', '3', 'e', '+', 'a', '4', 'e', '+', 'a'];
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const cssVar = name => `var(--${name})`;
+
+function keyStrip(used, color) {
+  const strip = el('div', 'strip');
+  for (let k = 1; k <= 32; k++) {
+    const key = el('div', 'k' + (isBlack(k) ? ' black' : ''), String(k));
+    if (used.has(k)) { key.classList.add('used'); key.style.background = cssVar(color); key.style.borderColor = cssVar(color); }
+    strip.append(key);
+  }
+  return strip;
+}
+
+function renderPiece(piece) {
+  const box = el('section', 'piece');
+  const head = el('div', 'piece-head');
+  head.append(el('h2', null, piece.name));
+  const chips = el('div', 'chips');
+  [`${piece.bpm} bpm`, `${piece.bars} bars`, piece.chords.join(' – ')].forEach(t => chips.append(el('span', 'chip', t)));
+  head.append(chips);
+  box.append(head);
+
+  const controls = el('div', 'controls');
+  const slowLabel = el('label', 'slow');
+  const slow = el('input'); slow.type = 'checkbox';
+  slowLabel.append(slow, document.createTextNode('half speed'));
+  const all = el('button', null, '▶ Listen: everything');
+  controls.append(all, slowLabel);
+  box.append(controls);
+
+  const vols = { bass: 0.22, chords: 0.16, hook: 0.16 };
+  for (const layer of piece.layers) {
+    layer.vol = vols[layer.color] ?? 0.16;
+    layer.cells = [];
+    const sec = el('div', 'layer');
+    const lh = el('div', 'layer-head');
+    const sw = el('span', 'swatch'); sw.style.background = cssVar(layer.color);
+    const title = el('h3'); title.append(sw, document.createTextNode(' ' + layer.name));
+    title.style.display = 'flex'; title.style.alignItems = 'center'; title.style.gap = '8px';
+    const btn = el('button', null, '▶ Listen with the beat');
+    btn.onclick = () => play(piece, [layer], btn, slow.checked);
+    lh.append(title, el('span', 'muted', layer.hand), btn);
+    sec.append(lh, el('p', 'tip', layer.tip));
+
+    const events = parse(layer.notes);
+    const used = new Set(events.flatMap(e => e.keys));
+    sec.append(keyStrip(used, layer.color));
+    sec.append(el('div', 'strip-caption', 'Keys used, on the toy (key 1 at the left).'));
+
+    const bars = el('div', 'bars');
+    const counts = el('div', 'counts');
+    counts.append(el('span'));
+    const cd = el('div'); COUNT.forEach(c => cd.append(el('span', null, c))); counts.append(cd);
+    bars.append(counts);
+    for (let b = 0; b < piece.bars; b++) {
+      const row = el('div', 'bar');
+      const lab = el('div', 'bar-label'); lab.append(document.createTextNode(`bar ${b + 1} `), el('b', null, piece.chords[b % piece.chords.length]));
+      const steps = el('div', 'steps');
+      for (let i = 0; i < 16; i++) {
+        const c = el('div', 'cell' + (i % 4 === 0 ? ' beat' : ''));
+        c.style.gridColumn = `${i + 1}`; c.style.gridRow = '1';
+        steps.append(c); layer.cells.push(c);
+      }
+      for (const e of events.filter(e => Math.floor(e.step / 16) === b)) {
+        const n = el('div', 'note', e.keys.join(' '));
+        const s = e.step % 16;
+        n.style.gridColumn = `${s + 1} / span ${Math.min(e.len, 16 - s)}`;
+        n.style.background = cssVar(layer.color);
+        steps.append(n);
+      }
+      row.append(lab, steps);
+      bars.append(row);
+    }
+    sec.append(bars);
+    box.append(sec);
+  }
+  all.onclick = () => play(piece, piece.layers, all, slow.checked);
+  return box;
+}
+
+const root = document.getElementById('pieces');
+PIECES.forEach(p => root.append(renderPiece(p)));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') stop(); });
+</script>
+</body>
+</html>
