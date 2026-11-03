@@ -17,8 +17,9 @@
  *   2026-11-03) then doesn't reach the beat, which is sent MIDI_LINK_LEAD_US
  *   early.
  * The toy is found as <hostname>.local (mDNS). */
-#define MIDI_LINK_PORT    21928
-#define MIDI_LINK_LEAD_US 60000 /* how early sequenced MIDI (beat, DEMO, loop) is sent */
+#define MIDI_LINK_PORT 21928
+#define MIDI_LINK_LEAD_US \
+    150000 /* how early sequenced MIDI (beat, DEMO, loop) is sent; 60 ms let ~1% arrive late */
 
 /* Starts mDNS and the HELLO listener; call after WiFi is up (or retrying). */
 void midi_link_init(const char *hostname);
