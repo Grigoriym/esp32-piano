@@ -108,7 +108,8 @@ keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_se
         size_t key = r * N_COLS + c;
         if (down) k->key_note[key] = keymap_key_note(k, key);
         snprintf(what, sizeof(what), "note %s %u", down ? "on" : "off", k->key_note[key]);
-        midi3(send, ctx, (down ? 0x90 : 0x80) | KEY_CH, k->key_note[key], down ? VELOCITY : 0, what);
+        uint8_t velocity = k->style == EDM_STYLE ? EDM_VELOCITY : VELOCITY;
+        midi3(send, ctx, (down ? 0x90 : 0x80) | KEY_CH, k->key_note[key], down ? velocity : 0, what);
         return KEYMAP_NONE;
     }
     if (r >= 6 && DRUM_NOTE[r - 6][c]) {

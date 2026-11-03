@@ -148,10 +148,10 @@ static void test_edm_keys_play_a_minor(void)
     key(3, true);  /* C2 */
     key(8, true);  /* A2: the next octave starts at key 8 */
     key(32, true); /* 4 octaves and 3 steps up: D6 */
-    assert_msg(1, 0x90, 33, VELOCITY);
-    assert_msg(2, 0x90, 36, VELOCITY);
-    assert_msg(3, 0x90, 45, VELOCITY);
-    assert_msg(4, 0x90, 86, VELOCITY);
+    assert_msg(1, 0x90, 33, EDM_VELOCITY);
+    assert_msg(2, 0x90, 36, EDM_VELOCITY);
+    assert_msg(3, 0x90, 45, EDM_VELOCITY);
+    assert_msg(4, 0x90, 86, EDM_VELOCITY);
 }
 
 static void test_edm_mode_ends_with_another_style_or_reset(void)
