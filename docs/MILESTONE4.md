@@ -48,5 +48,4 @@ batteries are set aside for now.
       ESP32, amp, buck-boost, on/off switch.
 - [ ] 9. Firmware updates with the case closed: OTA or a USB hole.
 - [ ] 10. Mounting, case closed, everything retested.
-- [ ] 11. Homebox: parts taken (`In use`), the toy's description updated
-      (each with the user's OK).
+- [ ] 11. Homebox: the toy's description updated (with the user's OK).

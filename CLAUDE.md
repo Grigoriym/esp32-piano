@@ -21,13 +21,13 @@ The planning home is `../grappim-watcher` (ESP32 sphere, `docs/esp32/`).
 ## Shared ESP32 docs
 One source of truth per fact, never a copy (the user's rule, 2026-10-03):
 - **Everything about a part** (pinout, voltage, quirks, measurements, test
-  status, how many and which are free), **including the toy itself**: its
+  status, how many owned), **including the toy itself**: its
   entry in the **Homebox inventory** (`http://192.168.0.139:34899`).
   `python3 ../grappim-watcher/docs/esp32/inventory/parts.py show Chicco`
-  prints the toy's entry; plain `parts.py` lists what's free (`all`,
-  `find <text>`). Read-only. Check it before suggesting a part or a
-  purchase. Writes (new facts, `In use` / `Free` when this project takes a
-  part) go through the API one entry at a time with the user's OK, never
+  prints the toy's entry; plain `parts.py` lists everything (`find
+  <text>` searches). Read-only. Check it before suggesting a part or a
+  purchase. It doesn't track what's free or which project uses a part: ask
+  the user. Writes (new facts) go through the API one entry at a time with the user's OK, never
   silently; how: `../grappim-watcher/docs/esp32/inventory/README.md`.
   Notes there are capped at ~1000 characters: long material (the key
   matrix map, teardown photos) lives in this repo and the entry links here.
@@ -44,7 +44,7 @@ One source of truth per fact, never a copy (the user's rule, 2026-10-03):
 file keeps what is this project's own: the matrix map, pins, decisions,
 milestones.
 
-## Parts likely to be used (all free in Homebox on 2026-10-11, recheck)
+## Parts likely to be used
 - An ESP32 DevKit 30-pin for the breadboard stage. The final board is
   decided by what fits inside the toy.
 - `Audio converter & amplifier module (I2S)` for direction B.
@@ -482,7 +482,6 @@ Future improvements:
   key board, what's on the domes' underside.
 
 Open items:
-- Homebox, KY-040 (needs the user's OK): one more `In use` (esp32-piano), Free 2.
 - Which way the knob turns isn't checked: with two screens either way toggles.
   Pressing it does nothing yet.
 - The 1N4148 from the 2026-10-22 test in the `AB0` wire (`docs/wiring.html`,
@@ -493,11 +492,8 @@ Open items:
   cut and 1N4148s on keys 1, 5, 6, 7, 8, 30, 31, 32 (2026-10-23 to 27).
 - Homebox, needs the user's OK: the WROVER's port is `/dev/ttyUSB0`, CH340
   (`udevadm` ID_MODEL `USB_Serial`; the DevKit's is `CP2102_USB_to_UART...`),
-  the entry still says "port not checked". The DevKit entry counts 2 in use
-  (desk-display, flipclock) and 1 free, without esp32-piano: check whether the
-  piano's DevKit is that free one.
-- Homebox, TFT 1.69" (needs the user's OK): one more `In use`
-  (esp32-piano); the CS-on-GND result (blank with SPI mode 0).
+  the entry still says "port not checked".
+- Homebox, TFT 1.69" (needs the user's OK): the CS-on-GND result (blank with SPI mode 0).
 - Homebox, toy entry (needs the user's OK, not asked yet): key board
   314 × 29 (25 wide from 191 on); removed chip board 75.75 × 15, 11.47 tall,
   three 8-pad tabs, pads 2.52 apart.
