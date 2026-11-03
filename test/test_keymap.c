@@ -138,7 +138,7 @@ static void test_program_names(void)
     TEST_ASSERT_EQUAL_STRING("Piano", keymap_program_name(k.program));
     TEST_ASSERT_EQUAL_STRING("Cat", keymap_program_name(19));
     TEST_ASSERT_EQUAL_STRING("Siamese cat", keymap_program_name(88));
-    TEST_ASSERT_EQUAL_STRING("Trumpet", keymap_program_name(56));
+    TEST_ASSERT_EQUAL_STRING("?", keymap_program_name(56)); /* MARCH's trumpet is gone (EDM) */
     TEST_ASSERT_EQUAL_STRING("Electric piano", keymap_program_name(4));
     TEST_ASSERT_EQUAL_STRING("?", keymap_program_name(127));
 }
@@ -187,6 +187,16 @@ static void test_edm_octave_buttons_still_shift(void)
     TEST_ASSERT_EQUAL(45, keymap_key_note(&k, 0));
 }
 
+static void test_march_is_edm_mode_too(void)
+{
+    keymap_event(&k, 4, EDM_STYLE_2, true, midi_rec, &rec); /* MARCH */
+    assert_msg(0, 0xc0, 81, 0);
+    assert_msg(1, 0xc9, EDM_KIT, 0);
+    TEST_ASSERT_EQUAL(33, keymap_key_note(&k, 0)); /* key 1 = A1 */
+    key(1, true);
+    assert_msg(2, 0x90, 33, EDM_VELOCITY);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -203,5 +213,6 @@ int main(void)
     RUN_TEST(test_edm_mode_switches_the_drum_kit);
     RUN_TEST(test_edm_mode_ends_with_another_style_or_reset);
     RUN_TEST(test_edm_octave_buttons_still_shift);
+    RUN_TEST(test_march_is_edm_mode_too);
     return UNITY_END();
 }

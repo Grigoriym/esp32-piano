@@ -17,7 +17,7 @@
  * the caller (KEYMAP_DEMO), and so are RECORD and REPLAY (looper.h) and
  * SELECT (rhythm.h: the drum beat of the last style button, k->style).
  *
- * EDM mode (DISCO, until another style button or RESET): the keys play only
+ * EDM mode (DISCO or MARCH, until another style button or RESET): the keys play only
  * the notes of A natural minor, 7 keys an octave, so no key sounds wrong, and
  * the drum channel plays EDM_KIT (every other style: kit 0). */
 #define KEY_CH         0
@@ -32,6 +32,7 @@
 #define MAX_OCTAVE     2
 #define DEFAULT_STYLE  1  /* ROCK: SELECT's beat before a style button is pressed */
 #define EDM_STYLE      3  /* DISCO: EDM mode, the keys play A natural minor */
+#define EDM_STYLE_2    4  /* MARCH: EDM mode too, with a breakbeat */
 #define EDM_KIT        30 /* drum program in EDM mode: tools/gen_edm_kit_sf2.py on the PC */
 #define SCALE_ROOT     33 /* EDM mode: key 1 = A1, then one key per scale step (key 8 = A2) */
 
@@ -60,6 +61,9 @@ void keymap_name(size_t r, size_t c, char *buf, size_t len);
 
 /* "Piano", "Trumpet": the instrument a program number stands for; "?" if none. */
 const char *keymap_program_name(uint8_t program);
+
+/* DISCO and MARCH: the keys in A minor, softer, the EDM drum kit. */
+bool keymap_is_edm(size_t style);
 
 /* The note key (0..31) plays right now, octave included. */
 uint8_t keymap_key_note(const keymap_t *k, size_t key);

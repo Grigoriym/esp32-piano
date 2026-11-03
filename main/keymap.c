@@ -18,7 +18,7 @@ static const uint8_t STYLE_PROGRAM[N_COLS] = {
     19, /* ROCK: cat (tools/gen_cat_sf2.py takes over this program on the PC) */
     88, /* NEW AGE: Siamese cat (same way) */
     81, /* DISCO: saw lead, EDM mode (A minor keys, rhythm.c: EDM beat) */
-    56, /* MARCH: trumpet */
+    81, /* MARCH: saw lead, EDM mode with a breakbeat (rhythm.c: BREAKS) */
     21, /* WALTZ: accordion, the Balkan sound (rhythm.c: BALKAN beat) */
     12, /* SAMBA: marimba */
     4,  /* BLUES: electric piano */
@@ -27,7 +27,8 @@ static const uint8_t STYLE_PROGRAM[N_COLS] = {
 const char *keymap_program_name(uint8_t program)
 {
     static const char *const NAMES[N_COLS] = {
-        "Piano", "Cat", "Siamese cat", "Saw lead, Am", "Trumpet", "Accordion", "Marimba", "Electric piano",
+        "Piano",        "Cat",       "Siamese cat", "Saw lead, Am",
+        "Saw lead, Am", "Accordion", "Marimba",     "Electric piano",
     };
     if (program == 0) return "Piano";
     for (size_t c = 0; c < N_COLS; c++) {
@@ -96,9 +97,14 @@ static int clamp(int v, int lo, int hi)
     return v < lo ? lo : v > hi ? hi : v;
 }
 
+bool keymap_is_edm(size_t style)
+{
+    return style == EDM_STYLE || style == EDM_STYLE_2;
+}
+
 uint8_t keymap_key_note(const keymap_t *k, size_t key)
 {
-    if (k->style == EDM_STYLE) {
+    if (keymap_is_edm(k->style)) {
         static const uint8_t MINOR[7] = {0, 2, 3, 5, 7, 8, 10};
         return (uint8_t)(SCALE_ROOT + 12 * (k->octave + (int)key / 7) + MINOR[key % 7]);
     }
@@ -114,7 +120,7 @@ static void style_button(keymap_t *k, size_t c, midi_send_fn send, void *ctx)
     k->style = c;
     uint8_t msg[2] = {0xc0 | KEY_CH, k->program};
     send(msg, 2, what, ctx);
-    uint8_t kit = c == EDM_STYLE ? EDM_KIT : 0;
+    uint8_t kit = keymap_is_edm(c) ? EDM_KIT : 0;
     snprintf(what, sizeof(what), "drum kit %u", kit);
     uint8_t kit_msg[2] = {0xc0 | DRUM_CH, kit};
     send(kit_msg, 2, what, ctx);
@@ -127,7 +133,7 @@ keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_se
         size_t key = r * N_COLS + c;
         if (down) k->key_note[key] = keymap_key_note(k, key);
         snprintf(what, sizeof(what), "note %s %u", down ? "on" : "off", k->key_note[key]);
-        uint8_t velocity = k->style == EDM_STYLE ? EDM_VELOCITY : VELOCITY;
+        uint8_t velocity = keymap_is_edm(k->style) ? EDM_VELOCITY : VELOCITY;
         midi3(send, ctx, (down ? 0x90 : 0x80) | KEY_CH, k->key_note[key], down ? velocity : 0, what);
         return KEYMAP_NONE;
     }

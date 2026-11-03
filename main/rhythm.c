@@ -38,9 +38,12 @@ static const rhythm_style_t STYLES[RHYTHM_STYLES] = {
         {HAT,       ".x.x.x.x.x.x.x.x"},
         {OPEN_HAT,  "..x...x...x...x."}},
         110, 127}, /* loud: in EDM the beat leads */
-    {"MARCH", 112, 4, 16, {
-        {KICK,      "X.......x......."},
-        {SNARE,     "X.xxx.x.X.xxX.xx"}}, RHYTHM_VELOCITY, RHYTHM_ACCENT},
+    {"BREAKS", 124, 4, 16, { /* breakbeat, EDM mode too (MARCH button) */
+        {KICK,      "X.....X...X....."},
+        {CLAP,      "....X.......X..."},
+        {HAT,       "x.xxx.x.x.xxx.x."},
+        {OPEN_HAT,  "..............x."}},
+        110, 127},
     {"BALKAN", 126, 4, 8, { /* 2/4, cocek: the kick in 3+3+2 (WALTZ button) */
         {KICK,      "X..x..x."},
         {SNARE,     "....X..."},
