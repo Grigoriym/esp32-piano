@@ -22,6 +22,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs/riffs-audio"
 SF2 = os.environ.get("SF2", "/usr/share/sounds/sf2/FluidR3_GM.sf2")
 KIT = ROOT / "build-host/edm_kit.sf2"
+PAD_VELOCITY = 100  # main/keymap.h VELOCITY: the pads aren't softened in EDM mode
 RATE = 44100
 PASSES = 2
 
@@ -33,9 +34,10 @@ def slug(s):
 def pieces():
     page = (ROOT / "docs/riffs.html").read_text()
     src = page[page.index("const PIECES = ") :]
-    src = src[: src.index("];\n") + 2]
-    js = src + "\nprocess.stdout.write(JSON.stringify(PIECES));"
-    return json.loads(subprocess.run(["node", "-e", js], capture_output=True, text=True, check=True).stdout)
+    src = src[: src.index("\n", src.index("const PADS = ")) + 1]  # the pieces and the pads
+    js = src + "\nprocess.stdout.write(JSON.stringify({pieces: PIECES, pads: PADS}));"
+    data = json.loads(subprocess.run(["node", "-e", js], capture_output=True, text=True, check=True).stdout)
+    return data["pieces"], data["pads"]
 
 
 def edm_beat():
@@ -83,9 +85,10 @@ def midi_file(bpm, steps, events):
     return b"MThd" + struct.pack(">IHHH", 6, 0, 1, 4) + b"MTrk" + struct.pack(">I", len(track)) + track
 
 
-def render(piece, layers, beat, keys, path):
+def render(piece, layers, beat, keys, pads, path):
     bpm, lanes, dvel, dacc = beat
     kvel, root, program, kit = keys
+    kvel_pad = PAD_VELOCITY
     bar_steps = piece["bars"] * 16
     total = bar_steps * PASSES
     ev = [(0, 0, bytes([0xC0, program])), (0, 0, bytes([0xC9, kit])), (0, 0, bytes([0xB0, 7, 127])),
@@ -98,7 +101,13 @@ def render(piece, layers, beat, keys, path):
                 ev.append((s + 1, 1, bytes([0x89, note, 0])))
     for p in range(PASSES):
         for layer in layers:
-            for tok in layer["notes"].split():
+            for tok in layer.get("pads", "").split():  # chick pads: drums, as the toy sends them
+                step, rest = tok.split(":")
+                pad = pads[rest.split("/")[0]]["note"]
+                on = int(step) + p * bar_steps
+                ev.append((on, 2, bytes([0x99, pad, kvel_pad])))
+                ev.append((on + 1, 1, bytes([0x89, pad, 0])))
+            for tok in layer.get("notes", "").split():
                 step, rest = tok.split(":")
                 ks, length = rest.split("/")
                 for k in map(int, ks.split("+")):
@@ -129,13 +138,14 @@ def main():
     KIT.parent.mkdir(exist_ok=True)
     subprocess.run([sys.executable, str(ROOT / "tools/gen_edm_kit_sf2.py"), str(KIT)], check=True)
     beat, keys = edm_beat(), keys_setup()
-    for piece in pieces():
+    all_pieces, pads = pieces()
+    for piece in all_pieces:
         base = slug(piece["name"])
         if piece["bpm"] != beat[0]:
             sys.exit(f"{piece['name']}: {piece['bpm']} bpm, the EDM beat is {beat[0]}")
-        render(piece, piece["layers"], beat, keys, OUT / f"{base}-all.mp3")
+        render(piece, piece["layers"], beat, keys, pads, OUT / f"{base}-all.mp3")
         for layer in piece["layers"]:
-            render(piece, [layer], beat, keys, OUT / f"{base}-{slug(layer['name'])}.mp3")
+            render(piece, [layer], beat, keys, pads, OUT / f"{base}-{slug(layer['name'])}.mp3")
         print(f"{piece['name']}: {len(piece['layers']) + 1} files")
 
 

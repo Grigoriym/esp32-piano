@@ -10,7 +10,7 @@
 <style>
 :root {
   --bg: #f6f7fb; --panel: #ffffff; --ink: #1c2240; --muted: #5b6283; --line: #d9dcea; --beat: #eef0f8;
-  --chick: #f5c518; --bass: #2e6bd8; --chords: #9b4dca; --hook: #e0602a; --on: #2f9e57;
+  --chick: #f5c518; --bass: #2e6bd8; --chords: #9b4dca; --hook: #e0602a; --arp: #138a7e; --roll: #b8860b; --on: #2f9e57;
   --white-key: #ffffff; --black-key: #1c2240;
   --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
   --font-body: "Nunito", system-ui, sans-serif;
@@ -19,13 +19,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558; --beat: #232848;
-    --bass: #77a4ff; --chords: #c88cf0; --hook: #ff8a55; --on: #5fd18a;
+    --bass: #77a4ff; --chords: #c88cf0; --hook: #ff8a55; --arp: #4fd1c5; --roll: #f5c518; --on: #5fd18a;
     --white-key: #e9ebf5; --black-key: #070914; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558; --beat: #232848;
-  --bass: #77a4ff; --chords: #c88cf0; --hook: #ff8a55; --on: #5fd18a;
+  --bass: #77a4ff; --chords: #c88cf0; --hook: #ff8a55; --arp: #4fd1c5; --roll: #f5c518; --on: #5fd18a;
   --white-key: #e9ebf5; --black-key: #070914; color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -53,6 +53,9 @@ label.slow { display: flex; gap: 6px; align-items: center; font-size: .9rem; col
 .layer-head { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
 .swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
 .tip { font-size: .95rem; }
+.plan { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
+.plan b { font-family: var(--font-display); font-weight: 600; }
+.pads-note { font-size: .9rem; color: var(--muted); }
 .bars { display: flex; flex-direction: column; gap: 4px; }
 .bar { display: grid; grid-template-columns: 64px 1fr; gap: 8px; align-items: center; }
 .bar-label { font: 600 .8rem var(--font-body); color: var(--muted); }
@@ -129,15 +132,45 @@ const PIECES = [
         tip: 'The tune. Bars 1 and 3 start the same; bars 2 and 4 are long notes walking down. Learn it two bars at a time.',
         notes: '0:22/2 3:22/2 6:24/2 8:26/4 12:25/2 14:24/2 16:24/6 24:22/4 28:20/4 32:22/2 35:22/2 38:24/2 40:26/4 44:28/2 46:26/2 48:25/6 56:23/4 60:21/4',
       },
+      {
+        name: 'Arpeggio', color: 'arp', hand: 'right hand, one finger at a time',
+        tip: 'The chord\'s three keys one after another, up and back, on every 8th: the same keys as the Chords layer, so the hand shape is one you know. Even and light, like a ticking clock.',
+        notes: '0:15/2 2:17/2 4:19/2 6:17/2 8:15/2 10:17/2 12:19/2 14:17/2 16:13/2 18:15/2 20:17/2 22:15/2 24:13/2 26:15/2 28:17/2 30:15/2 32:17/2 34:19/2 36:21/2 38:19/2 40:17/2 42:19/2 44:21/2 46:19/2 48:14/2 50:16/2 52:18/2 54:16/2 56:14/2 58:16/2 60:18/2 62:16/2',
+      },
+      {
+        name: 'Clap roll', color: 'roll', hand: 'one finger, chick pad',
+        tip: 'Only in bar 4: claps that get faster, 4 steps apart, then 2, then every step. It pulls the loop into its next round, the classic "here it comes" before a drop.',
+        pads: '48:clap/1 52:clap/1 56:clap/1 58:clap/1 60:clap/1 61:clap/1 62:clap/1 63:clap/1',
+      },
+    ],
+    plan: [
+      ['Intro', 'DISCO, then SELECT. Record the Bass (RECORD, play, RECORD) and let it go round twice.'],
+      ['Build', 'Add the Chords as a layer (RECORD, play, RECORD). Then the Arpeggio the same way.'],
+      ['Fill', 'Add the Clap roll: from now on every round ends rolling into the next.'],
+      ['Drop', 'Play the Hook live over everything, twice round. (The loop is full: 4 layers.)'],
+      ['Breakdown', 'REPLAY: the loop stops, the drums go on. Play the Hook alone over them.'],
+      ['Drop again', 'REPLAY: everything comes back on the next bar line. Hook once more.'],
+      ['End', 'SELECT stops the drums, REPLAY the loop. A layer went wrong on the way? Press the knob to undo it.'],
     ],
   },
 ];
+
+/* Chick pads a layer can use: name -> General MIDI drum note, and where it is. */
+const PADS = { clap: { note: 39, where: 'Bottom 2: bottom row, second from the BLUES end' } };
 
 const MINOR = [0, 2, 3, 5, 7, 8, 10];
 const keyNote = k => 33 + 12 * Math.floor((k - 1) / 7) + MINOR[(k - 1) % 7];
 const freq = n => 440 * Math.pow(2, (n - 69) / 12);
 const BLACK = [false, true, false, true, false, false, true, false, true, false, true, false];
 const isBlack = k => BLACK[(k - 1 + 5) % 12]; /* key 1 is an F on the toy's body */
+
+function parsePads(pads) {
+  return pads.trim().split(/\s+/).map(tok => {
+    const [, step, pad, len] = tok.match(/^(\d+):([a-z]+)\/(\d+)$/);
+    return { step: +step, pad, len: +len };
+  });
+}
+const layerEvents = l => (l.pads ? parsePads(l.pads) : parse(l.notes));
 
 function parse(notes) {
   return notes.trim().split(/\s+/).map(tok => {
@@ -251,7 +284,7 @@ function play(piece, layers, button, slow, mode, clipName) {
   }
   audio().resume();
   const stepDur = realStep * (slow ? 2 : 1);
-  const events = layers.flatMap(l => parse(l.notes).map(e => ({ ...e, vol: l.vol })));
+  const events = layers.flatMap(l => layerEvents(l).map(e => ({ ...e, vol: l.vol })));
   const start = ctx.currentTime + 0.1;
   let next = 0;
   const schedule = () => {
@@ -259,7 +292,9 @@ function play(piece, layers, button, slow, mode, clipName) {
       const t = start + next * stepDur, s = next % total;
       drums(s, t);
       for (const e of events) {
-        if (e.step === s) for (const k of e.keys) saw(keyNote(k), t, e.len * stepDur * 0.95, e.vol / e.keys.length);
+        if (e.step !== s) continue;
+        if (e.pad) noise(t, 0.15, 'bandpass', 1500, 0.5); /* the clap, as in the beat */
+        else for (const k of e.keys) saw(keyNote(k), t, e.len * stepDur * 0.95, e.vol / e.keys.length);
       }
       next++;
     }
@@ -307,8 +342,18 @@ function renderPiece(piece) {
   mode.onchange = stop;
   controls.append(all, modeLabel, slowLabel);
   box.append(controls);
+  if (piece.plan) {
+    box.append(el('h3', null, 'Song plan'));
+    const ol = el('ol', 'plan');
+    for (const [title, text] of piece.plan) {
+      const li = el('li');
+      li.append(el('b', null, title + ': '), document.createTextNode(text));
+      ol.append(li);
+    }
+    box.append(ol);
+  }
 
-  const vols = { bass: 0.16, chords: 0.12, hook: 0.12 };
+  const vols = { bass: 0.16, chords: 0.12, hook: 0.12, arp: 0.1 };
   for (const layer of piece.layers) {
     layer.vol = vols[layer.color] ?? 0.16;
     layer.cells = [];
@@ -322,10 +367,15 @@ function renderPiece(piece) {
     lh.append(title, el('span', 'muted', layer.hand), btn);
     sec.append(lh, el('p', 'tip', layer.tip));
 
-    const events = parse(layer.notes);
-    const used = new Set(events.flatMap(e => e.keys));
-    sec.append(keyStrip(used, layer.color));
-    sec.append(el('div', 'strip-caption', 'Keys used, on the toy (key 1 at the left).'));
+    const events = layerEvents(layer);
+    if (layer.pads) {
+      const names = [...new Set(events.map(e => e.pad))];
+      sec.append(el('p', 'pads-note', names.map(n => `${n}: chick pad ${PADS[n].where}`).join('; ')));
+    } else {
+      const used = new Set(events.flatMap(e => e.keys));
+      sec.append(keyStrip(used, layer.color));
+      sec.append(el('div', 'strip-caption', 'Keys used, on the toy (key 1 at the left).'));
+    }
 
     const bars = el('div', 'bars');
     const counts = el('div', 'counts');
@@ -342,7 +392,7 @@ function renderPiece(piece) {
         steps.append(c); layer.cells.push(c);
       }
       for (const e of events.filter(e => Math.floor(e.step / 16) === b)) {
-        const n = el('div', 'note', e.keys.join(' '));
+        const n = el('div', 'note', e.pad ? '●' : e.keys.join(' '));
         const s = e.step % 16;
         n.style.gridColumn = `${s + 1} / span ${Math.min(e.len, 16 - s)}`;
         n.style.background = cssVar(layer.color);

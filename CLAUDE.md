@@ -165,7 +165,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `076f9c7`): pieces to play over the EDM beat, layers (bass, chords, hook) shown bar by
   bar as key numbers, each playable in the browser (WebAudio saw + the beat). The user
   tries one and proposes changes. Pieces are the `PIECES` data at the top of its
-  script. After changing a chord or `matrix_diodes`: `tools/check_riff_chords.py`
+  script (layers of keys as `notes`, of chick pads as `pads` with `PADS` below; a
+  piece's `plan` is its song plan). #1 has 5 parts since 2026-11-03: bass, chords,
+  arpeggio and clap roll fill the looper's 4 layers, the hook is played live. After changing a chord or `matrix_diodes`: `tools/check_riff_chords.py`
   (some key sets are held back and would never sound). Its Listen buttons play
   "as the toy plays it" (clips from `tools/render_riffs.py`: the same FluidSynth and
   FluidR3, the EDM beat and velocities read from the firmware sources, into gitignored
