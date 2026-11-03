@@ -19,6 +19,7 @@ import sys
 PROGRAM = 30
 RATE = 44100
 GAIN = 0.9  # the loudest sound's peak; the others keep their level against it
+DRIVE = 2.5  # soft saturation (tanh): louder at the same peak; 1 would be almost clean
 
 GEN_KEY_RANGE, GEN_RELEASE, GEN_INSTRUMENT, GEN_SAMPLE, GEN_SAMPLE_MODES, GEN_ROOT_OVERRIDE = 43, 38, 41, 53, 54, 58
 
@@ -109,12 +110,12 @@ def name20(s):
 
 def build():
     peak = max(abs(s) for _, data in SOUNDS.values() for s in data)
-    scale = GAIN * 32767 / peak
+    scale = GAIN * 32767 / math.tanh(DRIVE)
     smpl, shdr, ibag, igen = b"", b"", b"", b""
     release_tc = round(1200 * math.log2(2.0))  # longer than any sound: they play out after note off
     igen_count = 0
     for i, (note, (name, data)) in enumerate(sorted(SOUNDS.items())):
-        pcm = array.array("h", (max(-32767, min(32767, int(s * scale))) for s in data))
+        pcm = array.array("h", (int(math.tanh(DRIVE * s / peak) * scale) for s in data))
         if sys.byteorder != "little":
             pcm.byteswap()
         start = len(smpl) // 2

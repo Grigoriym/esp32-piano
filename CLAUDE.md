@@ -137,7 +137,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `tools/gen_edm_kit_sf2.py` (synthesized: the page synth's kick/clap/hats, which the
   user liked better than FluidR3's, plus the pads' other notes), loaded after FluidR3 by
   `pc_synth.sh` (FluidR3 has no drum program 30). Every other style sends kit 0.
-  Rendered, the kit peaks ~4 dB under FluidR3's standard kit (2026-11-03). Another style button or RESET ends it.
+  Its sounds go through tanh drive 2.5 (`DRIVE`, the user asked for a louder beat):
+  rendered, the kit averages ~4 dB over FluidR3's standard kit, ~6 dB over undriven (2026-11-03). Another style button or RESET ends it.
 - `docs/riffs.html` (2026-11-03, replaced `docs/learn-piano.html`, which is in git at
   `076f9c7`): pieces to play over the EDM beat, layers (bass, chords, hook) shown bar by
   bar as key numbers, each playable in the browser (WebAudio saw + the beat). The user
