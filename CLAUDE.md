@@ -385,6 +385,13 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - 2026-10-22: WALTZ is the Balkan button (the user's pick): accordion, beat
   `BALKAN` (čoček 2/4, 126 bpm, tempo by guess, not yet judged by ear). RESET
   and boot give full volume (127), the user's ask.
+- 2026-11-03: the PC stays the sound source (the user, asked about an on-chip synth to
+  kill WiFi hiccups). Fix the link instead: the code keeps both WiFi and the USB cable
+  (the user: "we should be able to use both"), the cable is the one in use.
+- 2026-11-03: the user can't play piano and wants to make simple electronic music
+  (loops, layers, a song), not learn piano: `docs/learn-piano.html` went, the riffs
+  page took its place. Making parts easier (a quantizing looper, an on-the-beat bass)
+  was declined: "no need to make it easier"; timing feedback on the screen was wanted.
 - 2026-10-30: the ESP32 and screen go in a separate printed box, not inside the
   toy (replaces that part of the 2026-10-17 plan). The wires leave through a hole
   that's already in the toy's back, can be widened (the user). They're soldered,
@@ -398,11 +405,16 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
-**State 2026-11-03:** EDM mode on DISCO and `docs/riffs.html` with piece #1 (Am F C
-G: bass, chords, hook). Next: the user tries #1 on the toy and says what to change. Then
-a looper in time with the beat (bar-synced, layers/overdub), scale lock elsewhere,
-EDM sounds (bass, pad, lead) and a knob effect / drop button, as the user wants.
-Not checked by ear yet: the cats and swapped sounds (2026-10-31). The box plan below still stands.
+**State 2026-11-03 (end of session):** the toy is a small groovebox now: EDM mode on
+DISCO (four on the floor) and MARCH (breakbeat), both 124 bpm, keys in A minor, the
+synth drum kit; the looper keeps time with the beat and stacks 4 layers (knob press =
+undo); a Groove screen shows timing; MIDI goes over the USB cable and WiFi at once.
+`docs/riffs.html` lists two songs (#1 on DISCO, #2 on MARCH), the user played #1 through
+and found #2's fixed bass fine. The user continues tomorrow: what with, not said (ask).
+Ideas offered and not taken up yet: more EDM sounds per layer (bass, pad, lead), a knob
+effect (filter sweep) / drop button, 2 more knobs (a second MCP23017 on the same I2C,
+the user's later topic), saving a loop on the toy. Not checked by ear yet: the cats and
+swapped sounds (2026-10-31). The box plan below still stands.
 
 State on 2026-10-13 (end of session): **MVP done.** Every key and button
 reaches FluidSynth over WiFi (the service starts from the app menu, on demand
@@ -512,8 +524,22 @@ Future improvements:
   key board, what's on the domes' underside.
 
 Open items:
-- Which way the knob turns isn't checked: with two screens either way toggles.
-  Pressing it does nothing yet.
+- Which way the knob turns isn't checked: with three screens (Status, Play, Groove)
+  it now matters. Pressing it undoes a loop layer (2026-11-03).
+- SELECT starts the beat at the press, not on a playing loop's bar line: stop the beat
+  under a loop recorded with it and start it again, and they drift apart (seen in the
+  code, 2026-11-03, not reported by the user). The song plans use REPLAY for the
+  breakdown so the beat never stops. A fix: start the beat at the loop's next bar line
+  (the looper would keep its bar length).
+- With the cable in, the bridge's winner flips between cable and WiFi every few
+  seconds (`playing what comes over ...`), and one live key came 94 ms slow
+  (2026-11-03 21:52). Cause not known. Candidates: log text queued ahead of a frame in
+  the UART's TX buffer (every MIDI message is also a log line), USB read batching.
+  Measure before changing anything (e.g. a run with the MIDI log lines off).
+- FluidSynth renders #1 at `pc_synth.sh`'s gain 1.0 ~9 dB over full scale; whether the
+  live output clips too isn't checked (`render_riffs.py` uses 0.3).
+- No way to save a loop on the toy: a song is captured on the PC (`songs/README.md`)
+  and the capture holds no program changes, so its sounds are assumed.
 - The 1N4148 from the 2026-10-22 test in the `AB0` wire (`docs/wiring.html`,
   "Diode test"): out or still in? Not confirmed. Two diodes in series on key 5
   (~0.9 V) may exceed the MCP23017's input-low limit; key 5 played on
