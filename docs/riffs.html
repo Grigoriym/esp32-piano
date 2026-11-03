@@ -47,6 +47,7 @@ button { font: 600 .9rem var(--font-body); background: transparent; color: var(-
 button:hover { border-color: var(--ink); }
 button.playing { background: var(--ink); color: var(--panel); border-color: var(--ink); }
 .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+select { font: 600 .9rem var(--font-body); background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; }
 label.slow { display: flex; gap: 6px; align-items: center; font-size: .9rem; color: var(--muted); }
 .layer { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 14px; }
 .layer-head { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
@@ -79,7 +80,7 @@ label.slow { display: flex; gap: 6px; align-items: center; font-size: .9rem; col
 <main>
   <header>
     <h1>Chicco Riffs</h1>
-    <p class="muted">Things to play over the EDM beat. Listen first, then try it on the toy, then tell Claude what to change.</p>
+    <p class="muted">Things to play over the EDM beat. Listen first (clips: <code>tools/render_riffs.py</code> after a change), then try it on the toy, then tell Claude what to change.</p>
   </header>
 
   <section class="howto">
@@ -189,30 +190,65 @@ function drums(step, t) {
   if (BEAT.open[i] !== '.') noise(t, 0.2, 'highpass', 7000, 0.18);
 }
 
-/* ---- the player: one at a time ---- */
+/* ---- the player: one at a time ----
+ * "toy": clips rendered by tools/render_riffs.py with the toy's own FluidSynth sound.
+ * "synth": the page's own saw and drum kit (the user liked this beat, 2026-11-03). */
 let player = null;
+const slug = t => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 function stop() {
   if (!player) return;
   clearInterval(player.timer);
   cancelAnimationFrame(player.raf);
+  if (player.clip) player.clip.pause();
   player.button.classList.remove('playing');
   player.button.textContent = player.label;
   document.querySelectorAll('.cell.now').forEach(c => c.classList.remove('now'));
   player = null;
 }
-function play(piece, layers, button, slow) {
+/* Lights the step that's playing; elapsed() is in seconds from the piece's start. */
+function playhead(layers, total, stepDur, elapsed) {
+  const cells = layers.map(l => l.cells);
+  let shown = -1;
+  const draw = () => {
+    if (!player) return;
+    const s = Math.floor(elapsed() / stepDur);
+    if (s >= 0 && s !== shown) {
+      const cur = s % total;
+      for (const cs of cells) {
+        if (shown >= 0) cs[shown % total].classList.remove('now');
+        cs[cur].classList.add('now');
+      }
+      shown = s;
+    }
+    player.raf = requestAnimationFrame(draw);
+  };
+  player.raf = requestAnimationFrame(draw);
+}
+function play(piece, layers, button, slow, mode, clipName) {
   const again = player && player.button === button;
   stop();
   if (again) return;
-  audio().resume();
-  const stepDur = 60 / (piece.bpm * (slow ? 0.5 : 1)) / 4;
   const total = piece.bars * 16;
-  const events = layers.flatMap(l => parse(l.notes).map(e => ({ ...e, vol: l.vol })));
-  const start = ctx.currentTime + 0.1;
-  let next = 0;
+  const realStep = 60 / piece.bpm / 4;
   player = { button, label: button.textContent };
   button.classList.add('playing');
   button.textContent = 'Stop';
+  if (mode === 'toy') {
+    const clip = new Audio(`riffs-audio/${slug(piece.name)}-${clipName}.mp3`);
+    clip.loop = true;
+    clip.preservesPitch = true;
+    clip.playbackRate = slow ? 0.5 : 1;
+    clip.onerror = () => { stop(); button.textContent = 'No clip: run tools/render_riffs.py'; };
+    player.clip = clip;
+    clip.play().catch(() => {});
+    playhead(layers, total, realStep, () => clip.currentTime);
+    return;
+  }
+  audio().resume();
+  const stepDur = realStep * (slow ? 2 : 1);
+  const events = layers.flatMap(l => parse(l.notes).map(e => ({ ...e, vol: l.vol })));
+  const start = ctx.currentTime + 0.1;
+  let next = 0;
   const schedule = () => {
     while (start + next * stepDur < ctx.currentTime + 0.15) {
       const t = start + next * stepDur, s = next % total;
@@ -225,21 +261,7 @@ function play(piece, layers, button, slow) {
   };
   schedule();
   player.timer = setInterval(schedule, 25);
-  const cells = layers.map(l => l.cells);
-  let shown = -1;
-  const draw = () => {
-    const s = Math.floor((ctx.currentTime - start) / stepDur);
-    if (s >= 0 && s !== shown) {
-      const cur = s % total;
-      for (const cs of cells) {
-        if (shown >= 0) cs[shown % total].classList.remove('now');
-        cs[cur].classList.add('now');
-      }
-      shown = s;
-    }
-    player.raf = requestAnimationFrame(draw);
-  };
-  player.raf = requestAnimationFrame(draw);
+  playhead(layers, total, stepDur, () => ctx.currentTime - start);
 }
 
 /* ---- the page ---- */
@@ -271,7 +293,14 @@ function renderPiece(piece) {
   const slow = el('input'); slow.type = 'checkbox';
   slowLabel.append(slow, document.createTextNode('half speed'));
   const all = el('button', null, '▶ Listen: everything');
-  controls.append(all, slowLabel);
+  const modeLabel = el('label', 'slow');
+  const mode = el('select');
+  [['toy', 'sound: as the toy plays it'], ['synth', 'sound: page synth']].forEach(([v, t]) => {
+    const o = el('option', null, t); o.value = v; mode.append(o);
+  });
+  modeLabel.append(mode);
+  mode.onchange = stop;
+  controls.append(all, modeLabel, slowLabel);
   box.append(controls);
 
   const vols = { bass: 0.16, chords: 0.12, hook: 0.12 };
@@ -284,7 +313,7 @@ function renderPiece(piece) {
     const title = el('h3'); title.append(sw, document.createTextNode(' ' + layer.name));
     title.style.display = 'flex'; title.style.alignItems = 'center'; title.style.gap = '8px';
     const btn = el('button', null, '▶ Listen with the beat');
-    btn.onclick = () => play(piece, [layer], btn, slow.checked);
+    btn.onclick = () => play(piece, [layer], btn, slow.checked, mode.value, slug(layer.name));
     lh.append(title, el('span', 'muted', layer.hand), btn);
     sec.append(lh, el('p', 'tip', layer.tip));
 
@@ -320,7 +349,7 @@ function renderPiece(piece) {
     sec.append(bars);
     box.append(sec);
   }
-  all.onclick = () => play(piece, piece.layers, all, slow.checked);
+  all.onclick = () => play(piece, piece.layers, all, slow.checked, mode.value, 'all');
   return box;
 }
 

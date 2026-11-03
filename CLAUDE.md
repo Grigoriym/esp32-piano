@@ -139,7 +139,13 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   bar as key numbers, each playable in the browser (WebAudio saw + the beat). The user
   tries one and proposes changes. Pieces are the `PIECES` data at the top of its
   script. After changing a chord or `matrix_diodes`: `tools/check_riff_chords.py`
-  (some key sets are held back and would never sound).
+  (some key sets are held back and would never sound). Its Listen buttons play
+  "as the toy plays it" (clips from `tools/render_riffs.py`: the same FluidSynth and
+  FluidR3, the EDM beat and velocities read from the firmware sources, into gitignored
+  `docs/riffs-audio/`; rerun after changing a piece or those) or "page synth" (WebAudio
+  saw + a made-up kit; the user liked that beat better than the toy's, 2026-11-03).
+  Rendering #1 at `pc_synth.sh`'s gain 1.0 peaks ~9 dB over full scale (the script uses
+  0.3); whether the live toy clips too isn't checked.
 - `tools/gen_cat_sf2.py` + `tools/sounds/` (free recordings, see its README; the
   table `CATS` lists them): ROCK's program 19 is a cat, NEW AGE's 88 a deeper
   Siamese (2026-10-31; ~0.9 s at F3, a ~0.15 s blip at C6). `pc_synth.sh` builds `build-host/cat.sf2` and

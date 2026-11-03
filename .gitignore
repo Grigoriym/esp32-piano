@@ -22,3 +22,4 @@ __pycache__/
 # Enclosure output
 enclosure/stl/
 enclosure/cardboard*.pdf
+docs/riffs-audio/
