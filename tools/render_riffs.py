@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Render docs/riffs.html's pieces with the toy's own sound, for the page's Listen buttons.
 
-Same FluidSynth and SoundFont as tools/pc_synth.sh (gain 0.3, not its 1.0: at 1.0 #1 peaks ~9 dB over full scale), the EDM beat read from
+Same FluidSynth and SoundFont as tools/pc_synth.sh (gain 0.3, not its 1.0: at 1.0 #1 peaks ~9 dB over full scale), the song's beat read from
 main/rhythm.c, the keys' program and velocity and the drum kit (tools/gen_edm_kit_sf2.py) from
 main/keymap.{c,h}: what the toy
 plays in EDM mode. Each piece gives <slug>-all.mp3 and one file per layer, two
 passes of the piece each, in docs/riffs-audio/ (gitignored). Run after changing a
-piece, the EDM beat or the EDM velocities. Needs node, fluidsynth, ffmpeg.
+piece, a song's beat or the EDM velocities. Needs node, fluidsynth, ffmpeg.
 """
 import json
 import os
@@ -40,14 +40,15 @@ def pieces():
     return data["pieces"], data["pads"]
 
 
-def edm_beat():
+def beat_named(name):
+    """A beat of main/rhythm.c by its name (a piece's `beat`)."""
     src = (ROOT / "main/rhythm.c").read_text()
     drums = {m[1]: int(m[2]) for m in re.finditer(r"#define (\w+)\s+(\d+)", src)}
-    block = src[src.index('{"EDM"') :]
+    block = src[src.index('{"' + name + '"') :]
     block = block[: block.index("},\n    {") + 2]
     lanes = [(drums[m[1]], m[2]) for m in re.finditer(r'\{(\w+),\s*"([xX.]+)"\}', block)]
     vel, acc = map(int, re.search(r"(\d+), (\d+)\},", block).groups())
-    bpm = int(re.search(r'\{"EDM", (\d+),', block)[1])
+    bpm = int(re.search(r'\{"' + name + r'", (\d+),', block)[1])
     return bpm, lanes, vel, acc
 
 
@@ -137,12 +138,13 @@ def main():
     OUT.mkdir(exist_ok=True)
     KIT.parent.mkdir(exist_ok=True)
     subprocess.run([sys.executable, str(ROOT / "tools/gen_edm_kit_sf2.py"), str(KIT)], check=True)
-    beat, keys = edm_beat(), keys_setup()
+    keys = keys_setup()
     all_pieces, pads = pieces()
     for piece in all_pieces:
         base = slug(piece["name"])
+        beat = beat_named(piece["beat"])
         if piece["bpm"] != beat[0]:
-            sys.exit(f"{piece['name']}: {piece['bpm']} bpm, the EDM beat is {beat[0]}")
+            sys.exit(f"{piece['name']}: {piece['bpm']} bpm, its beat {piece['beat']} is {beat[0]}")
         render(piece, piece["layers"], beat, keys, pads, OUT / f"{base}-all.mp3")
         for layer in piece["layers"]:
             render(piece, [layer], beat, keys, pads, OUT / f"{base}-{slug(layer['name'])}.mp3")

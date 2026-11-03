@@ -96,7 +96,7 @@ label.slow { display: flex; gap: 6px; align-items: center; font-size: .9rem; col
     <h3>On the toy</h3>
     <ol>
       <li>Start <b>Chicco Piano</b> from the app menu.</li>
-      <li>Press <b>DISCO</b> (EDM mode: every key is in A minor, so nothing sounds wrong), then <b>SELECT</b> for the beat. <b>MARCH</b> instead of DISCO gives the same keys and sound over a breakbeat (same tempo, so the songs fit both).</li>
+      <li>Press the song's button, <b>DISCO</b> or <b>MARCH</b> (EDM mode: every key is in A minor, so nothing sounds wrong), then <b>SELECT</b> for its beat: four on the floor or a breakbeat.</li>
       <li>Play the numbers below. Keys 1, 8, 15, 22, 29 are all A: each run of 7 keys is one octave.</li>
       <li>Chords are always <b>a key, skip one, a key, skip one, a key</b>.</li>
     </ol>
@@ -120,6 +120,7 @@ label.slow { display: flex; gap: 6px; align-items: center; font-size: .9rem; col
 const PIECES = [
   {
     name: '#1 First Drop',
+    button: 'DISCO', beat: 'EDM', /* the style button, its beat in main/rhythm.c */
     about: 'The four-chord loop of a hundred dance tracks: an offbeat bass, stabbed chords, a running arpeggio and a hook on top.',
     bpm: 124,
     bars: 4,
@@ -157,6 +158,7 @@ const PIECES = [
   },
   {
     name: '#2 Night Drive',
+    button: 'MARCH', beat: 'BREAKS',
     about: 'Climbing chords that land on A minor, a bouncing octave bass and long held chords: one hand shape each, the hook repeats its rhythm every bar.',
     bpm: 124,
     bars: 4,
@@ -179,7 +181,7 @@ const PIECES = [
       },
     ],
     plan: [
-      ['Intro', 'DISCO, then SELECT. Record the Bass and let it bounce twice round.'],
+      ['Intro', 'MARCH, then SELECT: the breakbeat. Record the Bass and let it bounce twice round.'],
       ['Build', 'Add the Chords as a layer: one press a bar, held.'],
       ['Drop', 'Add the Hook as a layer, or play it live over everything.'],
       ['Breakdown', 'REPLAY: only the drums. Play the Chords alone, held, over them.'],
@@ -249,17 +251,17 @@ function kick(t) {
   g.gain.setValueAtTime(0.9, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
   o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + 0.3);
 }
-/* The firmware's EDM beat (main/rhythm.c). */
-const BEAT = {
-  kick: 'X...X...X...X...', clap: '....X.......X...',
-  hat: '.x.x.x.x.x.x.x.x', open: '..x...x...x...x.',
+/* The firmware's EDM-mode beats (main/rhythm.c: copy a change there here too). */
+const BEATS = {
+  EDM: { kick: 'X...X...X...X...', clap: '....X.......X...', hat: '.x.x.x.x.x.x.x.x', open: '..x...x...x...x.' },
+  BREAKS: { kick: 'X.....X...X.....', clap: '....X.......X...', hat: 'x.xxx.x.x.xxx.x.', open: '..............x.' },
 };
-function drums(step, t) {
-  const i = step % 16;
-  if (BEAT.kick[i] !== '.') kick(t);
-  if (BEAT.clap[i] !== '.') noise(t, 0.15, 'bandpass', 1500, 0.5);
-  if (BEAT.hat[i] !== '.') noise(t, 0.04, 'highpass', 8000, 0.15);
-  if (BEAT.open[i] !== '.') noise(t, 0.2, 'highpass', 7000, 0.18);
+function drums(step, t, name) {
+  const beat = BEATS[name], i = step % 16;
+  if (beat.kick[i] !== '.') kick(t);
+  if (beat.clap[i] !== '.') noise(t, 0.15, 'bandpass', 1500, 0.5);
+  if (beat.hat[i] !== '.') noise(t, 0.04, 'highpass', 8000, 0.15);
+  if (beat.open[i] !== '.') noise(t, 0.2, 'highpass', 7000, 0.18);
 }
 
 /* ---- the player: one at a time ----
@@ -324,7 +326,7 @@ function play(piece, layers, button, slow, mode, clipName) {
   const schedule = () => {
     while (start + next * stepDur < ctx.currentTime + 0.15) {
       const t = start + next * stepDur, s = next % total;
-      drums(s, t);
+      drums(s, t, piece.beat);
       for (const e of events) {
         if (e.step !== s) continue;
         if (e.pad) noise(t, 0.15, 'bandpass', 1500, 0.5); /* the clap, as in the beat */
@@ -358,7 +360,7 @@ function renderPiece(piece) {
   const head = el('div', 'piece-head');
   head.append(el('h2', null, piece.name));
   const chips = el('div', 'chips');
-  [`${piece.bpm} bpm`, `${piece.bars} bars`, piece.chords.join(' – ')].forEach(t => chips.append(el('span', 'chip', t)));
+  [`${piece.button} beat`, `${piece.bpm} bpm`, `${piece.bars} bars`, piece.chords.join(' – ')].forEach(t => chips.append(el('span', 'chip', t)));
   head.append(chips);
   box.append(head);
 
@@ -458,7 +460,7 @@ for (const p of PIECES) {
   card.href = '#' + slug(p.name);
   card.append(el('h2', null, p.name), el('p', 'muted', p.about || ''));
   const chips = el('div', 'chips');
-  [`${p.bpm} bpm`, p.chords.join(' – '), p.layers.map(l => l.name).join(', ')].forEach(t => chips.append(el('span', 'chip', t)));
+  [`${p.button}: ${p.beat === 'EDM' ? 'four on the floor' : 'breakbeat'}`, `${p.bpm} bpm`, p.chords.join(' – '), p.layers.map(l => l.name).join(', ')].forEach(t => chips.append(el('span', 'chip', t)));
   card.append(chips);
   list.append(card);
 }
