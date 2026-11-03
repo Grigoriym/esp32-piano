@@ -127,6 +127,47 @@ static void test_play_screen_draws_inside_the_screen(void)
     TEST_ASSERT_EQUAL_HEX16(UI_BG, canvas_get(&c, CANVAS_W / 2, CANVAS_H - 2));
 }
 
+static void test_groove_screen_draws_inside_the_screen(void)
+{
+    s.screen = UI_SCREEN_GROOVE;
+    ui_render(&c, &s); /* no beat */
+    const int steps[] = {16, 12, 8};
+    const int per_beat[] = {4, 3, 4};
+    for (int k = 0; k < 3; k++) {
+        for (int step = 0; step < steps[k]; step++) {
+            for (int ms = -200; ms <= 200; ms += 50) {
+                s.g_steps = steps[k];
+                s.g_steps_per_beat = per_beat[k];
+                s.g_step = step;
+                s.g_lane[0] = s.g_lane[1] = (1u << steps[k]) - 1;
+                s.g_lane_name[0] = "shake";
+                s.g_lane_name[1] = NULL;
+                s.g_on_time = 0x5555 & ((1u << steps[k]) - 1);
+                s.g_off = 0xaaaa & ((1u << steps[k]) - 1);
+                s.g_has_last = true;
+                s.g_last_ms = ms;
+                ui_render(&c, &s);
+            }
+        }
+    }
+    TEST_ASSERT_EQUAL_HEX16(UI_BG, canvas_get(&c, CANVAS_W / 2, CANVAS_H - 2));
+}
+
+static void test_groove_marks_a_press_by_its_timing(void)
+{
+    s.screen = UI_SCREEN_GROOVE;
+    s.g_steps = 16;
+    s.g_steps_per_beat = 4;
+    s.g_step = 8;
+    s.g_on_time = 1u << 2;
+    s.g_off = 1u << 6;
+    ui_render(&c, &s);
+    const int x0 = 18 + 46, pitch = (CANVAS_W - 18 - x0) / 16;
+    TEST_ASSERT_EQUAL_HEX16(UI_GREEN, canvas_get(&c, x0 + 2 * pitch + (pitch - 2) / 2, 175 + 7));
+    TEST_ASSERT_NOT_EQUAL(UI_GREEN, canvas_get(&c, x0 + 6 * pitch + (pitch - 2) / 2, 175 + 7));
+    TEST_ASSERT_NOT_EQUAL(UI_BG, canvas_get(&c, x0 + 6 * pitch + (pitch - 2) / 2, 175 + 7));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -137,5 +178,7 @@ int main(void)
     RUN_TEST(test_every_state_draws_inside_the_screen);
     RUN_TEST(test_play_screen_lights_the_pressed_keys);
     RUN_TEST(test_play_screen_draws_inside_the_screen);
+    RUN_TEST(test_groove_screen_draws_inside_the_screen);
+    RUN_TEST(test_groove_marks_a_press_by_its_timing);
     return UNITY_END();
 }

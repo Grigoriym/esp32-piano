@@ -40,6 +40,7 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "groove.h"
 #include "keymap.h"
 #include "looper.h"
 #include "matrix.h"
@@ -73,6 +74,7 @@ static keymap_t keymap;
 static demo_t demo;
 static looper_t looper;
 static rhythm_t rhythm;
+static groove_t groove;
 
 static i2c_master_dev_handle_t mcp;
 
@@ -202,6 +204,22 @@ static void show(const matrix_t *m)
     s.beat = beat ? beat->name : NULL;
     s.beat_bpm = beat ? beat->bpm : 0;
     s.screen = screen_shown;
+    if (rhythm.on) {
+        const rhythm_style_t *st = rhythm_style(rhythm.style);
+        int64_t t = esp_timer_get_time();
+        groove_tick(&groove, t);
+        s.g_steps = st->steps;
+        s.g_steps_per_beat = st->steps_per_beat;
+        s.g_step = groove_step(&groove, t);
+        for (size_t i = 0; i < 2; i++) {
+            s.g_lane[i] = rhythm_lane_mask(st, i);
+            s.g_lane_name[i] = s.g_lane[i] ? rhythm_drum_name(st->lane[i].note) : NULL;
+        }
+        s.g_on_time = groove.on_time;
+        s.g_off = groove.off;
+        s.g_has_last = groove.has_last;
+        s.g_last_ms = groove.last_offset_us / 1000;
+    }
     for (size_t r = 0; r < 4; r++) {
         s.keys |= (uint32_t)m->sent[r] << (8 * r);
         s.held |= (uint32_t)(m->stable[r] & ~m->sent[r]) << (8 * r);
@@ -220,6 +238,7 @@ static void show(const matrix_t *m)
 static void on_cell(size_t r, size_t c, bool down, void *ctx)
 {
     int64_t now = esp_timer_get_time();
+    if (r < 4 && down) groove_press(&groove, now); /* the Groove screen's marks */
     /* What the sequencers send from here (their note offs on a stop) goes after
      * what they already sent ahead, so it can't arrive before a note on. */
     int64_t at = now + MIDI_LINK_LEAD_US;
@@ -254,6 +273,7 @@ void app_main(void)
     matrix_init(&matrix);
     keymap_init(&keymap);
     looper_init(&looper);
+    groove_init(&groove);
     grid_t now;
     grid_t prev;
     while (true) {
@@ -262,10 +282,12 @@ void app_main(void)
         if (rhythm.on) {
             const rhythm_style_t *beat = rhythm_style(rhythm.style);
             int64_t step = rhythm_step_us(beat);
-            looper_set_grid(&looper, rhythm.next_us - (int64_t)rhythm.step * step,
-                            (int64_t)beat->steps * step);
+            int64_t origin = rhythm.next_us - (int64_t)rhythm.step * step;
+            looper_set_grid(&looper, origin, (int64_t)beat->steps * step);
+            groove_set_grid(&groove, origin, step, beat->steps);
         } else {
             looper_set_grid(&looper, 0, 0);
+            groove_set_grid(&groove, 0, 0, 0);
         }
         if (matrix_feed(&matrix, now, prev)) {
             report(prev, matrix.stable);

@@ -41,6 +41,12 @@ typedef struct {
 
 const rhythm_style_t *rhythm_style(size_t style);
 
+/* "kick", "clap": a short name for a lane's drum note; "drum" if unknown. */
+const char *rhythm_drum_name(uint8_t note);
+
+/* Bit per step where lane hits; 0 for an unused lane. */
+uint32_t rhythm_lane_mask(const rhythm_style_t *s, size_t lane);
+
 /* One step's length in microseconds. */
 int64_t rhythm_step_us(const rhythm_style_t *s);
 

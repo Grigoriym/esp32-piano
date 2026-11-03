@@ -62,6 +62,34 @@ const rhythm_style_t *rhythm_style(size_t style)
     return &STYLES[style];
 }
 
+const char *rhythm_drum_name(uint8_t note)
+{
+    switch (note) {
+        case KICK: return "kick";
+        case SIDESTICK: return "rim";
+        case SNARE: return "snare";
+        case CLAP: return "clap";
+        case LOW_TOM: return "tom";
+        case HAT: return "hat";
+        case OPEN_HAT: return "open";
+        case RIDE: return "ride";
+        case AGOGO_HI:
+        case AGOGO_LO: return "bell";
+        case MARACAS: return "shake";
+        default: return "drum";
+    }
+}
+
+uint32_t rhythm_lane_mask(const rhythm_style_t *s, size_t lane)
+{
+    uint32_t mask = 0;
+    if (lane >= RHYTHM_LANES || !s->lane[lane].note) return 0;
+    for (size_t i = 0; i < s->steps && i < 32; i++) {
+        if (s->lane[lane].hits[i] != '.') mask |= 1u << i;
+    }
+    return mask;
+}
+
 int64_t rhythm_step_us(const rhythm_style_t *s)
 {
     return 60000000LL / ((int64_t)s->bpm * s->steps_per_beat);

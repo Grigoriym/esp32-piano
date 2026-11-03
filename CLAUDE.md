@@ -108,6 +108,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `midi_out.h`'s callback. The line-pair finder that mapped the grid is in git (`233c8c3`).
 - `main/encoder.c` + `encoder_decode.c` (KY-040, from mukklet, without its press
   gestures): `main.c` turns knob events into the screen shown and logs `KNOB ...`.
+  `groove.c` (pure, 2026-11-03) is the Groove screen's timing (a third knob screen:
+  the beat's bar as steps with a running column, its first two drums, the player's
+  presses green within 30 ms of a step or orange, an early/late meter); main feeds it
+  the beat grid and key presses.
   `chord.c` (pure) names the held keys for `ui.c`'s Play screen; `FONT_BIG`
   (`tools/gen_font.py`, ASCII only) is its big chord name.
 - `main/wifi.c` (from mukklet, power save off: it holds packets up to a
