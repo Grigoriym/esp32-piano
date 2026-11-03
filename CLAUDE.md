@@ -132,8 +132,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   after a mapping change).
 - EDM mode (2026-11-03, the user wants to make simple electronic music, not learn
   piano): DISCO makes the keys play only A natural minor (`keymap_key_note`: key 1 =
-  A1, 7 keys an octave, key 8 = A2), keys at velocity 70 (the saw lead drowned the
-  beat), beat `EDM` 124 bpm four on the floor. Another style button or RESET ends it.
+  A1, 7 keys an octave, key 8 = A2), keys at velocity 55, beat `EDM` 124 bpm four on the floor at
+  110/127 (the saw lead drowned the beat twice). Another style button or RESET ends it.
 - `docs/riffs.html` (2026-11-03, replaced `docs/learn-piano.html`, which is in git at
   `076f9c7`): pieces to play over the EDM beat, layers (bass, chords, hook) shown bar by
   bar as key numbers, each playable in the browser (WebAudio saw + the beat). The user

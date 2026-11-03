@@ -274,7 +274,7 @@ function renderPiece(piece) {
   controls.append(all, slowLabel);
   box.append(controls);
 
-  const vols = { bass: 0.22, chords: 0.16, hook: 0.16 };
+  const vols = { bass: 0.16, chords: 0.12, hook: 0.12 };
   for (const layer of piece.layers) {
     layer.vol = vols[layer.color] ?? 0.16;
     layer.cells = [];

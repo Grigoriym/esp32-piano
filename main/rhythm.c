@@ -23,36 +23,37 @@ static const rhythm_style_t STYLES[RHYTHM_STYLES] = {
     {"SLOW ROCK", 66, 3, 12, { /* 12/8 */
         {KICK,      "x.....x.x..."},
         {SNARE,     "...X.....X.."},
-        {HAT,       "Xxxxxxxxxxxx"}}},
+        {HAT,       "Xxxxxxxxxxxx"}}, RHYTHM_VELOCITY, RHYTHM_ACCENT},
     {"ROCK", 116, 4, 16, {
         {KICK,      "x.......x.x....."},
         {SNARE,     "....X.......X..."},
-        {HAT,       "X.x.x.x.X.x.x.x."}}},
+        {HAT,       "X.x.x.x.X.x.x.x."}}, RHYTHM_VELOCITY, RHYTHM_ACCENT},
     {"NEW AGE", 80, 4, 16, {
         {KICK,      "x.........x....."},
         {SIDESTICK, "....x.......x..."},
-        {RIDE,      "x...x...x...x.x."}}},
+        {RIDE,      "x...x...x...x.x."}}, RHYTHM_VELOCITY, RHYTHM_ACCENT},
     {"EDM", 124, 4, 16, { /* four on the floor (DISCO button) */
         {KICK,      "X...X...X...X..."},
         {CLAP,      "....X.......X..."},
         {HAT,       ".x.x.x.x.x.x.x.x"},
-        {OPEN_HAT,  "..x...x...x...x."}}},
+        {OPEN_HAT,  "..x...x...x...x."}},
+        110, 127}, /* loud: in EDM the beat leads */
     {"MARCH", 112, 4, 16, {
         {KICK,      "X.......x......."},
-        {SNARE,     "X.xxx.x.X.xxX.xx"}}},
+        {SNARE,     "X.xxx.x.X.xxX.xx"}}, RHYTHM_VELOCITY, RHYTHM_ACCENT},
     {"BALKAN", 126, 4, 8, { /* 2/4, cocek: the kick in 3+3+2 (WALTZ button) */
         {KICK,      "X..x..x."},
         {SNARE,     "....X..."},
-        {HAT,       "..x...x."}}},
+        {HAT,       "..x...x."}}, RHYTHM_VELOCITY, RHYTHM_ACCENT},
     {"SAMBA", 100, 4, 16, {
         {LOW_TOM,   "X..xX..xX..xX..x"},
         {MARACAS,   "xxXxxxXxxxXxxxXx"},
         {AGOGO_HI,  "x.x...x...x.x..."},
-        {AGOGO_LO,  "....x...x.....x."}}},
+        {AGOGO_LO,  "....x...x.....x."}}, RHYTHM_VELOCITY, RHYTHM_ACCENT},
     {"BLUES", 88, 3, 12, { /* shuffle */
         {KICK,      "x.....x....."},
         {SNARE,     "...X.....X.."},
-        {HAT,       "x.xx.xx.xx.x"}}},
+        {HAT,       "x.xx.xx.xx.x"}}, RHYTHM_VELOCITY, RHYTHM_ACCENT},
 };
 // clang-format on
 
@@ -121,7 +122,7 @@ void rhythm_tick(rhythm_t *r, int64_t now_us, midi_send_fn send, void *ctx)
         if (!s->lane[i].note) continue;
         char hit = s->lane[i].hits[r->step];
         if (hit == '.') continue;
-        midi3(send, ctx, 0x90 | DRUM_CH, s->lane[i].note, hit == 'X' ? RHYTHM_ACCENT : RHYTHM_VELOCITY);
+        midi3(send, ctx, 0x90 | DRUM_CH, s->lane[i].note, hit == 'X' ? s->accent : s->velocity);
         r->sounding |= (uint8_t)(1u << i);
     }
     r->next_us += rhythm_step_us(s);

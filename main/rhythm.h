@@ -15,7 +15,7 @@
  * hit, '.' nothing. Each hit stops when the next step starts. */
 #define RHYTHM_STYLES   8
 #define RHYTHM_LANES    4
-#define RHYTHM_VELOCITY 70 /* under the keys and drum pads (100), so they are heard over it */
+#define RHYTHM_VELOCITY 70 /* most beats; under the keys and drum pads (100), so they are heard over it */
 #define RHYTHM_ACCENT   90
 
 typedef struct {
@@ -27,6 +27,7 @@ typedef struct {
         uint8_t note; /* General MIDI drum note, 0: lane unused */
         const char *hits;
     } lane[RHYTHM_LANES];
+    uint8_t velocity, accent; /* 'x' and 'X' */
 } rhythm_style_t;
 
 typedef struct {

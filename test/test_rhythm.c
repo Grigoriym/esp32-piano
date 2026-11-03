@@ -128,6 +128,16 @@ static void test_silent_once_stopped(void)
     TEST_ASSERT_EQUAL(n, rec.n);
 }
 
+static void test_edm_beat_is_loud(void)
+{
+    rhythm_toggle(&r, EDM, 0, midi_rec, &rec);
+    rhythm_tick(&r, 0, midi_rec, &rec);
+    TEST_ASSERT_EQUAL(1, count_on(0, 36));
+    for (size_t i = 0; i < rec.n; i++) {
+        if (rec.e[i].len == 3 && rec.e[i].msg[1] == 36) TEST_ASSERT_EQUAL(127, rec.e[i].msg[2]);
+    }
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -136,5 +146,6 @@ int main(void)
     RUN_TEST(test_a_style_change_waits_for_the_bar_line);
     RUN_TEST(test_every_style_stops_every_hit);
     RUN_TEST(test_silent_once_stopped);
+    RUN_TEST(test_edm_beat_is_loud);
     return UNITY_END();
 }

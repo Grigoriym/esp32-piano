@@ -24,7 +24,7 @@
 #define LOOP_CH        2  /* the looper's keys (DEMO_CH is 1) */
 #define BASE_NOTE      53 /* key 1 = F3: the black keys start with a group of three */
 #define VELOCITY       100
-#define EDM_VELOCITY   70 /* the saw lead is loud: the beat should lead */
+#define EDM_VELOCITY   55 /* the saw lead is loud: the beat should lead */
 #define VOLUME_STEP    16
 #define DEFAULT_VOLUME 127 /* max: what RESET and boot give */
 #define MAX_OCTAVE     2
