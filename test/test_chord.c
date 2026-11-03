@@ -63,6 +63,19 @@ static void test_unknown_is_a_question_mark(void)
     assert_name("?", keys(1, 2, 3, 0));
 }
 
+static void test_from_notes(void)
+{
+    char got[16];
+    const uint8_t am_spread[] = {69, 45, 60, 64}; /* A4 A2 C4 E4, any order */
+    chord_name_notes(am_spread, 4, got, sizeof(got));
+    TEST_ASSERT_EQUAL_STRING("Am", got);
+    const uint8_t c_over_e[] = {52, 60, 67}; /* E3 C4 G4: the bass picks no root here */
+    chord_name_notes(c_over_e, 3, got, sizeof(got));
+    TEST_ASSERT_EQUAL_STRING("C", got);
+    chord_name_notes(NULL, 0, got, sizeof(got));
+    TEST_ASSERT_EQUAL_STRING("", got);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -71,5 +84,6 @@ int main(void)
     RUN_TEST(test_inversions_keep_the_name);
     RUN_TEST(test_other_shapes);
     RUN_TEST(test_unknown_is_a_question_mark);
+    RUN_TEST(test_from_notes);
     return UNITY_END();
 }

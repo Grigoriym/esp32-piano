@@ -15,7 +15,10 @@
  * instrument, the animals and chicks play drums on channel 10, VOLUME+/- send
  * CC7, RESET sends all notes off and restores the defaults. DEMO is left to
  * the caller (KEYMAP_DEMO), and so are RECORD and REPLAY (looper.h) and
- * SELECT (rhythm.h: the drum beat of the last style button, k->style). */
+ * SELECT (rhythm.h: the drum beat of the last style button, k->style).
+ *
+ * EDM mode (DISCO, until another style button or RESET): the keys play only
+ * the notes of A natural minor, 7 keys an octave, so no key sounds wrong. */
 #define KEY_CH         0
 #define DRUM_CH        9
 #define LOOP_CH        2  /* the looper's keys (DEMO_CH is 1) */
@@ -24,7 +27,9 @@
 #define VOLUME_STEP    16
 #define DEFAULT_VOLUME 127 /* max: what RESET and boot give */
 #define MAX_OCTAVE     2
-#define DEFAULT_STYLE  1 /* ROCK: SELECT's beat before a style button is pressed */
+#define DEFAULT_STYLE  1  /* ROCK: SELECT's beat before a style button is pressed */
+#define EDM_STYLE      3  /* DISCO: EDM mode, the keys play A natural minor */
+#define SCALE_ROOT     33 /* EDM mode: key 1 = A1, then one key per scale step (key 8 = A2) */
 
 typedef struct {
     int octave;                   /* -MAX_OCTAVE..MAX_OCTAVE */
@@ -51,6 +56,9 @@ void keymap_name(size_t r, size_t c, char *buf, size_t len);
 
 /* "Piano", "Trumpet": the instrument a program number stands for; "?" if none. */
 const char *keymap_program_name(uint8_t program);
+
+/* The note key (0..31) plays right now, octave included. */
+uint8_t keymap_key_note(const keymap_t *k, size_t key);
 
 /* A press or release at (r, c): sends its MIDI. */
 keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_send_fn send, void *ctx);

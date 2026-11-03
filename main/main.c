@@ -197,6 +197,9 @@ static void show(const matrix_t *m)
         s.keys |= (uint32_t)m->sent[r] << (8 * r);
         s.held |= (uint32_t)(m->stable[r] & ~m->sent[r]) << (8 * r);
     }
+    for (size_t k = 0; k < UI_KEYS; k++) {
+        if (s.keys & (1ul << k)) s.notes[k] = keymap.key_note[k];
+    }
     s.loop = looper.state != LOOPER_IDLE ? LOOP[looper.state]
              : looper.length_us          ? UI_LOOP_STOPPED
                                          : UI_LOOP_EMPTY;

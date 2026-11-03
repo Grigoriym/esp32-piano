@@ -49,8 +49,9 @@ typedef struct {
     int beat_bpm;
     ui_loop_t loop;
     ui_screen_t screen;
-    uint32_t keys; /* the keys playing: bit 0 = key 1 */
-    uint32_t held; /* pressed but held back as a possible ghost */
+    uint32_t keys;     /* the keys playing: bit 0 = key 1 */
+    uint32_t held;     /* pressed but held back as a possible ghost */
+    uint8_t notes[32]; /* the note each playing key sends (chord name); 0: key 1 = F, chromatic */
 } ui_state_t;
 
 /* Where the volume bar sits, for the tests. */

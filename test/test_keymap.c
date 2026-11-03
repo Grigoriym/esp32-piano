@@ -140,6 +140,37 @@ static void test_program_names(void)
     TEST_ASSERT_EQUAL_STRING("?", keymap_program_name(127));
 }
 
+static void test_edm_keys_play_a_minor(void)
+{
+    keymap_event(&k, 4, EDM_STYLE, true, midi_rec, &rec); /* DISCO */
+    TEST_ASSERT_EQUAL_STRING("Saw lead, Am", keymap_program_name(k.program));
+    key(1, true);  /* A1 */
+    key(3, true);  /* C2 */
+    key(8, true);  /* A2: the next octave starts at key 8 */
+    key(32, true); /* 4 octaves and 3 steps up: D6 */
+    assert_msg(1, 0x90, 33, VELOCITY);
+    assert_msg(2, 0x90, 36, VELOCITY);
+    assert_msg(3, 0x90, 45, VELOCITY);
+    assert_msg(4, 0x90, 86, VELOCITY);
+}
+
+static void test_edm_mode_ends_with_another_style_or_reset(void)
+{
+    keymap_event(&k, 4, EDM_STYLE, true, midi_rec, &rec);
+    keymap_event(&k, 4, 0, true, midi_rec, &rec); /* SLOW ROCK */
+    TEST_ASSERT_EQUAL(53, keymap_key_note(&k, 0));
+    keymap_event(&k, 4, EDM_STYLE, true, midi_rec, &rec);
+    keymap_event(&k, 5, 4, true, midi_rec, &rec); /* RESET */
+    TEST_ASSERT_EQUAL(53, keymap_key_note(&k, 0));
+}
+
+static void test_edm_octave_buttons_still_shift(void)
+{
+    keymap_event(&k, 4, EDM_STYLE, true, midi_rec, &rec);
+    keymap_event(&k, 5, 0, true, midi_rec, &rec); /* TEMPO+ */
+    TEST_ASSERT_EQUAL(45, keymap_key_note(&k, 0));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -152,5 +183,8 @@ int main(void)
     RUN_TEST(test_buttons);
     RUN_TEST(test_first_style_button_is_the_default_piano);
     RUN_TEST(test_program_names);
+    RUN_TEST(test_edm_keys_play_a_minor);
+    RUN_TEST(test_edm_mode_ends_with_another_style_or_reset);
+    RUN_TEST(test_edm_octave_buttons_still_shift);
     return UNITY_END();
 }

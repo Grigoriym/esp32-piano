@@ -106,7 +106,12 @@ static void key_strip(canvas_t *c, const ui_state_t *s)
 static void play_screen(canvas_t *c, const ui_state_t *s)
 {
     char name[16];
-    chord_name(s->keys, name, sizeof(name));
+    uint8_t notes[UI_KEYS];
+    size_t n = 0;
+    for (int k = 0; k < UI_KEYS; k++) {
+        if (s->keys & (1ul << k)) notes[n++] = s->notes[k] ? s->notes[k] : (uint8_t)(65 + k); /* 65: an F */
+    }
+    chord_name_notes(notes, n, name, sizeof(name));
     const font_t *font = font_text_width(&FONT_BIG, name) <= RIGHT - LEFT ? &FONT_BIG : &FONT_TITLE;
     canvas_text_center(c, font, 56, name, INK);
     key_strip(c, s);

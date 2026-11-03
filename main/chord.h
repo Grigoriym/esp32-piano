@@ -9,3 +9,6 @@
  * "" with no keys, the note's name for one pitch, the chord's name ("Am", "C7"),
  * or "?" when it's none of the known shapes. Any inversion gives the same name. */
 void chord_name(uint32_t keys, char *out, size_t size);
+
+/* The same from MIDI note numbers (any order): the lowest is the bass. */
+void chord_name_notes(const uint8_t *notes, size_t n, char *out, size_t size);

@@ -5,8 +5,8 @@
 #include "rhythm.h"
 #include "unity.h"
 
-#define ROCK  1
-#define DISCO 3
+#define ROCK 1
+#define EDM  3
 
 static rhythm_t r;
 static midi_rec_t rec;
@@ -77,15 +77,15 @@ static void test_a_style_change_waits_for_the_bar_line(void)
     int64_t step = rhythm_step_us(rhythm_style(ROCK));
     rhythm_toggle(&r, ROCK, 0, midi_rec, &rec);
     run(0, 4 * step);
-    rhythm_select(&r, DISCO);
+    rhythm_select(&r, EDM);
     run(4 * step + 1000, 16 * step - 1000);
     TEST_ASSERT_EQUAL(ROCK, r.style);
     rec.n = 0;
     run(16 * step, 16 * step);
-    TEST_ASSERT_EQUAL(DISCO, r.style);
+    TEST_ASSERT_EQUAL(EDM, r.style);
     TEST_ASSERT_EQUAL(1, count_on(0, 36));
-    TEST_ASSERT_EQUAL(1, count_on(0, 42));
-    TEST_ASSERT_EQUAL(16 * step + rhythm_step_us(rhythm_style(DISCO)), r.next_us);
+    TEST_ASSERT_EQUAL(0, count_on(0, 42)); /* EDM: hats only between the beats */
+    TEST_ASSERT_EQUAL(16 * step + rhythm_step_us(rhythm_style(EDM)), r.next_us);
 }
 
 typedef struct {

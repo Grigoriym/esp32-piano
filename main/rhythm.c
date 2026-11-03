@@ -32,10 +32,10 @@ static const rhythm_style_t STYLES[RHYTHM_STYLES] = {
         {KICK,      "x.........x....."},
         {SIDESTICK, "....x.......x..."},
         {RIDE,      "x...x...x...x.x."}}},
-    {"DISCO", 120, 4, 16, {
-        {KICK,      "X...x...X...x..."},
-        {CLAP,      "....x.......x..."},
-        {HAT,       "x...x...x...x..."},
+    {"EDM", 124, 4, 16, { /* four on the floor (DISCO button) */
+        {KICK,      "X...X...X...X..."},
+        {CLAP,      "....X.......X..."},
+        {HAT,       ".x.x.x.x.x.x.x.x"},
         {OPEN_HAT,  "..x...x...x...x."}}},
     {"MARCH", 112, 4, 16, {
         {KICK,      "X.......x......."},

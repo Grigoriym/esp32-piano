@@ -28,16 +28,26 @@ static uint16_t relative(uint16_t pitches, int root)
 
 void chord_name(uint32_t keys, char *out, size_t size)
 {
-    uint16_t pitches = 0;
-    int bass = -1;
-    int count = 0;
+    uint8_t notes[32];
+    size_t n = 0;
     for (int k = 0; k < 32; k++) {
-        if (!(keys & (1ul << k))) continue;
-        int p = (KEY1_PITCH + k) % 12;
-        if (bass < 0) bass = p;
+        if (keys & (1ul << k)) notes[n++] = (uint8_t)(60 + KEY1_PITCH + k); /* an F, as key 1 */
+    }
+    chord_name_notes(notes, n, out, size);
+}
+
+void chord_name_notes(const uint8_t *notes, size_t n, char *out, size_t size)
+{
+    uint16_t pitches = 0;
+    int lowest = 256;
+    int count = 0;
+    for (size_t i = 0; i < n; i++) {
+        int p = notes[i] % 12;
+        if (notes[i] < lowest) lowest = notes[i];
         if (!(pitches & (1u << p))) count++;
         pitches |= (uint16_t)(1u << p);
     }
+    int bass = lowest % 12;
     if (count == 0) {
         snprintf(out, size, "%s", "");
         return;

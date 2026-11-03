@@ -17,7 +17,7 @@ static const uint8_t STYLE_PROGRAM[N_COLS] = {
     0,  /* SLOW ROCK: piano, the default sound */
     19, /* ROCK: cat (tools/gen_cat_sf2.py takes over this program on the PC) */
     88, /* NEW AGE: Siamese cat (same way) */
-    81, /* DISCO: saw lead */
+    81, /* DISCO: saw lead, EDM mode (A minor keys, rhythm.c: EDM beat) */
     56, /* MARCH: trumpet */
     21, /* WALTZ: accordion, the Balkan sound (rhythm.c: BALKAN beat) */
     12, /* SAMBA: marimba */
@@ -27,7 +27,7 @@ static const uint8_t STYLE_PROGRAM[N_COLS] = {
 const char *keymap_program_name(uint8_t program)
 {
     static const char *const NAMES[N_COLS] = {
-        "Piano", "Cat", "Siamese cat", "Saw lead", "Trumpet", "Accordion", "Marimba", "Electric piano",
+        "Piano", "Cat", "Siamese cat", "Saw lead, Am", "Trumpet", "Accordion", "Marimba", "Electric piano",
     };
     if (program == 0) return "Piano";
     for (size_t c = 0; c < N_COLS; c++) {
@@ -92,12 +92,21 @@ static int clamp(int v, int lo, int hi)
     return v < lo ? lo : v > hi ? hi : v;
 }
 
+uint8_t keymap_key_note(const keymap_t *k, size_t key)
+{
+    if (k->style == EDM_STYLE) {
+        static const uint8_t MINOR[7] = {0, 2, 3, 5, 7, 8, 10};
+        return (uint8_t)(SCALE_ROOT + 12 * (k->octave + (int)key / 7) + MINOR[key % 7]);
+    }
+    return (uint8_t)(BASE_NOTE + 12 * k->octave + (int)key);
+}
+
 keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_send_fn send, void *ctx)
 {
     char what[32];
     if (r < 4) {
         size_t key = r * N_COLS + c;
-        if (down) k->key_note[key] = (uint8_t)(BASE_NOTE + 12 * k->octave + (int)key);
+        if (down) k->key_note[key] = keymap_key_note(k, key);
         snprintf(what, sizeof(what), "note %s %u", down ? "on" : "off", k->key_note[key]);
         midi3(send, ctx, (down ? 0x90 : 0x80) | KEY_CH, k->key_note[key], down ? VELOCITY : 0, what);
         return KEYMAP_NONE;
