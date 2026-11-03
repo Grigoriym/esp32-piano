@@ -1,14 +1,26 @@
 #include "looper.h"
 
 #include <stdio.h>
-
-#include "keymap.h"
+#include <string.h>
 
 void looper_init(looper_t *l)
 {
-    l->state = LOOPER_IDLE;
-    l->n = 0;
-    l->length_us = 0;
+    int64_t origin = l->grid_origin_us;
+    int64_t bar = l->grid_bar_us;
+    memset(l, 0, sizeof(*l));
+    l->grid_origin_us = origin;
+    l->grid_bar_us = bar;
+}
+
+void looper_set_grid(looper_t *l, int64_t origin_us, int64_t bar_us)
+{
+    l->grid_origin_us = origin_us;
+    l->grid_bar_us = bar_us;
+}
+
+size_t looper_layers(const looper_t *l)
+{
+    return l->n_layers + (l->dubbing ? 1 : 0);
 }
 
 static bool get_bit(const uint8_t *bits, uint8_t note)
@@ -25,66 +37,117 @@ static void set_bit(uint8_t *bits, uint8_t note, bool on)
     }
 }
 
-static void clear_held(looper_t *l)
+static int64_t floor_div(int64_t a, int64_t b)
 {
-    for (size_t i = 0; i < 2; i++) {
-        for (size_t j = 0; j < 16; j++) l->held[i][j] = 0;
-    }
+    return a / b - (a % b != 0 && (a < 0) != (b < 0));
+}
+
+static int64_t mod(int64_t a, int64_t b)
+{
+    return a - floor_div(a, b) * b;
+}
+
+static void log_msg(midi_send_fn send, void *ctx, const char *what)
+{
+    send(NULL, 0, what, ctx);
 }
 
 /* Note offs for every loop note sounding now. */
 static void silence(looper_t *l, midi_send_fn send, void *ctx)
 {
-    static const uint8_t CH[2] = {LOOP_CH, DRUM_CH};
-    for (size_t i = 0; i < 2; i++) {
+    for (unsigned ch = 0; ch < 16; ch++) {
         for (unsigned note = 0; note < 128; note++) {
-            if (!get_bit(l->held[i], (uint8_t)note)) continue;
-            uint8_t msg[3] = {0x80 | CH[i], (uint8_t)note, 0};
+            if (!get_bit(l->sounding[ch], (uint8_t)note)) continue;
+            uint8_t msg[3] = {(uint8_t)(0x80 | ch), (uint8_t)note, 0};
             send(msg, 3, NULL, ctx);
         }
     }
-    clear_held(l);
+    memset(l->sounding, 0, sizeof(l->sounding));
 }
 
-static void play(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
+/* The first event at or after a time into the pass. */
+static size_t first_after(const looper_t *l, int64_t t)
 {
-    uint8_t msg[2] = {0xc0 | LOOP_CH, l->program};
-    send(msg, 2, NULL, ctx);
+    size_t i = 0;
+    while (i < l->n && (int64_t)l->ev[i].t_us <= t) i++;
+    return i;
+}
+
+/* Plays from start_us on, events up to played_us into the pass counted as played. */
+static void start_playing(looper_t *l, int64_t start_us, int64_t played_us, midi_send_fn send, void *ctx)
+{
+    l->state = LOOPER_PLAYING;
+    l->dubbing = false;
+    l->start_us = start_us;
+    l->played_us = played_us;
+    l->pos = played_us < 0 ? 0 : first_after(l, played_us);
+    l->program_due = (uint8_t)((1u << l->n_layers) - 1);
     unsigned notes = 0;
     for (size_t i = 0; i < l->n; i++) notes += (l->ev[i].msg[0] & 0xf0) == 0x90;
-    char what[48];
-    snprintf(what, sizeof(what), "loop plays (%u notes, %u ms)", notes, (unsigned)(l->length_us / 1000));
-    send(NULL, 0, what, ctx);
-    clear_held(l);
-    l->state = LOOPER_PLAYING;
-    l->start_us = now_us;
-    l->pos = 0;
+    char what[56];
+    snprintf(what, sizeof(what), "loop plays (%u notes, %u ms, %u layers)", notes,
+             (unsigned)(l->length_us / 1000), (unsigned)l->n_layers);
+    log_msg(send, ctx, what);
 }
 
-/* Ends a recording: the loop plays from now, or nothing was recorded. */
+/* Ends the first layer's recording: the loop plays on, or nothing was recorded. */
 static void close_loop(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
 {
     if (l->state == LOOPER_ARMED || l->n == 0) {
-        l->state = LOOPER_IDLE;
-        send(NULL, 0, "loop: nothing recorded", ctx);
+        looper_init(l);
+        log_msg(send, ctx, "loop: nothing recorded");
         return;
     }
-    l->length_us = (uint32_t)(now_us - l->start_us);
-    if (l->length_us == 0) l->length_us = 1; /* looper_tick steps by it */
-    play(l, now_us, send, ctx);
+    int64_t played = now_us - l->start_us;
+    l->n_layers = 1;
+    if (l->grid_bar_us) {
+        int64_t bars = (played + l->grid_bar_us / 2) / l->grid_bar_us;
+        l->length_us = (uint32_t)((bars < 1 ? 1 : bars) * l->grid_bar_us);
+        l->n = first_after(l, (int64_t)l->length_us - 1); /* a late RECORD: the next pass's notes */
+        /* Carry on where the beat is: what was just played live isn't played again. */
+        int64_t pass = floor_div(played, l->length_us);
+        int64_t start = l->start_us + pass * l->length_us;
+        start_playing(l, start, now_us - start, send, ctx);
+    } else {
+        l->length_us = (uint32_t)(played > 0 ? played : 1);
+        start_playing(l, now_us, -1, send, ctx);
+    }
+}
+
+static void end_dub(looper_t *l, midi_send_fn send, void *ctx)
+{
+    l->dubbing = false;
+    if (l->dub_events) {
+        l->n_layers++;
+        log_msg(send, ctx, "loop: layer added");
+    } else {
+        log_msg(send, ctx, "loop: nothing added");
+    }
 }
 
 void looper_record(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
 {
-    if (l->state == LOOPER_ARMED || l->state == LOOPER_RECORDING) {
-        close_loop(l, now_us, send, ctx);
-        return;
+    switch (l->state) {
+        case LOOPER_ARMED:
+        case LOOPER_RECORDING: close_loop(l, now_us, send, ctx); return;
+        case LOOPER_PLAYING:
+            if (l->dubbing) {
+                end_dub(l, send, ctx);
+            } else if (l->n_layers == LOOPER_LAYERS) {
+                log_msg(send, ctx, "loop: full, undo a layer first");
+            } else {
+                l->dubbing = true;
+                l->dub_events = 0;
+                memset(l->rec_held, 0, sizeof(l->rec_held));
+                log_msg(send, ctx, "loop: adding a layer");
+            }
+            return;
+        case LOOPER_IDLE: break;
     }
     silence(l, send, ctx);
+    looper_init(l);
     l->state = LOOPER_ARMED;
-    l->n = 0;
-    l->length_us = 0;
-    send(NULL, 0, "loop: recording from the first note", ctx);
+    log_msg(send, ctx, "loop: recording from the first note");
 }
 
 void looper_replay(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
@@ -93,17 +156,60 @@ void looper_replay(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
         case LOOPER_ARMED:
         case LOOPER_RECORDING: close_loop(l, now_us, send, ctx); break;
         case LOOPER_PLAYING:
+            if (l->dubbing) end_dub(l, send, ctx);
             silence(l, send, ctx);
             l->state = LOOPER_IDLE;
-            send(NULL, 0, "loop stopped", ctx);
+            log_msg(send, ctx, "loop stopped");
             break;
         case LOOPER_IDLE:
-            if (l->length_us) {
-                play(l, now_us, send, ctx);
+            if (!l->length_us) {
+                log_msg(send, ctx, "loop: empty, RECORD first");
+            } else if (l->grid_bar_us) { /* from the next bar line */
+                int64_t bar = floor_div(now_us - l->grid_origin_us + l->grid_bar_us - 1, l->grid_bar_us);
+                start_playing(l, l->grid_origin_us + bar * l->grid_bar_us, -1, send, ctx);
             } else {
-                send(NULL, 0, "loop: empty, RECORD first", ctx);
+                start_playing(l, now_us, -1, send, ctx);
             }
             break;
+    }
+}
+
+/* Removes every event of layers >= layer. */
+static void drop_layers(looper_t *l, size_t layer)
+{
+    size_t out = 0;
+    size_t pos = l->pos;
+    for (size_t i = 0; i < l->n; i++) {
+        if (l->ev[i].layer >= layer) {
+            if (i < l->pos) pos--;
+            continue;
+        }
+        l->ev[out++] = l->ev[i];
+    }
+    l->n = out;
+    l->pos = pos;
+}
+
+void looper_undo(looper_t *l, midi_send_fn send, void *ctx)
+{
+    if (l->state == LOOPER_ARMED || l->state == LOOPER_RECORDING) {
+        looper_clear(l, send, ctx);
+        log_msg(send, ctx, "loop: recording dropped");
+        return;
+    }
+    if (l->dubbing) {
+        silence(l, send, ctx);
+        drop_layers(l, l->n_layers);
+        l->dubbing = false;
+        log_msg(send, ctx, "loop: new layer dropped");
+    } else if (l->n_layers > 1) {
+        silence(l, send, ctx);
+        l->n_layers--;
+        drop_layers(l, l->n_layers);
+        log_msg(send, ctx, "loop: last layer dropped");
+    } else if (l->n_layers == 1) {
+        looper_clear(l, send, ctx);
+        log_msg(send, ctx, "loop: erased");
     }
 }
 
@@ -113,30 +219,54 @@ void looper_clear(looper_t *l, midi_send_fn send, void *ctx)
     looper_init(l);
 }
 
+/* Puts e in time order; one played already this pass doesn't play again. */
+static void insert(looper_t *l, const looper_event_t *e)
+{
+    size_t i = first_after(l, e->t_us);
+    memmove(&l->ev[i + 1], &l->ev[i], (l->n - i) * sizeof(l->ev[0]));
+    l->ev[i] = *e;
+    l->n++;
+    if (i < l->pos || (i == l->pos && (int64_t)e->t_us <= l->played_us)) l->pos++;
+}
+
 void looper_capture(looper_t *l, int64_t now_us, const uint8_t *msg, size_t len, uint8_t program)
 {
-    if (l->state != LOOPER_ARMED && l->state != LOOPER_RECORDING) return;
+    bool first_layer = l->state == LOOPER_ARMED || l->state == LOOPER_RECORDING;
+    if (!first_layer && !l->dubbing) return;
     if (len != 3) return;
     uint8_t kind = msg[0] & 0xf0;
     uint8_t ch = msg[0] & 0x0f;
     if ((kind != 0x90 && kind != 0x80) || (ch != KEY_CH && ch != DRUM_CH)) return;
     bool on = kind == 0x90 && msg[2];
-    uint8_t *held = l->held[ch == DRUM_CH];
+    uint8_t *held = l->rec_held[ch == DRUM_CH];
     if (!on && !get_bit(held, msg[1])) return; /* pressed before recording started */
     if (l->n == LOOPER_MAX_EVENTS) return;
     if (on && l->n == LOOPER_MAX_EVENTS - 1) return; /* keep room for a note off */
+    size_t layer = first_layer ? 0 : l->n_layers;
     if (l->state == LOOPER_ARMED) {
-        clear_held(l);
+        memset(l->rec_held, 0, sizeof(l->rec_held));
         l->state = LOOPER_RECORDING;
         l->start_us = now_us;
-        l->program = program;
+        if (l->grid_bar_us) { /* the bar line of the first note, a 16th early counting as on it */
+            int64_t bar = floor_div(now_us - l->grid_origin_us + l->grid_bar_us / 16, l->grid_bar_us);
+            l->start_us = l->grid_origin_us + bar * l->grid_bar_us;
+        }
     }
+    if (first_layer ? l->n == 0 : l->dub_events == 0) l->program[layer] = program;
+    if (!first_layer && l->dub_events == 0) l->program_due |= (uint8_t)(1u << layer);
     set_bit(held, msg[1], on);
-    looper_event_t *e = &l->ev[l->n++];
-    e->t_us = (uint32_t)(now_us - l->start_us);
-    e->msg[0] = (uint8_t)(kind | (ch == KEY_CH ? LOOP_CH : DRUM_CH));
-    e->msg[1] = msg[1];
-    e->msg[2] = msg[2];
+    int64_t t = now_us - l->start_us;
+    looper_event_t e = {
+        .t_us = (uint32_t)(first_layer ? (t < 0 ? 0 : t) : mod(t, l->length_us)),
+        .msg = {(uint8_t)(kind | (ch == KEY_CH ? LOOP_CH + layer : DRUM_CH)), msg[1], msg[2]},
+        .layer = (uint8_t)layer,
+    };
+    if (first_layer) {
+        l->ev[l->n++] = e;
+    } else {
+        insert(l, &e);
+        l->dub_events++;
+    }
 }
 
 void looper_tick(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
@@ -144,15 +274,26 @@ void looper_tick(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
     if (l->state != LOOPER_PLAYING) return;
     for (;;) {
         int64_t t = now_us - l->start_us;
+        if (t < 0) return; /* waits for its bar line */
+        l->due_us = l->start_us;
+        for (size_t layer = 0; layer < LOOPER_LAYERS; layer++) {
+            if (!(l->program_due & (1u << layer))) continue;
+            uint8_t msg[2] = {(uint8_t)(0xc0 | (LOOP_CH + layer)), l->program[layer]};
+            send(msg, 2, NULL, ctx);
+        }
+        l->program_due = 0;
         while (l->pos < l->n && l->ev[l->pos].t_us <= t) {
             const looper_event_t *e = &l->ev[l->pos++];
-            set_bit(l->held[(e->msg[0] & 0x0f) == DRUM_CH], e->msg[1],
-                    (e->msg[0] & 0xf0) == 0x90 && e->msg[2]);
+            set_bit(l->sounding[e->msg[0] & 0x0f], e->msg[1], (e->msg[0] & 0xf0) == 0x90 && e->msg[2]);
+            l->due_us = l->start_us + e->t_us;
             send(e->msg, 3, NULL, ctx);
         }
+        l->played_us = t;
         if (t < (int64_t)l->length_us) return;
+        l->due_us = l->start_us + l->length_us;
         silence(l, send, ctx);
         l->start_us += l->length_us;
         l->pos = 0;
+        l->played_us = -1;
     }
 }

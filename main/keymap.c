@@ -70,14 +70,16 @@ static void send_volume(const keymap_t *k, midi_send_fn send, void *ctx)
     snprintf(what, sizeof(what), "volume %d", k->volume);
     midi3(send, ctx, 0xb0 | KEY_CH, 7, (uint8_t)k->volume, what);
     midi3(send, ctx, 0xb0 | DRUM_CH, 7, (uint8_t)k->volume, what);
-    midi3(send, ctx, 0xb0 | LOOP_CH, 7, (uint8_t)k->volume, what);
+    for (uint8_t ch = LOOP_CH; ch < LOOP_CH + LOOP_CHANNELS; ch++)
+        midi3(send, ctx, 0xb0 | ch, 7, (uint8_t)k->volume, what);
 }
 
 static void reset(keymap_t *k, midi_send_fn send, void *ctx)
 {
     midi3(send, ctx, 0xb0 | KEY_CH, 123, 0, "all notes off");
     midi3(send, ctx, 0xb0 | DRUM_CH, 123, 0, "all notes off (drums)");
-    midi3(send, ctx, 0xb0 | LOOP_CH, 123, 0, "all notes off (loop)");
+    for (uint8_t ch = LOOP_CH; ch < LOOP_CH + LOOP_CHANNELS; ch++)
+        midi3(send, ctx, 0xb0 | ch, 123, 0, "all notes off (loop)");
     k->octave = 0;
     k->volume = DEFAULT_VOLUME;
     k->program = 0;

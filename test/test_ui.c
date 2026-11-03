@@ -75,7 +75,7 @@ static void test_every_state_draws_inside_the_screen(void)
     const char *sounds[] = {"Distortion guitar", "Electric piano", NULL};
     for (int i = 0; i < 3; i++) {
         for (int o = -2; o <= 2; o++) {
-            for (int l = UI_LOOP_EMPTY; l <= UI_LOOP_PLAYING; l++) {
+            for (int l = UI_LOOP_EMPTY; l <= UI_LOOP_ADDING; l++) {
                 s = (ui_state_t){.pc = o & 1,
                                  .demo = l & 1,
                                  .sound = sounds[i],

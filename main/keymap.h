@@ -22,7 +22,8 @@
  * the drum channel plays EDM_KIT (every other style: kit 0). */
 #define KEY_CH         0
 #define DRUM_CH        9
-#define LOOP_CH        2  /* the looper's keys (DEMO_CH is 1) */
+#define LOOP_CH        2  /* the looper's keys (DEMO_CH is 1), its first layer */
+#define LOOP_CHANNELS  4  /* one per looper layer: LOOP_CH..LOOP_CH+3 */
 #define BASE_NOTE      53 /* key 1 = F3: the black keys start with a group of three */
 #define VELOCITY       100
 #define EDM_VELOCITY   55 /* the saw lead is loud: the beat should lead */

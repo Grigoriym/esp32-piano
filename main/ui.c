@@ -63,18 +63,23 @@ static void octave(canvas_t *c, int o)
     }
 }
 
-static void loop(canvas_t *c, ui_loop_t l)
+static void loop(canvas_t *c, ui_loop_t l, int layers)
 {
-    static const char *const TEXT[] = {"empty", "stopped", "waiting for a note", "recording", "playing"};
-    canvas_text(c, &FONT_TEXT, LEFT, 226, "Loop", MUTED);
-    uint16_t color = l == UI_LOOP_RECORDING ? UI_RED
-                     : l == UI_LOOP_PLAYING ? ACCENT
-                     : l == UI_LOOP_EMPTY   ? MUTED
-                                            : INK;
-    canvas_text_right(c, &FONT_TEXT, RIGHT, 226, TEXT[l], color);
-    if (l == UI_LOOP_RECORDING) {
-        dot(c, RIGHT - font_text_width(&FONT_TEXT, TEXT[l]) - 10, 236, UI_RED);
+    static const char *const TEXT[] = {"empty",     "stopped", "waiting for a note",
+                                       "recording", "playing", "adding"};
+    char text[24];
+    if (l == UI_LOOP_ADDING) {
+        snprintf(text, sizeof(text), "adding layer %d", layers);
+    } else if ((l == UI_LOOP_PLAYING || l == UI_LOOP_STOPPED) && layers > 1) {
+        snprintf(text, sizeof(text), "%s, %d layers", TEXT[l], layers);
+    } else {
+        snprintf(text, sizeof(text), "%s", TEXT[l]);
     }
+    canvas_text(c, &FONT_TEXT, LEFT, 226, "Loop", MUTED);
+    bool rec = l == UI_LOOP_RECORDING || l == UI_LOOP_ADDING;
+    uint16_t color = rec ? UI_RED : l == UI_LOOP_PLAYING ? ACCENT : l == UI_LOOP_EMPTY ? MUTED : INK;
+    canvas_text_right(c, &FONT_TEXT, RIGHT, 226, text, color);
+    if (rec) dot(c, RIGHT - font_text_width(&FONT_TEXT, text) - 10, 236, UI_RED);
 }
 
 static void beat_line(canvas_t *c, const ui_state_t *s, int y)
@@ -120,7 +125,7 @@ static void play_screen(canvas_t *c, const ui_state_t *s)
     canvas_text(c, &FONT_TEXT, LEFT, 188, "Sound", MUTED);
     canvas_text_right(c, &FONT_TEXT, RIGHT, 188, s->sound ? s->sound : "?", INK);
     beat_line(c, s, 207);
-    loop(c, s->loop);
+    loop(c, s->loop, s->loop_layers);
 }
 
 void ui_render(canvas_t *c, const ui_state_t *s)
@@ -139,5 +144,5 @@ void ui_render(canvas_t *c, const ui_state_t *s)
     octave(c, s->octave);
 
     beat_line(c, s, 188);
-    loop(c, s->loop);
+    loop(c, s->loop, s->loop_layers);
 }

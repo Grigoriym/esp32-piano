@@ -31,6 +31,7 @@ typedef enum {
     UI_LOOP_WAITING, /* RECORD pressed, waiting for the first note */
     UI_LOOP_RECORDING,
     UI_LOOP_PLAYING,
+    UI_LOOP_ADDING, /* playing, a layer being recorded on top */
 } ui_loop_t;
 
 typedef enum {
@@ -48,6 +49,7 @@ typedef struct {
     const char *beat;  /* the drum beat playing, NULL: off */
     int beat_bpm;
     ui_loop_t loop;
+    int loop_layers; /* the one being added included */
     ui_screen_t screen;
     uint32_t keys;     /* the keys playing: bit 0 = key 1 */
     uint32_t held;     /* pressed but held back as a possible ghost */

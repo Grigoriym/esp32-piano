@@ -23,8 +23,8 @@ static bool same(const ui_state_t *a, const ui_state_t *b)
 {
     return a->pc == b->pc && a->demo == b->demo && a->sound == b->sound && a->volume == b->volume
            && a->octave == b->octave && a->beat == b->beat && a->beat_bpm == b->beat_bpm && a->loop == b->loop
-           && a->screen == b->screen && a->keys == b->keys && a->held == b->held
-           && memcmp(a->notes, b->notes, sizeof(a->notes)) == 0;
+           && a->loop_layers == b->loop_layers && a->screen == b->screen && a->keys == b->keys
+           && a->held == b->held && memcmp(a->notes, b->notes, sizeof(a->notes)) == 0;
 }
 
 static void screen_task(void *arg)

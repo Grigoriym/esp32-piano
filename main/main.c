@@ -208,9 +208,11 @@ static void show(const matrix_t *m)
     for (size_t k = 0; k < UI_KEYS; k++) {
         if (s.keys & (1ul << k)) s.notes[k] = keymap.key_note[k];
     }
-    s.loop = looper.state != LOOPER_IDLE ? LOOP[looper.state]
-             : looper.length_us          ? UI_LOOP_STOPPED
-                                         : UI_LOOP_EMPTY;
+    s.loop = looper.dubbing                ? UI_LOOP_ADDING
+             : looper.state != LOOPER_IDLE ? LOOP[looper.state]
+             : looper.length_us            ? UI_LOOP_STOPPED
+                                           : UI_LOOP_EMPTY;
+    s.loop_layers = (int)looper_layers(&looper);
     screen_set(&s);
 }
 
@@ -252,6 +254,15 @@ void app_main(void)
     grid_t prev;
     while (true) {
         scan(now);
+        /* The beat's bar lines, for a loop in time with it. */
+        if (rhythm.on) {
+            const rhythm_style_t *beat = rhythm_style(rhythm.style);
+            int64_t step = rhythm_step_us(beat);
+            looper_set_grid(&looper, rhythm.next_us - (int64_t)rhythm.step * step,
+                            (int64_t)beat->steps * step);
+        } else {
+            looper_set_grid(&looper, 0, 0);
+        }
         if (matrix_feed(&matrix, now, prev)) {
             report(prev, matrix.stable);
             matrix_sync(&matrix, on_cell, NULL);
@@ -259,7 +270,10 @@ void app_main(void)
         knob_event_t knob;
         while (encoder_poll(&knob)) {
             printf("KNOB  %s\n", knob == KNOB_CW ? "CW" : knob == KNOB_CCW ? "CCW" : "PRESS");
-            if (knob != KNOB_PRESS) {
+            if (knob == KNOB_PRESS) {
+                int64_t at = esp_timer_get_time() + MIDI_LINK_LEAD_US;
+                looper_undo(&looper, send_at, &at);
+            } else {
                 int step = knob == KNOB_CW ? 1 : UI_SCREEN_COUNT - 1;
                 screen_shown = (ui_screen_t)((screen_shown + step) % UI_SCREEN_COUNT);
             }
@@ -267,11 +281,12 @@ void app_main(void)
         int64_t t = esp_timer_get_time();
         /* The sequencers run MIDI_LINK_LEAD_US ahead; the PC plays each message at
          * its time. The beat sends at most one step a call, due at its next_us;
-         * DEMO and the loop are stamped with the tick's time (off by up to a scan). */
+         * the loop gives each message's time in due_us; DEMO is stamped with the
+         * tick's time (off by up to a scan). */
         int64_t ahead = t + MIDI_LINK_LEAD_US;
         int64_t beat_due = rhythm.next_us;
         demo_tick(&demo, ahead, send_at, &ahead);
-        looper_tick(&looper, ahead, send_at, &ahead);
+        looper_tick(&looper, ahead, send_at, &looper.due_us);
         rhythm_tick(&rhythm, ahead, send_at, &beat_due);
         show(&matrix);
         vTaskDelay(pdMS_TO_TICKS(SCAN_PERIOD_MS));

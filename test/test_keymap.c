@@ -94,9 +94,11 @@ static void test_reset_restores_the_defaults(void)
     TEST_ASSERT_EQUAL(DEFAULT_VOLUME, k.volume);
     assert_msg(0, 0xb0 | KEY_CH, 123, 0);
     assert_msg(1, 0xb0 | DRUM_CH, 123, 0);
-    assert_msg(2, 0xb0 | LOOP_CH, 123, 0);
-    assert_msg(5, 0xb0 | LOOP_CH, 7, DEFAULT_VOLUME);
-    assert_msg(6, 0xc0 | KEY_CH, 0, 0);
+    for (size_t i = 0; i < LOOP_CHANNELS; i++)
+        assert_msg(2 + i, 0xb0 | (LOOP_CH + i), 123, 0); /* every layer */
+    assert_msg(6, 0xb0 | KEY_CH, 7, DEFAULT_VOLUME);
+    for (size_t i = 0; i < LOOP_CHANNELS; i++) assert_msg(8 + i, 0xb0 | (LOOP_CH + i), 7, DEFAULT_VOLUME);
+    assert_msg(12, 0xc0 | KEY_CH, 0, 0);
     TEST_ASSERT_EQUAL(0, k.program);
     TEST_ASSERT_EQUAL(DEFAULT_STYLE, k.style);
 }

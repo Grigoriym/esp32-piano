@@ -95,9 +95,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (no ESP-IDF includes, host-tested): `matrix.c` (debounce 3 scans, ghost
   rectangles; a press that may be a ghost is held back), `keymap.c` (names
   and what every key and button plays), `demo.c` (DEMO: Megalovania intro,
-  channel 2, 100 bpm, velocity 70), `looper.c` (RECORD/REPLAY: a looper that
-  starts at the first note; keys replay on channel 3 with the instrument they
-  were recorded with, drums on 10; RESET erases it), `rhythm.c` (SELECT: a drum
+  channel 2, 100 bpm, velocity 70), `looper.c` (RECORD/REPLAY/knob press: a looper
+  that starts at the first note; with the beat on (`looper_set_grid`, from main
+  every scan) it starts on that note's bar line and rounds to whole bars, a late
+  RECORD's notes are dropped; RECORD while playing adds a layer (up to 4, keys on
+  channels 3-6 each with its instrument, drums on 10), the knob's press undoes
+  one (2026-11-03); RESET erases it), `rhythm.c` (SELECT: a drum
   beat per style button, one bar of `x`/`X`/`.` steps per drum, switches at the
   bar line, velocity 70, not recorded by the looper). They send through
   `midi_out.h`'s callback. The line-pair finder that mapped the grid is in git (`233c8c3`).
@@ -384,7 +387,8 @@ FluidSynth+PipeWire at 64 samples 3-5); the user finds it fine. Since
 not yet judged by ear.
 - Done 2026-10-13: the board was reseated and all 32 keys play with a normal
   press (key 20 feels a bit off). Recheck if keys go hard again.
-- Looper (RECORD/REPLAY) done 2026-10-13, checked on the toy. No overdub yet.
+- Looper (RECORD/REPLAY) done 2026-10-13, checked on the toy. In time with the beat and
+  with layers (overdub) since 2026-11-03: host-tested and flashed, not yet tried by the user.
 - SELECT drum beats done 2026-10-13, checked on the toy (sequence on the PC
   side; the user listened: fine). TEMPO+/- stay octave, each beat has a fixed
   tempo. A loop recorded over a beat isn't lined up with it (could come later).
