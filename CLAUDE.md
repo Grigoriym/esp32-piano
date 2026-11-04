@@ -561,12 +561,15 @@ Open items:
   code, 2026-11-03, not reported by the user). The song plans use REPLAY for the
   breakdown so the beat never stops. A fix: start the beat at the loop's next bar line
   (the looper would keep its bar length).
-- **Pot 3 (keys, D34) reads noisy** (2026-11-04): at rest it changed ~27 times a second
-  over 102-110 while pots 1 and 2 stayed still (the jitter kept the LED bar up: 7 white,
-  the 7th blinking). Reseating its wires helped only partly (~15 a second, 91-106).
-  Next test, asked and not done: swap the bodies of pots 1 and 3, wires left in place;
-  if the noise follows the pot it's the pot, else D34's wiring. Check by the count of
-  `POT` lines in `build-host/toy-serial.log` over 10 s, hands off.
+- **Pots jitter at rest, then stopped** (2026-11-04): not one bad pot. Pots 1 and 2 left
+  mid-travel both jumped ~7 levels (pot 2 ~18 changes a second, 86-95); a pot turned to an
+  end reads steady (clamped), which is why only pot 3 looked noisy at first. The jitter kept
+  the LED bar up for good (no beat count). Not the LED strip (V unplugged: same jitter).
+  Then the bridge lost the cable for ~3 min (20:57, `cable: gone`), the board restarted and
+  came back garbled (service restart fixed it); since then every pot is still, with or
+  without the beat and a loop playing (not WiFi load either). Guess, not proven: a bad USB
+  contact making 3V3 noisy. If the bar sticks again: count `POT` lines over 10 s, hands
+  off, then wiggle the USB plug. A 1 uF cap is on pot 2's wiper to GND (left in, harmless).
 - The 2026-11-03 cable/WiFi winner flips and the 94 ms slow key: not seen again with the
   cable clean (2026-11-04, only `the cable` won); the 2-minute lookup stall
   explains slow keys like it. Closed unless they come back.
