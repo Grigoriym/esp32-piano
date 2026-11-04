@@ -136,9 +136,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `sendto` used to hold up the scan loop, the beat and the cable copy. Stall logs: the toy
   prints `SCAN  stalled X ms` / `WiFi send blocked X ms`, the bridge `bridge busy`,
   `bridge woke ... late`, `late: ... over the cable|WiFi` and `its other copy came X ms
-  after`. Measured 2026-11-04: what's left (~1 burst in 2 min, 100-270 ms) arrives over
-  the cable and WiFi at the same instant, the toy's loop on time, the bridge awake, a
-  sleep probe on the PC not stalled: the PC's kernel delivers both late. Cause not found.
+  after`. **Root cause of the last hiccups (2026-11-04):** the bridge looked up
+  `chicco-piano.local` once a second inside its main loop; every ~2 min the mDNS cache
+  entry runs out and the lookup blocks 220-290 ms, so nothing was read or played (both
+  paths late together, a burst every ~122 s). The lookup now runs in its own thread;
+  after that the lookups were still slow at the 2-min marks and nothing came late, and
+  the user heard no hiccups. Never block in the bridge's main loop.
 - `tools/piano_bridge.c` (PC, links `-lasound`): owns the ALSA port
   "Chicco Piano" (stays while it runs, toy on or off), says HELLO, drops the
   copies. `tools/pc_synth.sh` builds it into `build-host/`, starts it with

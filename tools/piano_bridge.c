@@ -12,7 +12,7 @@
  * message comes first plays. The toy's log lines on the cable go to
  * build-host/toy-serial.log. The port is held exclusively: stop this to flash.
  *
- * Build: gcc -O2 -Wall -o build-host/piano_bridge tools/piano_bridge.c -lasound
+ * Build: gcc -O2 -Wall -o build-host/piano_bridge tools/piano_bridge.c -lasound -lpthread
  * Usage: piano_bridge [host [serial port]]   (default chicco-piano.local, no cable)
  */
 #define _GNU_SOURCE /* ppoll */
@@ -20,6 +20,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <poll.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -135,6 +136,31 @@ static void play_due(snd_seq_t *seq, int port, snd_midi_event_t *parser)
         play(seq, port, parser, pending[first].msg, pending[first].len);
         pending[first] = pending[--n_pending];
     }
+}
+
+/* The toy's address, looked up in a thread of its own: when the mDNS cache entry
+ * runs out (~every 2 min) a lookup waits ~250-290 ms on the network, and in the
+ * main loop that held up everything, cable included (measured 2026-11-04). */
+static pthread_mutex_t found_lock = PTHREAD_MUTEX_INITIALIZER;
+static struct sockaddr_in found_addr;
+static bool found_any;
+
+static bool resolve(const char *host, struct sockaddr_in *out);
+
+static void *resolve_thread(void *arg)
+{
+    const char *host = arg;
+    while (true) {
+        struct sockaddr_in a;
+        if (resolve(host, &a)) { /* each time: the toy's IP may change */
+            pthread_mutex_lock(&found_lock);
+            found_addr = a;
+            found_any = true;
+            pthread_mutex_unlock(&found_lock);
+        }
+        sleep(1);
+    }
+    return NULL;
 }
 
 static bool resolve(const char *host, struct sockaddr_in *out)
@@ -302,20 +328,19 @@ int main(int argc, char **argv)
     int last_via = 0;
     int64_t polled = now_us(); /* when the last wait ended: the loop's own work is timed from it */
 
+    pthread_t resolver;
+    pthread_create(&resolver, NULL, resolve_thread, (void *)host);
     printf("bridge up, looking for %s\n", host);
     while (true) {
-        int64_t busy = now_us() - polled;
-        if (busy > STALL_US) { /* the bridge itself held everything up */
-            printf("bridge busy %lld ms\n", (long long)busy / 1000);
-        }
         double t = now_s();
         if (t >= next_hello) {
             next_hello = t + 1.0;
-            struct sockaddr_in found;
-            if (resolve(host, &found)) { /* each time: the toy's IP may change */
-                toy = found;
+            pthread_mutex_lock(&found_lock);
+            if (found_any) {
+                toy = found_addr;
                 have_toy = true;
             }
+            pthread_mutex_unlock(&found_lock);
             if (have_toy) {
                 sendto(sock, "HELLO", 5, 0, (struct sockaddr *)&toy, sizeof(toy));
             }
@@ -340,6 +365,10 @@ int main(int argc, char **argv)
         if (wait < 0) wait = 0;
         struct timespec timeout = {.tv_sec = wait / 1000000, .tv_nsec = (wait % 1000000) * 1000};
         struct pollfd pfd[2] = {{.fd = sock, .events = POLLIN}, {.fd = ser, .events = POLLIN}};
+        int64_t busy = now_us() - polled; /* the whole pass since the last wait */
+        if (busy > STALL_US) {            /* the bridge itself held everything up */
+            printf("bridge busy %lld ms\n", (long long)busy / 1000);
+        }
         int64_t wake_by = now_us() + wait;
         int ready = ppoll(pfd, ser >= 0 ? 2 : 1, &timeout, NULL);
         polled = now_us();

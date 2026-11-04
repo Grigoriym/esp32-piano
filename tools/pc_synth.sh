@@ -15,7 +15,7 @@ CABLE=${CABLE:-/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Cont
 
 if [ ! -x build-host/piano_bridge ] || [ tools/piano_bridge.c -nt build-host/piano_bridge ]; then
     mkdir -p build-host
-    gcc -O2 -Wall -o build-host/piano_bridge tools/piano_bridge.c -lasound || exit 1
+    gcc -O2 -Wall -o build-host/piano_bridge tools/piano_bridge.c -lasound -lpthread || exit 1
 fi
 
 CAT=build-host/cat.sf2
