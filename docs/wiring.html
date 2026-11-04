@@ -205,7 +205,8 @@ header("knob", [["CLK", "D18", "knob"], ["DT", "D19", "knob"], ["SW", "D23", "kn
 // end to 3V3 should make clockwise louder; if it's the other way, swap the two ends.
 [["pot1", "D32", "beat"], ["pot2", "D33", "the newest loop layer"], ["pot3", "D34", "the live keys"]].forEach(([id, pin, what]) =>
   header(id, [["left end", "−rail", "gnd"], ["wiper", pin, "pot"], ["right end", "+rail", "power"]],
-    [`Sets the loudness of ${what}.`, "Clockwise the wrong way? Swap the two ends."]));
+    [`Sets the loudness of ${what}.`, "Clockwise the wrong way? Swap the two ends.",
+     ...(id === "pot2" ? ["1 µF from the wiper to the left end (GND), stripe on GND (test, 2026-11-04)."] : [])]));
 
 // The LED strip's IN side (the OUT side chains more strips: leave it empty).
 header("strip", [["S", "TX2", "led"], ["V", "+rail", "power"], ["G", "−rail", "gnd"]],

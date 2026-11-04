@@ -120,7 +120,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `leds.c` (pure) + `strip.c` (RMT, WS2812 on TX2, channels capped at 24/255 on 3V3):
   LEDs 1-4 the layers in cyan/magenta/yellow/orange (pot 2's brighter, recording blinks
   red), 5-8 the beat's count; a pot turned shows its level as a bar for 1.5 s. All 3 pots
-  read 0-127 over their travel, steady at rest (2026-11-04).
+  read 0-127 over their travel (2026-11-04); mid-travel they can jitter, see Open items.
   `chord.c` (pure) names the held keys for `ui.c`'s Play screen; `FONT_BIG`
   (`tools/gen_font.py`, ASCII only) is its big chord name.
 - `main/wifi.c` (from mukklet, power save off: it holds packets up to a
@@ -236,7 +236,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - **The cable can come up garbled**: 2026-11-04 the bridge read only junk (mostly 0xF8)
   for a whole session, so everything went over WiFi (`playing what comes over WiFi`,
   never `the cable`) and WiFi stalls made the hiccups. A reset of the board (a pyserial
-  open) and a service restart fixed it; cause unknown, not reproduced. Check
+  open) and a service restart fixed it; cause unknown. Again 2026-11-04 ~21:00: the bridge
+  logged `cable: gone`, ~3 min later the cable reopened while the board restarted, and it
+  read junk until a `systemctl --user restart chicco-piano` (no board reset needed). Check
   `build-host/toy-serial.log` is readable text.
 - **The service holds the toy's serial port (exclusive) since 2026-11-03: stop it to
   flash or capture** (`systemctl --user stop chicco-piano`, then start it again).
@@ -570,6 +572,9 @@ Open items:
   without the beat and a loop playing (not WiFi load either). Guess, not proven: a bad USB
   contact making 3V3 noisy. If the bar sticks again: count `POT` lines over 10 s, hands
   off, then wiggle the USB plug. A 1 uF cap is on pot 2's wiper to GND (left in, harmless).
+  The log has no timestamps: take a window by byte offset (`stat -c %s`, `timeout 10 tail -f`,
+  then `tail -c +offset | grep -a POT`). Not fixed, by choice: every level change restarts
+  the LED bar's 1.5 s, so one jittering pot hides the beat count for good.
 - The 2026-11-03 cable/WiFi winner flips and the 94 ms slow key: not seen again with the
   cable clean (2026-11-04, only `the cable` won); the 2-minute lookup stall
   explains slow keys like it. Closed unless they come back.
