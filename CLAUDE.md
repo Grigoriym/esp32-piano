@@ -219,7 +219,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - **The four checks** (from mukklet, `FIRMWARE_PLAYBOOK.md`): `tools/test.sh`
   (host tests in `test/`, gcc + ASan/UBSan, Unity from `$IDF_PATH`),
   `tools/format.sh --check`, `tools/lint.sh` (clang-tidy, its own
-  `build/clang` tree), `tools/size_check.sh` (35% flash free, 2026-10-30). Format and lint only see git-tracked files: `git add` new
+  `build/clang` tree), `tools/size_check.sh` (33% flash free, 2026-11-04). Format and lint only see git-tracked files: `git add` new
   ones first. `tools/test.sh` runs one binary per test file and exits 1 on any
   failure: judge it by its exit code, not `| tail` (2026-10-25/26 a `tail` showed
   the last file's OK and hid two `test_matrix` failures until CI caught them;
@@ -429,6 +429,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
+**State 2026-11-04 (end of session):** the hiccups are gone (root cause: the bridge's
+blocking mDNS lookup, see the MIDI-link notes). New: 3 pots as a mixer and the 8-LED
+strip (wired, flashed, every pot reads its full range). Not yet tried by ear: the beat and
+keys pots while playing, pot 2 on layers and its pick-up after an undo. Open: pot 3's
+noise (Open items). The amp is off the wiring doc (not used).
+
 **State 2026-11-03 (end of session):** the toy is a small groovebox now: EDM mode on
 DISCO (four on the floor) and MARCH (breakbeat), both 124 bpm, keys in A minor, the
 synth drum kit; the looper keeps time with the beat and stacks 4 layers (knob press =
@@ -555,11 +561,15 @@ Open items:
   code, 2026-11-03, not reported by the user). The song plans use REPLAY for the
   breakdown so the beat never stops. A fix: start the beat at the loop's next bar line
   (the looper would keep its bar length).
-- With the cable in, the bridge's winner flips between cable and WiFi every few
-  seconds (`playing what comes over ...`), and one live key came 94 ms slow
-  (2026-11-03 21:52). Cause not known. Candidates: log text queued ahead of a frame in
-  the UART's TX buffer (every MIDI message is also a log line), USB read batching.
-  Measure before changing anything (e.g. a run with the MIDI log lines off).
+- **Pot 3 (keys, D34) reads noisy** (2026-11-04): at rest it changed ~27 times a second
+  over 102-110 while pots 1 and 2 stayed still (the jitter kept the LED bar up: 7 white,
+  the 7th blinking). Reseating its wires helped only partly (~15 a second, 91-106).
+  Next test, asked and not done: swap the bodies of pots 1 and 3, wires left in place;
+  if the noise follows the pot it's the pot, else D34's wiring. Check by the count of
+  `POT` lines in `build-host/toy-serial.log` over 10 s, hands off.
+- The 2026-11-03 cable/WiFi winner flips and the 94 ms slow key: not seen again with the
+  cable clean (2026-11-04, only `the cable` won); the 2-minute lookup stall
+  explains slow keys like it. Closed unless they come back.
 - FluidSynth renders #1 at `pc_synth.sh`'s gain 1.0 ~9 dB over full scale; whether the
   live output clips too isn't checked (`render_riffs.py` uses 0.3).
 - No way to save a loop on the toy: a song is captured on the PC (`songs/README.md`)
