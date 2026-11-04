@@ -41,6 +41,8 @@
 #define WINDOW_US      5000000 /* clock offset: the fastest packet of the last 5 s (clocks drift) */
 #define RESET_US       1000000 /* an offset this far off: the toy restarted */
 #define SLOW_KEY_US    30000   /* a live key this much slower than the fastest packets is logged */
+#define LATE_KEPT      16      /* late messages whose other copy is watched for */
+#define STALL_US       20000   /* the bridge's own loop held up this long is logged */
 
 static double now_s(void)
 {
@@ -262,6 +264,13 @@ static int serial_feed(serial_parser_t *p, uint8_t c)
     return sum == p->buf[len] ? len : 0;
 }
 
+typedef struct {
+    uint16_t seq;
+    int64_t at; /* 0: free */
+} late_t;
+static late_t late_seq[LATE_KEPT];
+static int late_next;
+
 int main(int argc, char **argv)
 {
     const char *host = argc > 1 ? argv[1] : "chicco-piano.local";
@@ -291,9 +300,14 @@ int main(int argc, char **argv)
     bool have_toy = false;
     double next_hello = 0, last_data = -10;
     int last_via = 0;
+    int64_t polled = now_us(); /* when the last wait ended: the loop's own work is timed from it */
 
     printf("bridge up, looking for %s\n", host);
     while (true) {
+        int64_t busy = now_us() - polled;
+        if (busy > STALL_US) { /* the bridge itself held everything up */
+            printf("bridge busy %lld ms\n", (long long)busy / 1000);
+        }
         double t = now_s();
         if (t >= next_hello) {
             next_hello = t + 1.0;
@@ -326,7 +340,12 @@ int main(int argc, char **argv)
         if (wait < 0) wait = 0;
         struct timespec timeout = {.tv_sec = wait / 1000000, .tv_nsec = (wait % 1000000) * 1000};
         struct pollfd pfd[2] = {{.fd = sock, .events = POLLIN}, {.fd = ser, .events = POLLIN}};
+        int64_t wake_by = now_us() + wait;
         int ready = ppoll(pfd, ser >= 0 ? 2 : 1, &timeout, NULL);
+        polled = now_us();
+        if (polled - wake_by > STALL_US) { /* the PC didn't run the bridge in time */
+            printf("bridge woke %lld ms late\n", (long long)(polled - wake_by) / 1000);
+        }
         play_due(seq, port, parser);
         if (ready <= 0) {
             continue;
@@ -369,7 +388,16 @@ int main(int argc, char **argv)
             int64_t arrived = now_us();
             /* Every copy is a clock sample. */
             int64_t sent = clock_map((uint32_t)buf[2] << 24 | buf[3] << 16 | buf[4] << 8 | buf[5], arrived);
-            if (is_copy((uint16_t)(buf[0] << 8 | buf[1]))) {
+            uint16_t sq = (uint16_t)(buf[0] << 8 | buf[1]);
+            if (is_copy(sq)) {
+                /* A late one's other copy: together = the PC held both, much later = the cable was fine */
+                for (int i = 0; i < LATE_KEPT; i++) {
+                    if (late_seq[i].at && late_seq[i].seq == sq) {
+                        printf("  its other copy came %lld ms after (seq %u)\n",
+                               (long long)(arrived - late_seq[i].at) / 1000, sq);
+                        late_seq[i].at = 0;
+                    }
+                }
                 continue;
             }
             int via = k < n_cable ? 1 : 2; /* which way this one came first */
@@ -393,8 +421,11 @@ int main(int argc, char **argv)
             }
             int64_t at = sent + delay;
             if (at <= arrived) { /* the head start wasn't enough: plays now, late */
-                printf("late: %lld ms after its time (ch %d %s %d)\n", (long long)(arrived - at) / 1000,
-                       (msg[0] & 15) + 1, note_on ? "note" : "msg", len > 1 ? msg[1] : 0);
+                printf("late: %lld ms after its time (ch %d %s %d, over %s)\n",
+                       (long long)(arrived - at) / 1000, (msg[0] & 15) + 1, note_on ? "note" : "msg",
+                       len > 1 ? msg[1] : 0, via == 1 ? "the cable" : "WiFi");
+                late_seq[late_next] = (late_t){sq, arrived};
+                late_next = (late_next + 1) % LATE_KEPT;
             }
             if (at <= arrived || n_pending == PENDING) {
                 play(seq, port, parser, msg, len);

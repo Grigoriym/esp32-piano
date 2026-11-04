@@ -7,12 +7,15 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 #include "freertos/task.h"
 #include "lwip/sockets.h"
 #include "mdns.h"
 
 #define HELLO_TIMEOUT_US 3000000LL
 #define COPIES           2
+#define WIFI_QUEUE       64    /* packets waiting for the WiFi sender */
+#define WIFI_SLOW_US     20000 /* a sendto this slow is logged */
 
 static const char *TAG = "midi_link";
 
@@ -22,6 +25,13 @@ static int64_t last_hello_us;   /* 0: never */
 static int sock = -1;           /* replies go out from the HELLO port too: the PC's
                        * firewall only lets them in as replies */
 static uint16_t seq;
+typedef struct {
+    struct sockaddr_in to;
+    uint8_t len;
+    uint8_t pkt[11];
+} wifi_pkt_t;
+static QueueHandle_t wifi_queue;     /* the scan never waits on WiFi: a stall there held up the beat */
+static uint32_t wifi_dropped;        /* packets the full queue turned away */
 static int64_t last_serial_hello_us; /* 0: never; the bridge on the USB cable */
 
 #define SERIAL_UART UART_NUM_0 /* the console: frames go between the log lines */
@@ -79,6 +89,29 @@ static void serial_send(const uint8_t *pkt, size_t len)
     uart_write_bytes(SERIAL_UART, frame, 3 + len); /* one call: no log text inside it */
 }
 
+/* Sends what midi_link_send_at queued; sendto can block for a long time while
+ * WiFi stalls, and only this task waits then. */
+static void wifi_send_task(void *param)
+{
+    wifi_pkt_t p;
+    while (true) {
+        if (xQueueReceive(wifi_queue, &p, portMAX_DELAY) != pdTRUE) continue;
+        int64_t t = esp_timer_get_time();
+        for (int i = 0; i < COPIES; i++) {
+            sendto(sock, p.pkt, p.len, 0, (struct sockaddr *)&p.to, sizeof(p.to));
+        }
+        int64_t took = esp_timer_get_time() - t;
+        if (took > WIFI_SLOW_US) {
+            ESP_LOGW(TAG, "WiFi send blocked %lld ms", took / 1000);
+        }
+        taskENTER_CRITICAL(&lock);
+        uint32_t dropped = wifi_dropped;
+        wifi_dropped = 0;
+        taskEXIT_CRITICAL(&lock);
+        if (dropped) ESP_LOGW(TAG, "WiFi queue full: %lu packets not sent", (unsigned long)dropped);
+    }
+}
+
 static void hello_task(void *param)
 {
     char buf[16];
@@ -121,6 +154,8 @@ void midi_link_init(const char *hostname)
         return;
     }
     xTaskCreate(hello_task, "midi_hello", 3072, NULL, 5, NULL);
+    wifi_queue = xQueueCreate(WIFI_QUEUE, sizeof(wifi_pkt_t));
+    xTaskCreate(wifi_send_task, "midi_wifi", 3072, NULL, 4, NULL);
 }
 
 static bool wifi_connected(void)
@@ -172,7 +207,13 @@ void midi_link_send_at(const uint8_t *msg, size_t len, int64_t at_us)
     /* Both ways when both are up, the same sequence number: the bridge plays
      * whichever comes first (the cable) and drops the rest. */
     if (cable) serial_send(pkt, 8 + len);
-    for (int i = 0; wifi && i < COPIES; i++) {
-        sendto(sock, pkt, 8 + len, 0, (struct sockaddr *)&to, sizeof(to));
+    if (wifi && wifi_queue) {
+        wifi_pkt_t p = {.to = to, .len = (uint8_t)(8 + len)};
+        memcpy(p.pkt, pkt, 8 + len);
+        if (xQueueSend(wifi_queue, &p, 0) != pdTRUE) {
+            taskENTER_CRITICAL(&lock);
+            wifi_dropped++;
+            taskEXIT_CRITICAL(&lock);
+        }
     }
 }

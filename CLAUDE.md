@@ -132,6 +132,13 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   over the cable|WiFi` when that changes. Either works alone. The toy's log lines
   then go to `build-host/toy-serial.log` (truncated at each service start). Lead raised to 150 ms on 2026-11-03: at
   60 ms, 4-26 of ~2000 timed messages a minute came late.
+  2026-11-04: the WiFi send has its own task and queue (`midi_link.c`): a blocking
+  `sendto` used to hold up the scan loop, the beat and the cable copy. Stall logs: the toy
+  prints `SCAN  stalled X ms` / `WiFi send blocked X ms`, the bridge `bridge busy`,
+  `bridge woke ... late`, `late: ... over the cable|WiFi` and `its other copy came X ms
+  after`. Measured 2026-11-04: what's left (~1 burst in 2 min, 100-270 ms) arrives over
+  the cable and WiFi at the same instant, the toy's loop on time, the bridge awake, a
+  sleep probe on the PC not stalled: the PC's kernel delivers both late. Cause not found.
 - `tools/piano_bridge.c` (PC, links `-lasound`): owns the ALSA port
   "Chicco Piano" (stays while it runs, toy on or off), says HELLO, drops the
   copies. `tools/pc_synth.sh` builds it into `build-host/`, starts it with
@@ -214,6 +221,11 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - Firmware: ESP-IDF in C, like the siblings. No Arduino.
 
 ### Traps found here
+- **The cable can come up garbled**: 2026-11-04 the bridge read only junk (mostly 0xF8)
+  for a whole session, so everything went over WiFi (`playing what comes over WiFi`,
+  never `the cable`) and WiFi stalls made the hiccups. A reset of the board (a pyserial
+  open) and a service restart fixed it; cause unknown, not reproduced. Check
+  `build-host/toy-serial.log` is readable text.
 - **The service holds the toy's serial port (exclusive) since 2026-11-03: stop it to
   flash or capture** (`systemctl --user stop chicco-piano`, then start it again).
   esptool then fails with a busy port instead of garbage. The bridge opens the port

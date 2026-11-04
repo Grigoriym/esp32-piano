@@ -69,6 +69,7 @@
 #define WIFI_TIMEOUT_MS 10000 /* boot waits this long, then scans anyway */
 #define SETTLE_US       50    /* pull-up (100k) against the toy's wiring */
 #define SCAN_PERIOD_MS  2
+#define SCAN_STALL_US   20000 /* a scan pass this late is logged */
 
 static keymap_t keymap;
 static demo_t demo;
@@ -276,7 +277,13 @@ void app_main(void)
     groove_init(&groove);
     grid_t now;
     grid_t prev;
+    int64_t last_pass = esp_timer_get_time();
     while (true) {
+        int64_t pass = esp_timer_get_time();
+        if (pass - last_pass > SCAN_STALL_US) { /* the beat and keys waited this long */
+            printf("SCAN  stalled %lld ms\n", (long long)(pass - last_pass) / 1000);
+        }
+        last_pass = pass;
         scan(now);
         /* The beat's bar lines, for a loop in time with it. */
         if (rhythm.on) {
