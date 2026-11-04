@@ -2,6 +2,7 @@
 
 #include "keymap.h"
 #include "looper.h"
+#include "mixer.h"
 #include "midi_rec.h"
 #include "unity.h"
 
@@ -86,6 +87,25 @@ static void test_a_note_held_at_the_end_stops_there(void)
     size_t start = rec.n;
     run(2000000, 3000000);
     TEST_ASSERT_EQUAL(1, count(start, 0x80 | LOOP_CH, 60));
+}
+
+/* A layer plays at its level (pot 2): velocities scaled, nothing at 0. */
+static void test_a_layer_plays_at_its_level(void)
+{
+    record_one_note();
+    l.gain[0] = 64;
+    size_t start = rec.n;
+    run(3000000, 3000000);
+    TEST_ASSERT_EQUAL(1, count(start, 0x90 | LOOP_CH, 60));
+    for (size_t i = start; i < rec.n; i++) {
+        if (rec.e[i].msg[0] == (0x90 | LOOP_CH))
+            TEST_ASSERT_EQUAL(mixer_scale(VELOCITY, 64), rec.e[i].msg[2]);
+    }
+    l.gain[0] = 0;
+    start = rec.n;
+    run(3001000, 5000000); /* the next pass */
+    TEST_ASSERT_EQUAL(0, count(start, 0x90 | LOOP_CH, 60));
+    TEST_ASSERT_EQUAL(1, count(start, 0x80 | LOOP_CH, 60)); /* its note off still goes */
 }
 
 static void test_drums_stay_drums(void)
@@ -394,6 +414,7 @@ int main(void)
     RUN_TEST(test_keys_replay_on_the_loop_channel_with_their_instrument);
     RUN_TEST(test_the_loop_repeats);
     RUN_TEST(test_a_note_held_at_the_end_stops_there);
+    RUN_TEST(test_a_layer_plays_at_its_level);
     RUN_TEST(test_drums_stay_drums);
     RUN_TEST(test_a_release_from_before_recording_is_not_stored);
     RUN_TEST(test_other_messages_are_not_stored);

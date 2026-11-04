@@ -1,0 +1,39 @@
+/*
+ * What the 8 WS2812 LEDs show. Pure (no ESP-IDF), host-tested; main.c sends
+ * the colours out.
+ *
+ * LEDs 1-4: the loop's layers, each in its colour (cyan, magenta, yellow,
+ * orange), the one pot 2 sets brighter; the layer being recorded blinks red,
+ * a RECORD waiting for its first note blinks LED 1 slowly. Dim while the loop
+ * is stopped.
+ * LEDs 5-8: the beat's count in the bar, green, beat 1 brighter.
+ * A pot just turned (LEDS_POT_SHOW_US): all 8 show its level as a bar in its
+ * colour (beat green, a layer its own, keys white); blinking while pot 2 has
+ * yet to pick its layer up.
+ */
+#pragma once
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#define LEDS_N           8
+#define LEDS_MAX         24 /* brightest a channel gets: the strip runs on the DevKit's 3V3 */
+#define LEDS_POT_SHOW_US 1500000
+
+typedef struct {
+    int64_t now_us;
+    int beat_step; /* the step sounding now; -1: no beat */
+    int steps_per_beat;
+    int layers;          /* in the loop, the one being recorded included */
+    int recording_layer; /* -1: none */
+    bool armed;          /* RECORD pressed, waiting for the first note */
+    bool loop_playing;
+    int target;     /* the layer pot 2 sets; -1: none */
+    int pot;        /* the pot shown as a bar (0 beat, 1 layer, 2 keys); -1: none */
+    int level;      /* its part's level, 0-127 */
+    bool following; /* false: pot 2 hasn't picked its layer up yet */
+} leds_state_t;
+
+typedef uint8_t leds_t[LEDS_N][3]; /* R, G, B */
+
+void leds_draw(const leds_state_t *s, leds_t out);

@@ -112,6 +112,15 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   the beat's bar as steps with a running column, its first two drums, the player's
   presses green within 30 ms of a step or orange, an early/late meter); main feeds it
   the beat grid and key presses.
+  `mixer.c` (pure, 2026-11-04): the 3 pots (ADC1, read every 10 ms, smoothed, hysteresis
+  tested against +-20 counts) scale note-on velocities: pot 1 the beat, pot 2 the newest
+  loop layer (a new layer takes the pot's level; after an undo the older layer keeps its
+  level until the pot crosses it), pot 3 the live keys; level 0 drops the note on. The
+  looper records unscaled. VOLUME +/- stays the master (CC7). Serial: `POT   beat|layer|keys N`.
+  `leds.c` (pure) + `strip.c` (RMT, WS2812 on TX2, channels capped at 24/255 on 3V3):
+  LEDs 1-4 the layers in cyan/magenta/yellow/orange (pot 2's brighter, recording blinks
+  red), 5-8 the beat's count; a pot turned shows its level as a bar for 1.5 s. All 3 pots
+  read 0-127 over their travel, steady at rest (2026-11-04).
   `chord.c` (pure) names the held keys for `ui.c`'s Play screen; `FONT_BIG`
   (`tools/gen_font.py`, ASCII only) is its big chord name.
 - `main/wifi.c` (from mukklet, power save off: it holds packets up to a
@@ -205,7 +214,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `ABn` → `An`), the 10 kΩ pull-ups gone, all keys checked by the user. Screen (TFT 1.69",
   HSPI: SCL D14, SDA D13, CS D15, RES D5, DC D4, BLK open) works, shows
   `ui.c` (sound, volume, octave, beat, loop, DEMO, PC link); the user checked
-  it. Knob: CLK D18, DT D19, SW D23, + on 3V3. Amp (drawn, not wired on the piano yet): BCK D26, LCK D25, DIN D27.
+  it. Knob: CLK D18, DT D19, SW D23, + on 3V3. Pots (2026-11-04): wipers on D32 (beat), D33 (newest loop layer), D34 (live keys); LED strip data on TX2 (GPIO17), V on 3V3. The amp is off the wiring doc (2026-11-04, not used; it was planned on D26/D25/D27).
 - The BLE-MIDI version (NimBLE, `ble_midi.c`) is in git at `923500c`.
 - **The four checks** (from mukklet, `FIRMWARE_PLAYBOOK.md`): `tools/test.sh`
   (host tests in `test/`, gcc + ASan/UBSan, Unity from `$IDF_PATH`),

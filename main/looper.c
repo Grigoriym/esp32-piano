@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "mixer.h"
+
 void looper_init(looper_t *l)
 {
     int64_t origin = l->grid_origin_us;
@@ -10,6 +12,7 @@ void looper_init(looper_t *l)
     memset(l, 0, sizeof(*l));
     l->grid_origin_us = origin;
     l->grid_bar_us = bar;
+    for (size_t i = 0; i < LOOPER_LAYERS; i++) l->gain[i] = MIXER_LEVEL;
 }
 
 void looper_set_grid(looper_t *l, int64_t origin_us, int64_t bar_us)
@@ -313,7 +316,8 @@ void looper_tick(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
             const looper_event_t *e = &l->ev[l->pos++];
             set_bit(l->sounding[e->msg[0] & 0x0f], e->msg[1], (e->msg[0] & 0xf0) == 0x90 && e->msg[2]);
             l->due_us = l->start_us + e->t_us;
-            send(e->msg, 3, NULL, ctx);
+            uint8_t msg[3];
+            if (mixer_apply(e->msg, 3, l->gain[e->layer], msg)) send(msg, 3, NULL, ctx);
         }
         l->played_us = t;
         if (t < (int64_t)l->length_us) return;

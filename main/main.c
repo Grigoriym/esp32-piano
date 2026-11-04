@@ -14,7 +14,8 @@
  *
  * The pure parts, host-tested (tools/test.sh): matrix.c (debounce, ghosts),
  * keymap.c (names, what each key and button plays), demo.c (DEMO button),
- * looper.c (RECORD / REPLAY), rhythm.c (SELECT: drum beats).
+ * looper.c (RECORD / REPLAY), rhythm.c (SELECT: drum beats), mixer.c (the three
+ * pots: beat, newest layer, live keys), leds.c (the LED strip).
  * MIDI goes out as UDP over WiFi to tools/piano_bridge.c (main/midi_link.h).
  *
  * Output on serial (115200):
@@ -23,6 +24,7 @@
  *   GHOST? <names>  the pressed set contains a rectangle; one of them may be fake
  *   MIDI  <what>   what was sent (or "(not connected)")
  *   KNOB  CW / CCW / PRESS
+ *   POT   beat|layer|keys <level>   a pot turned (0-127)
  * Changes are reported after DEBOUNCE equal scans in a row.
  *
  * The line-pair finder that mapped the grid is in git history (233c8c3).
@@ -35,6 +37,7 @@
 #include "demo.h"
 #include "driver/i2c_master.h"
 #include "encoder.h"
+#include "esp_adc/adc_oneshot.h"
 #include "esp_rom_sys.h"
 #include "esp_system.h"
 #include "esp_timer.h"
@@ -42,11 +45,14 @@
 #include "freertos/task.h"
 #include "groove.h"
 #include "keymap.h"
+#include "leds.h"
 #include "looper.h"
 #include "matrix.h"
 #include "midi_link.h"
+#include "mixer.h"
 #include "rhythm.h"
 #include "screen.h"
+#include "strip.h"
 #include "wifi.h"
 
 /* The MCP23017 (address 0x20: A0-A2 pulled down on the board). IOCON.BANK = 0,
@@ -70,12 +76,24 @@
 #define SETTLE_US       50    /* pull-up (100k) against the toy's wiring */
 #define SCAN_PERIOD_MS  2
 #define SCAN_STALL_US   20000 /* a scan pass this late is logged */
+#define POT_PERIOD_US   10000 /* the pots are read this often */
+#define LEDS_PERIOD_US  20000 /* the strip is redrawn this often (when it changed) */
+
+/* The pots' wipers on ADC1 (ADC2 doesn't work with WiFi on): D32, D33, D34. */
+static const adc_channel_t POT_CH[MIXER_POTS] = {
+    [MIXER_BEAT] = ADC_CHANNEL_4,  /* D32 */
+    [MIXER_LAYER] = ADC_CHANNEL_5, /* D33 */
+    [MIXER_KEYS] = ADC_CHANNEL_6,  /* D34 */
+};
+static const char *const POT_NAME[MIXER_POTS] = {"beat", "layer", "keys"};
 
 static keymap_t keymap;
 static demo_t demo;
 static looper_t looper;
 static rhythm_t rhythm;
 static groove_t groove;
+static mixer_t mixer;
+static adc_oneshot_unit_handle_t adc;
 
 static i2c_master_dev_handle_t mcp;
 
@@ -177,11 +195,96 @@ static void send_at(const uint8_t *msg, size_t len, const char *what, void *ctx)
     if (what) printf("MIDI  %s%s\n", what, midi_link_connected() ? "" : " (not connected)");
 }
 
-/* What keymap sends: also what the looper records. */
+/* The beat, at pot 1's level. */
+static void send_beat(const uint8_t *msg, size_t len, const char *what, void *ctx)
+{
+    uint8_t out[3];
+    if (len == 0 || len > sizeof(out)) { /* nothing to scale */
+        send_at(msg, len, what, ctx);
+        return;
+    }
+    send_at(out, mixer_apply(msg, len, mixer.beat, out), what, ctx);
+}
+
+/* What keymap sends: played at pot 3's level, recorded as played (pot 2 sets
+ * the layer's level). */
 static void send_key(const uint8_t *msg, size_t len, const char *what, void *ctx)
 {
-    send_midi(msg, len, what, ctx);
+    uint8_t out[3];
+    if (len == 0 || len > sizeof(out)) {
+        send_midi(msg, len, what, ctx);
+    } else {
+        send_midi(out, mixer_apply(msg, len, mixer.keys, out), what, ctx);
+    }
     looper_capture(&looper, esp_timer_get_time(), msg, len, keymap.program);
+}
+
+static void pots_init(void)
+{
+    adc_oneshot_unit_init_cfg_t unit = {.unit_id = ADC_UNIT_1};
+    if (adc_oneshot_new_unit(&unit, &adc) != ESP_OK) {
+        printf("pots: no ADC\n");
+        adc = NULL;
+        return;
+    }
+    adc_oneshot_chan_cfg_t ch = {.atten = ADC_ATTEN_DB_12, .bitwidth = ADC_BITWIDTH_12};
+    for (size_t i = 0; i < MIXER_POTS; i++) adc_oneshot_config_channel(adc, POT_CH[i], &ch);
+    mixer_init(&mixer);
+}
+
+static void pots_read(int64_t now)
+{
+    if (!adc) return;
+    for (size_t i = 0; i < MIXER_POTS; i++) {
+        int raw;
+        if (adc_oneshot_read(adc, POT_CH[i], &raw) != ESP_OK) continue;
+        if (mixer_feed(&mixer, (mixer_pot_t)i, raw, now)) {
+            printf("POT   %s %u\n", POT_NAME[i], (unsigned)mixer.pot[i]);
+        }
+    }
+}
+
+/* The LED strip, from the state of the beat, the loop and the pots. */
+static void leds_update(int64_t now)
+{
+    static leds_t last;
+    static bool drawn;
+    leds_state_t s = {
+        .now_us = now,
+        .beat_step = -1,
+        .layers = (int)looper_layers(&looper),
+        .recording_layer = looper.state == LOOPER_RECORDING ? 0
+                           : looper.dubbing                 ? (int)looper.n_layers
+                                                            : -1,
+        .armed = looper.state == LOOPER_ARMED,
+        .loop_playing = looper.state == LOOPER_PLAYING,
+        .target = mixer.target,
+        .pot = -1,
+        .following = true,
+    };
+    if (rhythm.on) {
+        s.beat_step = groove_step(&groove, now);
+        s.steps_per_beat = rhythm_style(rhythm.style)->steps_per_beat;
+    }
+    int64_t latest = 0;
+    for (size_t i = 0; i < MIXER_POTS; i++) {
+        if (mixer.moved_us[i] && now - mixer.moved_us[i] < LEDS_POT_SHOW_US && mixer.moved_us[i] > latest) {
+            latest = mixer.moved_us[i];
+            s.pot = (int)i;
+        }
+    }
+    if (s.pot == MIXER_BEAT) s.level = mixer.beat;
+    if (s.pot == MIXER_KEYS) s.level = mixer.keys;
+    if (s.pot == MIXER_LAYER) {
+        s.level = mixer.target >= 0 ? mixer.layer[mixer.target] : mixer.pot[MIXER_LAYER];
+        s.following = mixer.target < 0 || mixer.attached;
+    }
+    leds_t c;
+    leds_draw(&s, c);
+    if (drawn && memcmp(c, last, sizeof(c)) == 0) return;
+    memcpy(last, c, sizeof(c));
+    drawn = true;
+    strip_show(c);
 }
 
 static ui_screen_t screen_shown;
@@ -262,6 +365,9 @@ void app_main(void)
 {
     mcp_init();
     ESP_ERROR_CHECK(encoder_init());
+    pots_init();
+    esp_err_t strip_err = strip_init();
+    if (strip_err != ESP_OK) printf("LED strip: %s\n", esp_err_to_name(strip_err));
     screen_init();
     wifi_connect(WIFI_TIMEOUT_MS);
     midi_link_init("chicco-piano");
@@ -278,6 +384,8 @@ void app_main(void)
     grid_t now;
     grid_t prev;
     int64_t last_pass = esp_timer_get_time();
+    int64_t next_pots = 0;
+    int64_t next_leds = 0;
     while (true) {
         int64_t pass = esp_timer_get_time();
         if (pass - last_pass > SCAN_STALL_US) { /* the beat and keys waited this long */
@@ -320,7 +428,17 @@ void app_main(void)
         int64_t beat_due = rhythm.next_us;
         demo_tick(&demo, ahead, send_at, &ahead);
         looper_tick(&looper, ahead, send_at, &looper.due_us);
-        rhythm_tick(&rhythm, ahead, send_at, &beat_due);
+        rhythm_tick(&rhythm, ahead, send_beat, &beat_due);
+        if (t >= next_pots) {
+            next_pots = t + POT_PERIOD_US;
+            pots_read(t);
+        }
+        mixer_set_layers(&mixer, looper_layers(&looper));
+        memcpy(looper.gain, mixer.layer, sizeof(looper.gain));
+        if (t >= next_leds) {
+            next_leds = t + LEDS_PERIOD_US;
+            leds_update(t);
+        }
         show(&matrix);
         vTaskDelay(pdMS_TO_TICKS(SCAN_PERIOD_MS));
     }
