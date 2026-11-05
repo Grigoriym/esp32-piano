@@ -578,6 +578,15 @@ Open items:
   time only 55-59 (~15), its hops not at the same moments as pot 2's. A board restart (the user)
   cleared it: pot 2 at 70, 0 changes in 10 s. Twice now a restart ends it; what starts it isn't known.
   The cable came up garbled after that restart (service restart fixed it, see Traps).
+  Later 2026-11-05: back with a loop + beat after turning pots; a reset from the PC (serial_log.py,
+  nobody touching) cleared it too, so not only handling. Beat alone (no loop): no jitter.
+  `tools/pot_watch.py` (background) stamps the log into `build-host/pot-watch.log` and flags
+  `JITTER START/END` (>=5 reversals within 10 levels in 3 s). Caught: 20:19 pot 2 at ~27, ~11 s
+  after a turn, loop + beat on; 20:26 pot 2 87-93 for ~4 s and the other two +-1 at the same
+  moments while the user moved the modules and all wires (then settled). Suspect, not proven:
+  the LED strip's current spikes on the shared 3V3/GND (a WS2812 runs on its data line with V
+  unplugged, so the 2026-11-04 V-only test didn't rule it out). Test when the bar is stuck: pull
+  the strip's V and data both.
   The log has no timestamps: take a window by byte offset (`stat -c %s`, `timeout 10 tail -f`,
   then `tail -c +offset | grep -a POT`). Not fixed, by choice: every level change restarts
   the LED bar's 1.5 s, so one jittering pot hides the beat count for good.
