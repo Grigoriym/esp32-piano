@@ -256,22 +256,22 @@ const PIECES = [
     ],
   },
   {
-    name: '#5 Wobble Drop',
+    name: '#5 Riddim Drop',
     button: 'ROCK', beat: 'DUBSTEP', sound: 'growl', /* ROCK's keys play the growl bass */
-    about: 'Dubstep: a half-time beat at 140 (one huge snare a bar), a crushed, rubbing growl bass, a snare build-up that stops dead, then the drop: short growl hits with a screech on top. On ROCK every key is the growl; the low keys are the heavy ones.',
+    about: 'Riddim, the heavy, repetitive kind of dubstep: a half-time beat at 140 (one huge snare a bar), the crushed growl stuttering on one low note with a hole on the snare, a higher growl answering in that hole, a screech on top, and a snare build-up that stops dead before the drop.',
     bpm: 140,
     bars: 4,
-    chords: ['Am', 'F', 'Dm', 'Em'],
+    chords: ['Am', 'Am', 'Am', 'F'],
     layers: [
       {
-        name: 'Drone', color: 'chords', hand: 'left hand',
-        tip: 'One key held a whole bar: 1, 6, 4, 5. You only press: the detuned voices inside the growl rub against each other, so a held note moves by itself.',
-        notes: '0:1/16 16:6/16 32:4/16 48:5/16',
+        name: 'Riddim', color: 'bass', hand: 'left hand, two fingers on key 1',
+        tip: 'Key 1, short hits in the same stutter every bar: long, gap, two quick, long, then silence on the big snare. After the snare each bar ends differently: four quick 1s, a climb 3 3 3 4 5, four quick 1s again, a fall 6 6 5 5 4 3. Short and tight; the gaps are what makes it heavy.',
+        notes: '0:1/2 3:1/1 4:1/1 6:1/2 10:1/2 12:1/1 13:1/1 14:1/1 15:1/1 16:1/2 19:1/1 20:1/1 22:1/2 26:3/2 28:3/1 29:3/1 30:4/1 31:5/1 32:1/2 35:1/1 36:1/1 38:1/2 42:1/2 44:1/1 45:1/1 46:1/1 47:1/1 48:1/2 51:1/1 52:1/1 54:1/2 58:6/1 59:6/1 60:5/1 61:5/1 62:4/1 63:3/1',
       },
       {
-        name: 'Hits', color: 'bass', hand: 'left hand, or both',
-        tip: 'The drop. Short growl hits around the kick and the big snare (beat 3): mostly key 1, jumping up to 8 on the snare. Bar 4 ends with four fast 8s and a long 15.',
-        notes: '0:1/4 6:1/2 8:8/2 11:1/2 14:4/2 16:1/4 22:1/2 24:6/2 27:5/2 30:3/2 32:1/4 38:1/2 40:8/2 43:1/2 46:4/2 48:1/4 54:1/2 56:8/1 57:8/1 58:8/1 59:8/1 60:15/4',
+        name: 'Answer', color: 'chords', hand: 'right hand',
+        tip: 'In the hole the bass leaves on the snare: two quick notes (8 10) in bars 1 and 3, one longer one in bars 2 (12) and 4 (15). Call and answer.',
+        notes: '8:8/1 9:10/1 24:12/2 40:8/1 41:10/1 56:15/2',
       },
       {
         name: 'Screech', color: 'hook', hand: 'right hand',
@@ -285,10 +285,10 @@ const PIECES = [
       },
     ],
     plan: [
-      ['Intro', 'ROCK, then SELECT: the half-time beat. Hold the Drone notes, one a bar, and listen to them rub.'],
+      ['Intro', 'ROCK, then SELECT: the half-time beat. Play the Answer notes alone over it, to learn where the hole is.'],
       ['Build', 'Pot 1 (beat) down low. Play the Build on the snare pad, faster every bar, and stop dead at the end.'],
-      ['Drop', 'Pot 1 all the way up and RECORD on the drop: play the Hits, RECORD again at the end.'],
-      ['Drop, layer 2', 'RECORD while it plays: the Drone under it, or the Screech on top.'],
+      ['Drop', 'Pot 1 all the way up and RECORD on the drop: play the Riddim, RECORD again at the end.'],
+      ['Drop, layer 2', 'RECORD while it plays: the Answer, then the Screech as a third layer.'],
       ['Breakdown', 'REPLAY: only the beat. Pot 1 down, the Build again.'],
       ['Drop again', 'REPLAY right after the build: the loop slams back in on the next bar line.'],
     ],
