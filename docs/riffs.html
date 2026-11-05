@@ -222,6 +222,39 @@ const PIECES = [
       ['End', 'SELECT stops the drums, REPLAY the loop.'],
     ],
   },
+  {
+    name: '#4 Sunset',
+    button: 'DISCO', beat: 'EDM',
+    about: 'The bright one: C, G, Am, F over four on the floor. A bass that jumps an octave between the kicks, chords on a skipping rhythm and a hook with the same rhythm every bar, moving with the chords.',
+    bpm: 124,
+    bars: 4,
+    chords: ['C', 'G', 'Am', 'F'],
+    layers: [
+      {
+        name: 'Bass', color: 'bass', hand: 'left hand',
+        tip: 'Between the kicks, low then high: the key, then the same note 7 keys up, twice a bar. Keys 3, 7, 8, 6 for the low notes, one per bar.',
+        notes: '2:3/2 6:10/2 10:3/2 14:10/2 18:7/2 22:14/2 26:7/2 30:14/2 34:8/2 38:15/2 42:8/2 46:15/2 50:6/2 54:13/2 58:6/2 62:13/2',
+      },
+      {
+        name: 'Chords', color: 'chords', hand: 'right hand, 3 fingers',
+        tip: 'Four hits a bar on "1", "a", "+", and the "+" of 3: hit, short gap, hit, gap, hit, longer gap, hit. One shape (a key, skip one, a key, skip one, a key) from keys 10, 7, 8, 6.',
+        notes: '0:10+12+14/2 3:10+12+14/2 6:10+12+14/2 10:10+12+14/2 16:7+9+11/2 19:7+9+11/2 22:7+9+11/2 26:7+9+11/2 32:8+10+12/2 35:8+10+12/2 38:8+10+12/2 42:8+10+12/2 48:6+8+10/2 51:6+8+10/2 54:6+8+10/2 58:6+8+10/2',
+      },
+      {
+        name: 'Hook', color: 'hook', hand: 'right hand',
+        tip: 'Same rhythm in bars 1 to 3: long, short, short, long, long, the fourth note always the highest. Bar 4 holds, then climbs to 27 and settles on 26, leading back to the start.',
+        notes: '0:26/4 4:24/2 6:26/2 8:28/4 12:26/4 16:25/4 20:23/2 22:25/2 24:28/4 28:25/4 32:24/4 36:22/2 38:24/2 40:26/4 44:24/4 48:24/6 54:22/2 56:27/4 60:26/4',
+      },
+    ],
+    plan: [
+      ['Intro', 'DISCO, then SELECT. Record the Bass and let it go twice round.'],
+      ['Build', 'Add the Chords as a layer. Pot 1 down a bit for a softer beat, back up for the drop.'],
+      ['Drop', 'Add the Hook as a layer, or play it live over everything.'],
+      ['Breakdown', 'REPLAY: only the drums. Play the Chords alone over them.'],
+      ['Drop again', 'REPLAY: everything is back on the next bar line.'],
+      ['End', 'SELECT stops the drums, REPLAY the loop.'],
+    ],
+  },
 ];
 
 /* Chick pads a layer can use: name -> General MIDI drum note, and where it is. */

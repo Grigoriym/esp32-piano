@@ -191,7 +191,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   piece's `plan` is its song plan). The page opens on a list of the songs; each song
   is its own view (`#<slug>`, e.g. `#2-night-drive`). 2026-11-03: #1 First Drop (bass,
   chords, arpeggio, hook; the clap roll was dropped at the user's ask, pad layers still
-  work) #3 Warehouse (2026-11-05, SLOW ROCK/TECHNO 130 bpm, Am Am Dm Em: a bass rolling on the 16ths after each kick, offbeat stabs, a one-bar hook moved up on bars 3-4) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
+  work) #4 Sunset (2026-11-05, DISCO/EDM, C G Am F: an octave-jumping bass between the kicks, chords on 1, a, +, + of 3, a hook with one rhythm) and #3 Warehouse (2026-11-05, SLOW ROCK/TECHNO 130 bpm, Am Am Dm Em: a bass rolling on the 16ths after each kick, offbeat stabs, a one-bar hook moved up on bars 3-4) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
   its `button` and `beat` (#1 DISCO/EDM, #2 MARCH/BREAKS); the page synth's `BEATS`
   copies main/rhythm.c's patterns (change both), the clips read rhythm.c. After changing a chord or `matrix_diodes`: `tools/check_riff_chords.py`
   (some key sets are held back and would never sound). Its Listen buttons play
