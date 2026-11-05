@@ -69,6 +69,19 @@ static void test_turning_is_followed(void)
     TEST_ASSERT_EQUAL(50, m.moved_us[MIXER_BEAT]);
 }
 
+static void test_a_one_level_hop_is_not_a_turn(void)
+{
+    turn(MIXER_KEYS, 100, 10);
+    int64_t turned = m.moved_us[MIXER_KEYS];
+    turn(MIXER_KEYS, 101, 500);
+    turn(MIXER_KEYS, 99, 600);
+    turn(MIXER_KEYS, 102, 700);
+    TEST_ASSERT_EQUAL(102, m.keys); /* the level follows */
+    TEST_ASSERT_EQUAL(turned, m.moved_us[MIXER_KEYS]);
+    turn(MIXER_KEYS, 103, 800); /* 3 from where it rested */
+    TEST_ASSERT_EQUAL(800, m.moved_us[MIXER_KEYS]);
+}
+
 static void test_a_new_layer_takes_the_pot(void)
 {
     turn(MIXER_LAYER, 50, 10);
@@ -147,6 +160,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_starts_full);
+    RUN_TEST(test_a_one_level_hop_is_not_a_turn);
     RUN_TEST(test_first_reading_sets_the_level_at_once);
     RUN_TEST(test_ends_are_reachable);
     RUN_TEST(test_noise_does_not_flicker);

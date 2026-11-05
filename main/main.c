@@ -77,6 +77,7 @@
 #define SCAN_PERIOD_MS  2
 #define SCAN_STALL_US   20000 /* a scan pass this late is logged */
 #define POT_PERIOD_US   10000 /* the pots are read this often */
+#define POT_READS       8     /* averaged per pot per read (~10 us each) */
 #define LEDS_PERIOD_US  20000 /* the strip is redrawn this often (when it changed) */
 
 /* The pots' wipers on ADC1 (ADC2 doesn't work with WiFi on): D32, D33, D34. */
@@ -236,9 +237,18 @@ static void pots_read(int64_t now)
 {
     if (!adc) return;
     for (size_t i = 0; i < MIXER_POTS; i++) {
-        int raw;
-        if (adc_oneshot_read(adc, POT_CH[i], &raw) != ESP_OK) continue;
-        if (mixer_feed(&mixer, (mixer_pot_t)i, raw, now)) {
+        /* The mean of POT_READS readings: one oneshot read is noisy. */
+        int sum = 0;
+        int n = 0;
+        for (int r = 0; r < POT_READS; r++) {
+            int raw;
+            if (adc_oneshot_read(adc, POT_CH[i], &raw) == ESP_OK) {
+                sum += raw;
+                n++;
+            }
+        }
+        if (!n) continue;
+        if (mixer_feed(&mixer, (mixer_pot_t)i, sum / n, now)) {
             printf("POT   %s %u\n", POT_NAME[i], (unsigned)mixer.pot[i]);
         }
     }

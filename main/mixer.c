@@ -11,7 +11,7 @@ void mixer_init(mixer_t *m)
     memset(m, 0, sizeof(*m));
     m->beat = m->keys = MIXER_LEVEL;
     for (size_t i = 0; i < LOOPER_LAYERS; i++) m->layer[i] = MIXER_LEVEL;
-    for (size_t i = 0; i < MIXER_POTS; i++) m->pot[i] = MIXER_LEVEL;
+    for (size_t i = 0; i < MIXER_POTS; i++) m->pot[i] = m->rest[i] = MIXER_LEVEL;
     m->target = -1;
 }
 
@@ -62,7 +62,15 @@ bool mixer_feed(mixer_t *m, mixer_pot_t pot, int raw, int64_t now_us)
     if (!fresh && !end && d < MIXER_RAW / MIXER_LEVEL / 2 + HYSTERESIS) return false;
     uint8_t old = m->pot[pot];
     m->pot[pot] = (uint8_t)level;
-    if (!fresh) m->moved_us[pot] = now_us ? now_us : 1;
+    /* A turn (shows the LED bar): MIXER_TURN levels from the last one, or an end.
+     * A key press or a WiFi send can tip a resting pot a level (2026-11-05). */
+    int from = level - m->rest[pot];
+    if (fresh) {
+        m->rest[pot] = (uint8_t)level;
+    } else if (from >= MIXER_TURN || from <= -MIXER_TURN || (end && from != 0)) {
+        m->rest[pot] = (uint8_t)level;
+        m->moved_us[pot] = now_us ? now_us : 1;
+    }
     apply(m, pot, old);
     return true;
 }

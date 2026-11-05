@@ -113,7 +113,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   presses green within 30 ms of a step or orange, an early/late meter); main feeds it
   the beat grid and key presses.
   `mixer.c` (pure, 2026-11-04): the 3 pots (ADC1, read every 10 ms, smoothed, hysteresis
-  tested against +-20 counts) scale note-on velocities: pot 1 the beat, pot 2 the newest
+  tested against +-20 counts; each read is the mean of 8; the LED bar only for a move of 3 levels
+  or an end, `MIXER_TURN`: a key press tipped pot 3 a level and lit the bar white, 2026-11-05) scale note-on velocities: pot 1 the beat, pot 2 the newest
   loop layer (a new layer takes the pot's level; after an undo the older layer keeps its
   level until the pot crosses it), pot 3 the live keys; level 0 drops the note on. The
   looper records unscaled. VOLUME +/- stays the master (CC7). Serial: `POT   beat|layer|keys N`.

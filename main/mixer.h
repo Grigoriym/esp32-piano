@@ -20,6 +20,7 @@
 #define MIXER_POTS  3
 #define MIXER_RAW   4095 /* the ADC's full scale */
 #define MIXER_LEVEL 127
+#define MIXER_TURN  3 /* levels a pot must move to count as turned (the LED bar): one-level hops are noise */
 
 typedef enum { MIXER_BEAT, MIXER_LAYER, MIXER_KEYS } mixer_pot_t;
 
@@ -28,6 +29,7 @@ typedef struct {
     bool primed[MIXER_POTS];
     uint8_t pot[MIXER_POTS];      /* where each pot is, 0-127 */
     int64_t moved_us[MIXER_POTS]; /* when it was last turned; 0: not since boot */
+    uint8_t rest[MIXER_POTS];     /* level at the last turn: moved_us needs MIXER_TURN from it */
     uint8_t beat, keys;
     uint8_t layer[LOOPER_LAYERS];
     int target;    /* the layer pot 2 sets; -1: none */
