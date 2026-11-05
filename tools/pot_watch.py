@@ -5,8 +5,8 @@ The toy's log (build-host/toy-serial.log, written by the bridge) has no times.
 This follows it (and starts over when the service truncates it), stamps each
 line, and writes to build-host/pot-watch.log:
   - every POT line and every non-note line (beat, program, RECORD, stalls...),
-  - "JITTER START <pot>" when a pot hops back and forth (>= 5 direction changes
-    within 3 s, all within 10 levels: a hand turning it moves one way, further), with the 40 lines before it,
+  - "JITTER START <pot>" when a pot hops back and forth (>= 6 direction changes
+    within 3 s, all within 6 levels: a hand turning it moves one way, further), with the 40 lines before it,
   - "JITTER END <pot>" after 5 s without a change, and a count once a minute
     while it lasts.
 Bridge lines from journalctl (cable gone/open, which path plays) go in too.
@@ -22,7 +22,7 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG = os.path.join(ROOT, "build-host/toy-serial.log")
 OUT = os.path.join(ROOT, "build-host/pot-watch.log")
-WINDOW_S, REVERSALS, SPAN, QUIET_S = 3.0, 5, 10, 5.0
+WINDOW_S, REVERSALS, SPAN, QUIET_S = 3.0, 6, 6, 5.0
 
 out = open(OUT, "a", buffering=1)
 lock = threading.Lock()

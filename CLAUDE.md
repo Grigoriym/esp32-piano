@@ -581,7 +581,7 @@ Open items:
   Later 2026-11-05: back with a loop + beat after turning pots; a reset from the PC (serial_log.py,
   nobody touching) cleared it too, so not only handling. Beat alone (no loop): no jitter.
   `tools/pot_watch.py` (background) stamps the log into `build-host/pot-watch.log` and flags
-  `JITTER START/END` (>=5 reversals within 10 levels in 3 s). Caught: 20:19 pot 2 at ~27, ~11 s
+  `JITTER START/END` (>=6 reversals within 6 levels in 3 s). Caught: 20:19 pot 2 at ~27, ~11 s
   after a turn, loop + beat on; 20:26 pot 2 87-93 for ~4 s and the other two +-1 at the same
   moments while the user moved the modules and all wires (then settled). Suspect, not proven:
   the LED strip's current spikes on the shared 3V3/GND (a WS2812 runs on its data line with V
