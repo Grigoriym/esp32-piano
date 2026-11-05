@@ -2,6 +2,11 @@
  * What the 8 WS2812 LEDs show. Pure (no ESP-IDF), host-tested; main.c sends
  * the colours out.
  *
+ * Positions below are before the turn: the strip lies in a circle and everything
+ * shows LEDS_TURN LEDs further along it (2: LED 1 below is LED 3 on the strip,
+ * counted from the end the data wire goes into, so the beat is on 7, 8, 1, 2;
+ * the user's pick, 2026-11-05).
+ *
  * LEDs 1-4: the loop's layers, each in its colour (cyan, magenta, yellow,
  * orange), the one pot 2 sets brighter; the layer being recorded blinks red,
  * a RECORD waiting for its first note blinks LED 1 slowly. Dim while the loop
@@ -17,6 +22,7 @@
 #include <stdint.h>
 
 #define LEDS_N           8
+#define LEDS_TURN        2  /* see above */
 #define LEDS_MAX         24 /* brightest a channel gets: the strip runs on the DevKit's 3V3 */
 #define LEDS_POT_SHOW_US 1500000
 

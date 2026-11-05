@@ -15,6 +15,7 @@ static const uint8_t RED[3] = {4, 0, 0};
 
 static void set(leds_t out, int i, const uint8_t c[3], int bright)
 {
+    i = (i + LEDS_TURN) % LEDS_N;
     for (int k = 0; k < 3; k++) out[i][k] = (uint8_t)(c[k] * bright / 4);
 }
 

@@ -13,7 +13,15 @@ void tearDown(void)
 {
 }
 
+/* out at LED i before the turn (leds.h: LEDS_TURN). */
+#define AT(i) out[((i) + LEDS_TURN) % LEDS_N]
+
 static bool lit(int i)
+{
+    return AT(i)[0] || AT(i)[1] || AT(i)[2];
+}
+
+static bool lit_on_strip(int i)
 {
     return out[i][0] || out[i][1] || out[i][2];
 }
@@ -50,13 +58,24 @@ static void test_the_beat_counts_on_leds_5_to_8(void)
     s.beat_step = 0;
     leds_draw(&s, out);
     TEST_ASSERT_TRUE(lit(4));
-    uint8_t first = out[4][1];
+    uint8_t first = AT(4)[1];
     s.beat_step = 9; /* beat 3 */
     leds_draw(&s, out);
     TEST_ASSERT_EQUAL(1, count_lit());
     TEST_ASSERT_TRUE(lit(6));
-    TEST_ASSERT_GREATER_THAN(out[6][1], first); /* beat 1 brighter */
-    TEST_ASSERT_EQUAL(0, out[6][0]);            /* green */
+    TEST_ASSERT_GREATER_THAN(AT(6)[1], first); /* beat 1 brighter */
+    TEST_ASSERT_EQUAL(0, AT(6)[0]);            /* green */
+}
+
+static void test_the_beat_is_on_strip_leds_7_8_1_2(void)
+{
+    s.steps_per_beat = 4;
+    s.beat_step = 0;
+    leds_draw(&s, out);
+    TEST_ASSERT_TRUE(lit_on_strip(6)); /* beat 1: LED 7 */
+    s.beat_step = 12;
+    leds_draw(&s, out);
+    TEST_ASSERT_TRUE(lit_on_strip(1)); /* beat 4: LED 2 */
 }
 
 static void test_layers_in_their_colours_the_target_brighter(void)
@@ -66,9 +85,9 @@ static void test_layers_in_their_colours_the_target_brighter(void)
     s.target = 1;
     leds_draw(&s, out);
     TEST_ASSERT_EQUAL(2, count_lit());
-    TEST_ASSERT_EQUAL(0, out[0][0]); /* cyan */
-    TEST_ASSERT_EQUAL(0, out[1][1]); /* magenta */
-    TEST_ASSERT_GREATER_THAN(out[0][2], out[1][2]);
+    TEST_ASSERT_EQUAL(0, AT(0)[0]); /* cyan */
+    TEST_ASSERT_EQUAL(0, AT(1)[1]); /* magenta */
+    TEST_ASSERT_GREATER_THAN(AT(0)[2], AT(1)[2]);
 }
 
 static void test_a_stopped_loop_is_dim(void)
@@ -76,10 +95,10 @@ static void test_a_stopped_loop_is_dim(void)
     s.layers = 1;
     s.target = 0;
     leds_draw(&s, out);
-    uint8_t stopped = out[0][1];
+    uint8_t stopped = AT(0)[1];
     s.loop_playing = true;
     leds_draw(&s, out);
-    TEST_ASSERT_GREATER_THAN(stopped, out[0][1]);
+    TEST_ASSERT_GREATER_THAN(stopped, AT(0)[1]);
 }
 
 static void test_the_layer_being_recorded_blinks_red(void)
@@ -89,7 +108,7 @@ static void test_the_layer_being_recorded_blinks_red(void)
     s.recording_layer = 1;
     s.now_us = 0;
     leds_draw(&s, out);
-    TEST_ASSERT_TRUE(out[1][0] && !out[1][1] && !out[1][2]);
+    TEST_ASSERT_TRUE(AT(1)[0] && !AT(1)[1] && !AT(1)[2]);
     s.now_us = 130000;
     leds_draw(&s, out);
     TEST_ASSERT_FALSE(lit(1));
@@ -100,7 +119,7 @@ static void test_armed_blinks_led_1(void)
 {
     s.armed = true;
     leds_draw(&s, out);
-    TEST_ASSERT_TRUE(out[0][0]);
+    TEST_ASSERT_TRUE(AT(0)[0]);
     s.now_us = 600000;
     leds_draw(&s, out);
     TEST_ASSERT_FALSE(lit(0));
@@ -135,7 +154,7 @@ static void test_the_layer_bar_is_in_the_layers_colour_and_blinks_until_picked_u
     s.following = false;
     s.now_us = 0;
     leds_draw(&s, out);
-    TEST_ASSERT_TRUE(out[0][0] && out[0][1] && !out[0][2]);
+    TEST_ASSERT_TRUE(AT(0)[0] && AT(0)[1] && !AT(0)[2]);
     s.now_us = 250000;
     leds_draw(&s, out);
     TEST_ASSERT_EQUAL(0, count_lit());
@@ -150,6 +169,7 @@ int main(void)
     RUN_TEST(test_all_dark_with_nothing_going_on);
     RUN_TEST(test_never_brighter_than_the_cap);
     RUN_TEST(test_the_beat_counts_on_leds_5_to_8);
+    RUN_TEST(test_the_beat_is_on_strip_leds_7_8_1_2);
     RUN_TEST(test_layers_in_their_colours_the_target_brighter);
     RUN_TEST(test_a_stopped_loop_is_dim);
     RUN_TEST(test_the_layer_being_recorded_blinks_red);

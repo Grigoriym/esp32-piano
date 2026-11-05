@@ -119,7 +119,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   looper records unscaled. VOLUME +/- stays the master (CC7). Serial: `POT   beat|layer|keys N`.
   `leds.c` (pure) + `strip.c` (RMT, WS2812 on TX2, channels capped at 24/255 on 3V3):
   LEDs 1-4 the layers in cyan/magenta/yellow/orange (pot 2's brighter, recording blinks
-  red), 5-8 the beat's count; a pot turned shows its level as a bar for 1.5 s. All 3 pots
+  red), 5-8 the beat's count (all turned 2 along the strip, `LEDS_TURN`: the strip lies in a circle, the user
+  wanted the beat on strip LEDs 7, 8, 1, 2, 2026-11-05); a pot turned shows its level as a bar for 1.5 s. All 3 pots
   read 0-127 over their travel (2026-11-04); mid-travel they can jitter, see Open items.
   `chord.c` (pure) names the held keys for `ui.c`'s Play screen; `FONT_BIG`
   (`tools/gen_font.py`, ASCII only) is its big chord name.
