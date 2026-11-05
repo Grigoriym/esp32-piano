@@ -177,9 +177,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   piano): DISCO or MARCH (`keymap_is_edm`; MARCH's trumpet and march beat gone, its
   beat is `BREAKS`, a 124 bpm breakbeat, the user's ask; SLOW ROCK since 2026-11-05, beat `TECHNO`, 130 bpm, 16th hats, its 12/8 slow rock and piano gone, RESET still gives piano;
   ROCK since 2026-11-05 too, dubstep: beat `DUBSTEP` 140 bpm half-time (kick 1, snare+clap on 3), keys play the growl bass, program 38
-  from `tools/gen_growl_sf2.py` (the wobble rendered in: one looped one-bar sample per key 1-21, 22 kHz, saw + FM through two formant
-  band-passes moving "oo"->"ah" each 8th at 140, driven, high-passed at 150 Hz, plus a clean sine sub; velocity modulators zeroed so
-  the soft EDM keys are full loudness; the earlier filter-sweep growl was "toy-like", then muddy, "a brown sound"), loaded last by `pc_synth.sh`; its cat is off the
+  from `tools/gen_growl_sf2.py` (voice `reese_square`, the user's pick "E" of an audition of 7 rendered drops: three detuned
+  squares + one an octave up, crushed and driven, one looped one-bar sample per key 1-21 at 22 kHz, a clean sine sub; velocity
+  modulators zeroed so the soft EDM keys are full loudness. Disliked before it: a filter-sweep wobble ("toy-like", then "a brown
+  sound"), a vowel wobble ("I don't like it"); in the audition reese and riddim liked, dive not, metal mixed; the voices stay in the file), loaded last by `pc_synth.sh`; its cat is off the
   button (the user: keep the cat files). `DEFAULT_STYLE` (SELECT before any style button, and after RESET) is BLUES now) makes the keys play only A natural minor (`keymap_key_note`: key 1 =
   A1, 7 keys an octave, key 8 = A2), keys at velocity 55, beat `EDM` 124 bpm four on the floor at
   110/127 (the saw lead drowned the beat twice). Its drums are kit 30 (`EDM_KIT`), built by
@@ -196,7 +197,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   piece's `plan` is its song plan). The page opens on a list of the songs; each song
   is its own view (`#<slug>`, e.g. `#2-night-drive`). 2026-11-03: #1 First Drop (bass,
   chords, arpeggio, hook; the clap roll was dropped at the user's ask, pad layers still
-  work) #5 Wobble Drop (2026-11-05, ROCK/DUBSTEP: a held Wub layer, the drop's growl Hits, a high Screech, a snare-pad Build that stops dead; the user likes "heaviest dubstep drops" and Skrillex; page synth has a `growl` voice for pieces with `sound: 'growl'`; `render_riffs.py` takes each piece's program from its button) and #4 Bunker (2026-11-05, replaced #4 Sunset, which is in git at `e514df5`; SLOW ROCK/TECHNO, the user wanted something heavier, Berlin style, "let's experiment": key 1 rumbling after every kick, then "aggressive": a 16th-note sequence around key 8, a stab on every offbeat, built by layers and pots) and #3 Warehouse (2026-11-05, SLOW ROCK/TECHNO 130 bpm, Am Am Dm Em: a bass rolling on the 16ths after each kick, offbeat stabs, a one-bar hook moved up on bars 3-4) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
+  work) #5 Wobble Drop (2026-11-05, ROCK/DUBSTEP: a held Drone layer, the drop's growl Hits, a high Screech, a snare-pad Build that stops dead; the user likes "heaviest dubstep drops" and Skrillex; page synth has a `growl` voice for pieces with `sound: 'growl'`; `render_riffs.py` takes each piece's program from its button) and #4 Bunker (2026-11-05, replaced #4 Sunset, which is in git at `e514df5`; SLOW ROCK/TECHNO, the user wanted something heavier, Berlin style, "let's experiment": key 1 rumbling after every kick, then "aggressive": a 16th-note sequence around key 8, a stab on every offbeat, built by layers and pots) and #3 Warehouse (2026-11-05, SLOW ROCK/TECHNO 130 bpm, Am Am Dm Em: a bass rolling on the 16ths after each kick, offbeat stabs, a one-bar hook moved up on bars 3-4) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
   its `button` and `beat` (#1 DISCO/EDM, #2 MARCH/BREAKS); the page synth's `BEATS`
   copies main/rhythm.c's patterns (change both), the clips read rhythm.c. After changing a chord or `matrix_diodes`: `tools/check_riff_chords.py`
   (some key sets are held back and would never sound). Its Listen buttons play

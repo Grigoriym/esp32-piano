@@ -258,14 +258,14 @@ const PIECES = [
   {
     name: '#5 Wobble Drop',
     button: 'ROCK', beat: 'DUBSTEP', sound: 'growl', /* ROCK's keys play the growl bass */
-    about: 'Dubstep: a half-time beat at 140 (one huge snare a bar), the growl bass wobbling in 8ths, a snare build-up that stops dead, then the drop: short growl hits with a screech on top. On ROCK every key is the growl; the low keys are the heavy ones.',
+    about: 'Dubstep: a half-time beat at 140 (one huge snare a bar), a crushed, rubbing growl bass, a snare build-up that stops dead, then the drop: short growl hits with a screech on top. On ROCK every key is the growl; the low keys are the heavy ones.',
     bpm: 140,
     bars: 4,
     chords: ['Am', 'F', 'Dm', 'Em'],
     layers: [
       {
-        name: 'Wub', color: 'chords', hand: 'left hand',
-        tip: 'One key held a whole bar: 1, 6, 4, 5. You only press; the wobble comes by itself, in time with the beat if you press on the "1".',
+        name: 'Drone', color: 'chords', hand: 'left hand',
+        tip: 'One key held a whole bar: 1, 6, 4, 5. You only press: the detuned voices inside the growl rub against each other, so a held note moves by itself.',
         notes: '0:1/16 16:6/16 32:4/16 48:5/16',
       },
       {
@@ -285,10 +285,10 @@ const PIECES = [
       },
     ],
     plan: [
-      ['Intro', 'ROCK, then SELECT: the half-time beat. Hold the Wub notes, one a bar, and listen to them wobble.'],
+      ['Intro', 'ROCK, then SELECT: the half-time beat. Hold the Drone notes, one a bar, and listen to them rub.'],
       ['Build', 'Pot 1 (beat) down low. Play the Build on the snare pad, faster every bar, and stop dead at the end.'],
       ['Drop', 'Pot 1 all the way up and RECORD on the drop: play the Hits, RECORD again at the end.'],
-      ['Drop, layer 2', 'RECORD while it plays: the Wub under it, or the Screech on top.'],
+      ['Drop, layer 2', 'RECORD while it plays: the Drone under it, or the Screech on top.'],
       ['Breakdown', 'REPLAY: only the beat. Pot 1 down, the Build again.'],
       ['Drop again', 'REPLAY right after the build: the loop slams back in on the next bar line.'],
     ],
@@ -345,35 +345,32 @@ function saw(n, t, dur, vol) {
   o.connect(f).connect(g).connect(ctx.destination);
   o.start(t); o.stop(t + dur + 0.02);
 }
-/* ROCK's growl, roughly as tools/gen_growl_sf2.py makes it: a saw and a sine,
- * through two band-pass formants that move from "oo" to "ah" and back each 8th
- * (period), driven and high-passed, plus a clean sine sub under it. */
+/* ROCK's growl, roughly as tools/gen_growl_sf2.py makes it: three detuned
+ * squares and one an octave up, driven hard, low-passed, the lows cut, a sine sub. */
 let shaper = null;
-function growl(n, t, dur, vol, period) {
+function growl(n, t, dur, vol) {
   if (!shaper) {
     shaper = new Float32Array(1024);
-    for (let i = 0; i < 1024; i++) shaper[i] = Math.tanh(3 * (i / 511.5 - 1));
+    for (let i = 0; i < 1024; i++) shaper[i] = Math.round(4 * Math.tanh(6 * (i / 511.5 - 1))) / 4;
   }
-  const f = freq(n);
-  const saw = ctx.createOscillator(), sub = ctx.createOscillator(), subG = ctx.createGain();
-  saw.type = 'sawtooth'; saw.frequency.value = f;
-  sub.type = 'sine'; sub.frequency.value = f; subG.gain.value = f < 230 ? 0.5 : 0;
-  const f1 = ctx.createBiquadFilter(), f2 = ctx.createBiquadFilter(), mix = ctx.createGain();
-  f1.type = f2.type = 'bandpass'; f1.Q.value = f2.Q.value = 5;
-  f1.frequency.value = 575; f2.frequency.value = 1000; mix.gain.value = 4;
-  const lfo = ctx.createOscillator(), d1 = ctx.createGain(), d2 = ctx.createGain();
-  lfo.frequency.value = 1 / period; d1.gain.value = 225; d2.gain.value = 300;
-  lfo.connect(d1).connect(f1.frequency); lfo.connect(d2).connect(f2.frequency);
-  const ws = ctx.createWaveShaper(), hp = ctx.createBiquadFilter(), g = ctx.createGain();
-  ws.curve = shaper; hp.type = 'highpass'; hp.frequency.value = 150;
-  saw.connect(f1).connect(mix); saw.connect(f2).connect(mix);
-  mix.connect(ws).connect(hp).connect(g); sub.connect(subG).connect(g);
+  const f = freq(n), mix = ctx.createGain(), oscs = [];
+  mix.gain.value = 0.3;
+  for (const [ratio, level] of [[1, 1], [1.0035, 1], [0.9965, 1], [2, 0.3]]) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'square'; o.frequency.value = f * ratio; g.gain.value = level;
+    o.connect(g).connect(mix); oscs.push(o);
+  }
+  const sub = ctx.createOscillator(), subG = ctx.createGain();
+  sub.type = 'sine'; sub.frequency.value = f; subG.gain.value = f < 230 ? 0.5 : 0; oscs.push(sub);
+  const ws = ctx.createWaveShaper(), lp = ctx.createBiquadFilter(), hp = ctx.createBiquadFilter(), g = ctx.createGain();
+  ws.curve = shaper; lp.type = 'lowpass'; lp.frequency.value = 2000; hp.type = 'highpass'; hp.frequency.value = 150;
+  mix.connect(ws).connect(lp).connect(hp).connect(g); sub.connect(subG).connect(g);
   g.connect(ctx.destination);
   g.gain.setValueAtTime(0, t);
   g.gain.linearRampToValueAtTime(vol * 1.6, t + 0.01);
   g.gain.setValueAtTime(vol * 1.6, t + dur - 0.03);
   g.gain.linearRampToValueAtTime(0, t + dur);
-  for (const o of [saw, sub, lfo]) { o.start(t); o.stop(t + dur + 0.02); }
+  for (const o of oscs) { o.start(t); o.stop(t + dur + 0.02); }
 }
 function noise(t, dur, type, fq, vol) {
   const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
@@ -471,7 +468,7 @@ function play(piece, layers, button, slow, mode, clipName) {
         if (e.pad === 'snare') noise(t, 0.12, 'bandpass', 1800, 0.45);
         else if (e.pad) noise(t, 0.15, 'bandpass', 1500, 0.5); /* the clap, as in the beat */
         else for (const k of e.keys) {
-          if (piece.sound === 'growl') growl(keyNote(k), t, e.len * stepDur * 0.95, e.vol / e.keys.length, 2 * stepDur);
+          if (piece.sound === 'growl') growl(keyNote(k), t, e.len * stepDur * 0.95, e.vol / e.keys.length);
           else saw(keyNote(k), t, e.len * stepDur * 0.95, e.vol / e.keys.length);
         }
       }

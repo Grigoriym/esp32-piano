@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 """Build the growl: a SoundFont with one bass preset for dubstep mode.
 
-Usage: gen_growl_sf2.py <out.sf2>
+Usage: gen_growl_sf2.py <out.sf2> [voice]   (voice: one of VOICES, default VOICE)
 
 ROCK is dubstep mode (main/keymap.c, 2026-11-05): its keys play PROGRAM, which
 this file takes over from FluidR3 (loaded after it, tools/pc_synth.sh; the last
 SoundFont with a program wins).
 
-The wobble is rendered into the sound: one looped sample per note of the keys
-(A natural minor from A1, main/keymap.c), each exactly one bar of the dubstep
-beat (main/rhythm.c DUBSTEP, BPM below) long, so it wobbles at the beat's tempo
-on every key, starting at the note on. A sample per note, not one transposed,
-because a transposed sample wobbles faster on higher keys.
+One looped sample per note of the keys (A natural minor from A1, main/keymap.c),
+each one bar of the dubstep beat (main/rhythm.c DUBSTEP, BPM) long with a whole
+number of every part's cycles, so it loops without a seam and its slow movement
+(the detuned voices drifting) keeps the beat's tempo on every key.
 
-Each note: a saw and an FM voice (the FM index follows the wobble: the growl),
-through two band-pass formant filters that move from an "oo" to an "ah" and back
-on each 8th note (the vowel, "wow-wow"), then driven and high-passed (the
-grit, without mud), plus a clean sine sub for the weight. 2026-11-05: the first
-version (one wave behind SoundFont's low-pass) sounded toy-like, then muddy.
+VOICE is the user's pick of 2026-11-05 ("E" of an audition, A-G, rendered with
+#5's Hits): three detuned squares plus one an octave up, crushed to coarse steps
+and driven, low-passed, the lows cut, a clean sine sub under it. Before it: a
+filter-sweep wobble ("toy-like", then "a brown sound"), then a vowel wobble ("I
+don't like it"); in the audition reese and riddim were liked, dive not, metal
+mixed. The other voices stay here to try again: gen_growl_sf2.py out.sf2 <voice>.
 """
 import array
 import math
@@ -27,20 +27,13 @@ import sys
 PROGRAM = 38  # GM Synth Bass 1: nothing else on the toy uses it
 RATE = 22050  # plenty for a bass, and the build stays quick in plain Python
 BPM = 140
-WOBBLES_PER_BAR = 8  # 8th notes
 ROOT = 33  # A1: key 1 in EDM mode
 MINOR = [0, 2, 3, 5, 7, 8, 10]
 KEYS = 21  # keys 1-21 (A1-A4) get their own sample; higher keys transpose the top one
 PRE_S = 0.2  # rendered before the loop and dropped, so the filters have settled
 GAIN = 0.9
 
-VOWEL_CLOSED = (350, 700)  # "oo": formants F1, F2 in Hz
-VOWEL_OPEN = (800, 1300)  # "ah"
-FORMANT_Q = 5.0
-DRIVE = 3.0
 HIGHPASS_HZ = 150  # the growl part above this; the sub below
-SUB = 0.8  # the sine's share against the growl's
-FM_INDEX = (0.5, 3.0)  # closed, open
 
 GEN = {
     "keyRange": 43,
@@ -75,10 +68,8 @@ class Biquad:
     def set(self, kind, f0, q):
         w = 2 * math.pi * f0 / RATE
         alpha, c = math.sin(w) / (2 * q), math.cos(w)
-        if kind == "bandpass":  # 0 dB peak
-            b = (alpha, 0.0, -alpha)
-        else:  # highpass
-            b = ((1 + c) / 2, -(1 + c), (1 + c) / 2)
+        assert kind == "highpass"
+        b = ((1 + c) / 2, -(1 + c), (1 + c) / 2)
         a0 = 1 + alpha
         self.b0, self.b1, self.b2 = (v / a0 for v in b)
         self.a1, self.a2 = -2 * c / a0, (1 - alpha) / a0
@@ -93,38 +84,108 @@ def note_hz(n):
     return 440.0 * 2 ** ((n - 69) / 12)
 
 
+def lowpass(f0, q=0.7071):
+    w = 2 * math.pi * f0 / RATE
+    alpha, c = math.sin(w) / (2 * q), math.cos(w)
+    bq = Biquad()
+    a0 = 1 + alpha
+    bq.b0, bq.b1, bq.b2 = ((1 - c) / 2 / a0, (1 - c) / a0, (1 - c) / 2 / a0)
+    bq.a1, bq.a2 = -2 * c / a0, (1 - alpha) / a0
+    return bq
+
+
+def saw(ph):
+    return 2 * (ph % 1.0) - 1
+
+
+def square(ph):
+    return 1.0 if ph % 1.0 < 0.5 else -1.0
+
+
+def tau(ph):
+    return 2 * math.pi * ph
+
+
+# Each voice: (ph, cycles) -> the growl part at one sample; ph counts cycles of
+# the note from the loop's start. A whole number of cycles of every part fits the
+# loop, so it loops without a seam.
+def reese(ph, cycles):
+    k = 3 / cycles  # +-3 cycles a bar: the saws drift against each other ~1.75 times a second
+    return (saw(ph) + saw(ph * (1 + k)) + saw(ph * (1 - k))) / 3
+
+
+def riddim(ph, cycles):
+    x = square(ph) + 0.4 * square(2 * ph)
+    return round(4 * x) / 4  # coarse steps: grit
+
+
+def dive(ph, cycles):
+    return 0.6 * saw(ph) + 0.4 * square(ph)
+
+
+def metal(ph, cycles):
+    return math.sin(tau(ph) + 4 * math.sin(tau(2 * ph)) + 2 * math.sin(tau(3 * ph)))
+
+
+def reese_square(ph, cycles):
+    k = 3 / cycles
+    x = (square(ph) + square(ph * (1 + k)) + square(ph * (1 - k))) / 3 + 0.3 * square(2 * ph)
+    return round(4 * x) / 4
+
+
+def reese_wide(ph, cycles):
+    k = 5 / cycles
+    return (saw(ph) + saw(ph * (1 + k)) + saw(ph * (1 - k))) / 3
+
+
+VOICES = {
+    # name: (wave, drive, low-pass Hz, sub)
+    "reese": (reese, 2.5, 1400, 0.8),
+    "riddim": (riddim, 8.0, 2600, 0.7),
+    "dive": (dive, 4.0, 2200, 0.8),
+    "metal": (metal, 3.0, 3500, 0.7),
+    "reese_square": (reese_square, 6.0, 2000, 0.8),
+    "reese_heavy": (reese_wide, 5.0, 2000, 0.8),
+    "riddim_dark": (riddim, 8.0, 1300, 0.9),
+}
+VOICE = "reese_square"
+DIVE_S = 0.16  # dive: the drop from two octaves up onto the note
+DIVE_FROM = 4.0
+
+
 def render(note):
-    """One bar of the growl at note, looped seamlessly: whole cycles, filters settled."""
+    """One looped sample of the voice at note: (samples, loop start).
+
+    Whole cycles in the loop (one bar long, filters settled by a pre-roll); the
+    dive's drop is a one-off before the loop."""
+    wave, drive, lp_hz, sub_amt = VOICES[VOICE]
     f = note_hz(note)
     bar_s = 4 * 60 / BPM
     cycles = round(bar_s * f)
     length = round(cycles * RATE / f)
+    head = int(DIVE_S * RATE) if VOICE == "dive" else 0
     pre = int(PRE_S * RATE)
-    bp1, bp2, hp = Biquad(), Biquad(), Biquad()
+    lp, hp = lowpass(lp_hz, 0.9), Biquad()
     hp.set("highpass", HIGHPASS_HZ, 0.7071)
     out = []
-    index = 0.0
-    for i in range(-pre, length):
-        j = i % length  # the loop's own position, so the pre-roll is the loop's end
-        if j % 32 == 0 or i == -pre:
-            # The wobble: 0 closed .. 1 open, a raised cosine per 8th, closed at the note on.
-            lfo = 0.5 - 0.5 * math.cos(2 * math.pi * WOBBLES_PER_BAR * j / length)
-            f1 = VOWEL_CLOSED[0] + lfo * (VOWEL_OPEN[0] - VOWEL_CLOSED[0])
-            f2 = VOWEL_CLOSED[1] + lfo * (VOWEL_OPEN[1] - VOWEL_CLOSED[1])
-            bp1.set("bandpass", f1, FORMANT_Q)
-            bp2.set("bandpass", f2, FORMANT_Q)
-            index = FM_INDEX[0] + lfo * (FM_INDEX[1] - FM_INDEX[0])
-        ph = (j * cycles / length) % 1.0
-        saw = 2 * ph - 1
-        fm = math.sin(2 * math.pi * ph + index * math.sin(2 * math.pi * ph))
-        src = 0.5 * saw + 0.5 * fm
-        voice = 2.0 * bp1.run(src) + 1.5 * bp2.run(src)
-        grit = hp.run(math.tanh(DRIVE * voice))
-        sub = math.sin(2 * math.pi * ph) if f < 230 else 0.0
+    head_ph = 0.0
+    for i in range(-pre, head + length):
+        if i < head and VOICE == "dive" and i >= 0:
+            # Exponential glide from DIVE_FROM x f down to f; the phase is integrated.
+            r = DIVE_FROM ** (1 - i / head)
+            head_ph += r * f / RATE
+            ph = head_ph - (head_ph // 1)
+            x = saw(ph) * (1 + 2 * (1 - i / head))
+        else:
+            j = (i - head) % length
+            ph = j * cycles / length
+            x = wave(ph, cycles)
+        grit = hp.run(lp.run(math.tanh(drive * x)))
+        sub = math.sin(tau(ph)) if f < 230 else 0.0
         if i >= 0:
-            out.append(grit + SUB * sub)
+            out.append(grit + sub_amt * sub)
     peak = max(abs(v) for v in out)
-    return array.array("h", (int(GAIN * 32767 * v / peak) for v in out))
+    return array.array("h", (int(GAIN * 32767 * v / peak) for v in out)), head
 
 
 def gens(pairs):
@@ -141,11 +202,11 @@ def build():
     igen, imod, ibag = b"", b"", b""
     n_gen = n_mod = 0
     for z, note in enumerate(notes):
-        data = render(note)
+        data, head = render(note)
         start = len(smpl) // 2
         end = start + len(data)
         smpl += data.tobytes() + bytes(2 * 46)  # 46 zero samples after each: the format's rule
-        shdr += struct.pack("<20sIIIIIBbHH", name20(f"Growl {note}"), start, end, start, end, RATE, note, 0, 0, 1)
+        shdr += struct.pack("<20sIIIIIBbHH", name20(f"Growl {note}"), start, end, start + head, end, RATE, note, 0, 0, 1)
         lo = 0 if z == 0 else note
         hi = 127 if z == len(notes) - 1 else notes[z + 1] - 1
         ibag += struct.pack("<HH", n_gen, n_mod)
@@ -198,8 +259,11 @@ def build():
 
 
 def main():
-    if len(sys.argv) != 2:
+    global VOICE
+    if len(sys.argv) not in (2, 3) or (len(sys.argv) == 3 and sys.argv[2] not in VOICES):
         sys.exit(__doc__)
+    if len(sys.argv) == 3:
+        VOICE = sys.argv[2]
     with open(sys.argv[1], "wb") as f:
         f.write(build())
 
