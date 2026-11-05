@@ -572,6 +572,11 @@ Open items:
   without the beat and a loop playing (not WiFi load either). Guess, not proven: a bad USB
   contact making 3V3 noisy. If the bar sticks again: count `POT` lines over 10 s, hands
   off, then wiggle the USB plug. A 1 uF cap is on pot 2's wiper to GND (left in, harmless).
+  2026-11-05, again (board flashed ~1 h before, the user had turned pot 2): hands off, pot 2
+  at ~92 hopped 89-95 (~90 changes / 10 s), at ~64 hopped 61-66 (68); pot 1 at ~58 at the same
+  time only 55-59 (~15), its hops not at the same moments as pot 2's. A board restart (the user)
+  cleared it: pot 2 at 70, 0 changes in 10 s. Twice now a restart ends it; what starts it isn't known.
+  The cable came up garbled after that restart (service restart fixed it, see Traps).
   The log has no timestamps: take a window by byte offset (`stat -c %s`, `timeout 10 tail -f`,
   then `tail -c +offset | grep -a POT`). Not fixed, by choice: every level change restarts
   the LED bar's 1.5 s, so one jittering pot hides the beat count for good.
