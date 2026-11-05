@@ -170,9 +170,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   hardcoded too.
 - `docs/cheatsheet.html`: what every key and button does, the Megalovania
   opening as key numbers, a metronome, the chords of Sinan Sakić's "Ej, od kad
-  sam se rodio" (from chord sites; no melody, none found). Published as a private artifact:
-  https://claude.ai/artifact/Ttss3MnAfWboWeEaJDS2zC (republish from this file
-  after a mapping change).
+  sam se rodio" (from chord sites; no melody, none found). Local only: the user
+  doesn't use artifacts (2026-11-05: "all docs we have offline"); an old published
+  copy exists, don't republish it.
 - EDM mode (2026-11-03, the user wants to make simple electronic music, not learn
   piano): DISCO or MARCH (`keymap_is_edm`; MARCH's trumpet and march beat gone, its
   beat is `BREAKS`, a 124 bpm breakbeat, the user's ask; SLOW ROCK since 2026-11-05, beat `TECHNO`, 130 bpm, 16th hats, its 12/8 slow rock and piano gone, RESET still gives piano;
