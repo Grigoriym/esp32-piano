@@ -352,22 +352,23 @@ let shaper = null;
 function growl(n, t, dur, vol, period) {
   if (!shaper) {
     shaper = new Float32Array(1024);
-    for (let i = 0; i < 1024; i++) shaper[i] = Math.tanh(3 * (i / 511.5 - 1));
+    for (let i = 0; i < 1024; i++) { const x = i / 511.5 - 1; shaper[i] = 0.55 * Math.tanh(6 * x) + 0.45 * Math.sin(2.5 * Math.PI * x); }
   }
   const a = ctx.createOscillator(), b = ctx.createOscillator(), bg = ctx.createGain();
   const ws = ctx.createWaveShaper(), f = ctx.createBiquadFilter(), g = ctx.createGain();
   const lfo = ctx.createOscillator(), depth = ctx.createGain();
   a.type = 'sawtooth'; a.frequency.value = freq(n);
-  b.type = 'square'; b.frequency.value = freq(n) / 2; bg.gain.value = 0.7;
+  b.type = 'square'; b.frequency.value = freq(n) / 2; bg.gain.value = 1;
   ws.curve = shaper;
-  f.type = 'lowpass'; f.frequency.value = 500; f.Q.value = 8;
-  lfo.type = 'triangle'; lfo.frequency.value = 1 / period; depth.gain.value = 3600;
+  f.type = 'lowpass'; f.frequency.value = 800; f.Q.value = 8;
+  lfo.type = 'triangle'; lfo.frequency.value = 1 / period; depth.gain.value = 3000;
   lfo.connect(depth).connect(f.detune);
   g.gain.setValueAtTime(0, t);
   g.gain.linearRampToValueAtTime(vol * 1.4, t + 0.01);
   g.gain.setValueAtTime(vol * 1.4, t + dur - 0.03);
   g.gain.linearRampToValueAtTime(0, t + dur);
-  a.connect(ws); b.connect(bg).connect(ws);
+  const pre = ctx.createGain(); pre.gain.value = 0.5; /* (saw + sub) / 2, as the SoundFont */
+  a.connect(pre); b.connect(bg).connect(pre); pre.connect(ws);
   ws.connect(f).connect(g).connect(ctx.destination);
   for (const o of [a, b, lfo]) { o.start(t); o.stop(t + dur + 0.02); }
 }

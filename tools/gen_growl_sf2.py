@@ -6,7 +6,7 @@ Usage: gen_growl_sf2.py <out.sf2>
 ROCK is dubstep mode (main/keymap.c, 2026-11-05): its keys play PROGRAM, which
 this file takes over from FluidR3 (loaded after it, tools/pc_synth.sh; the last
 SoundFont with a program wins). The sound: a looped wave synthesized here (a saw
-and a square an octave down, driven through tanh) behind SoundFont's resonant
+and a square an octave down, driven hard through tanh and partly wavefolded) behind SoundFont's resonant
 low-pass filter, which the modulation LFO opens and shuts in 8th notes at the
 dubstep beat's tempo: the wobble. The LFO restarts at each note on, so a note
 played on the beat wobbles in time with it.
@@ -20,12 +20,14 @@ PROGRAM = 38  # GM Synth Bass 1: nothing else on the toy uses it
 RATE = 44100
 ROOT = 33  # A1, the lowest key in EDM mode
 CYCLES = 22  # whole cycles in the loop: 22 * 44100 / 55 = 17640 samples, the sub's 11 too
-DRIVE = 3.0
+DRIVE = 6.0
+FOLD = 0.45  # share of the wavefolded signal: metallic, snarling overtones (2026-11-05: "toy-like" at 0)
+SUB = 1.0
 GAIN = 0.9
 BPM = 140  # main/rhythm.c's DUBSTEP
 WOBBLES_PER_BEAT = 2  # 8th notes
-CUTOFF_HZ = 500  # the filter's centre
-SWEEP_CENTS = 3600  # the LFO moves it this far up and down: 3 octaves each way
+CUTOFF_HZ = 800  # the filter's centre
+SWEEP_CENTS = 3000  # the LFO moves it this far up and down: 2.5 octaves each way (200 Hz-4.5 kHz)
 RESONANCE_CB = 160  # 16 dB peak at the cutoff: the vowel-like "yoy"
 RELEASE_S = 0.08
 
@@ -65,13 +67,15 @@ def cents(hz):
 def wave_loop():
     period = RATE * CYCLES / 55.0
     n = round(period)
-    out = array.array("h")
+    ys = []
     for i in range(n):
         ph = (i * CYCLES / n) % 1.0  # the saw's phase, 0..1
         sub = 1.0 if (i * CYCLES / 2 / n) % 1.0 < 0.5 else -1.0  # square an octave down
-        x = (2 * ph - 1) + 0.7 * sub
-        out.append(int(GAIN * 32767 * math.tanh(DRIVE * x) / math.tanh(DRIVE * 1.7)))
-    return out
+        x = ((2 * ph - 1) + SUB * sub) / (1 + SUB)
+        y = (1 - FOLD) * math.tanh(DRIVE * x) + FOLD * math.sin(2.5 * math.pi * x)
+        ys.append(y)
+    peak = max(abs(y) for y in ys)
+    return array.array("h", (int(GAIN * 32767 * y / peak) for y in ys))
 
 
 def gens_bytes(pairs):
