@@ -177,8 +177,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   piano): DISCO or MARCH (`keymap_is_edm`; MARCH's trumpet and march beat gone, its
   beat is `BREAKS`, a 124 bpm breakbeat, the user's ask; SLOW ROCK since 2026-11-05, beat `TECHNO`, 130 bpm, 16th hats, its 12/8 slow rock and piano gone, RESET still gives piano;
   ROCK since 2026-11-05 too, dubstep: beat `DUBSTEP` 140 bpm half-time (kick 1, snare+clap on 3), keys play the growl bass, program 38
-  from `tools/gen_growl_sf2.py` (looped driven saw + sub square, resonant low-pass swept by the SF2 mod LFO in 8ths at 140, restarting at
-  each note on; velocity modulators zeroed so the soft EDM keys are full loudness), loaded last by `pc_synth.sh`; its cat is off the
+  from `tools/gen_growl_sf2.py` (the wobble rendered in: one looped one-bar sample per key 1-21, 22 kHz, saw + FM through two formant
+  band-passes moving "oo"->"ah" each 8th at 140, driven, high-passed at 150 Hz, plus a clean sine sub; velocity modulators zeroed so
+  the soft EDM keys are full loudness; the earlier filter-sweep growl was "toy-like", then muddy, "a brown sound"), loaded last by `pc_synth.sh`; its cat is off the
   button (the user: keep the cat files). `DEFAULT_STYLE` (SELECT before any style button, and after RESET) is BLUES now) makes the keys play only A natural minor (`keymap_key_note`: key 1 =
   A1, 7 keys an octave, key 8 = A2), keys at velocity 55, beat `EDM` 124 bpm four on the floor at
   110/127 (the saw lead drowned the beat twice). Its drums are kit 30 (`EDM_KIT`), built by

@@ -345,32 +345,35 @@ function saw(n, t, dur, vol) {
   o.connect(f).connect(g).connect(ctx.destination);
   o.start(t); o.stop(t + dur + 0.02);
 }
-/* ROCK's growl, roughly as tools/gen_growl_sf2.py makes it: a saw and a square an
- * octave down, driven, behind a resonant low-pass that a triangle LFO sweeps 3
- * octaves each way, once per 8th note (period), restarting at the note on. */
+/* ROCK's growl, roughly as tools/gen_growl_sf2.py makes it: a saw and a sine,
+ * through two band-pass formants that move from "oo" to "ah" and back each 8th
+ * (period), driven and high-passed, plus a clean sine sub under it. */
 let shaper = null;
 function growl(n, t, dur, vol, period) {
   if (!shaper) {
     shaper = new Float32Array(1024);
-    for (let i = 0; i < 1024; i++) { const x = i / 511.5 - 1; shaper[i] = 0.55 * Math.tanh(6 * x) + 0.45 * Math.sin(2.5 * Math.PI * x); }
+    for (let i = 0; i < 1024; i++) shaper[i] = Math.tanh(3 * (i / 511.5 - 1));
   }
-  const a = ctx.createOscillator(), b = ctx.createOscillator(), bg = ctx.createGain();
-  const ws = ctx.createWaveShaper(), f = ctx.createBiquadFilter(), g = ctx.createGain();
-  const lfo = ctx.createOscillator(), depth = ctx.createGain();
-  a.type = 'sawtooth'; a.frequency.value = freq(n);
-  b.type = 'square'; b.frequency.value = freq(n) / 2; bg.gain.value = 1;
-  ws.curve = shaper;
-  f.type = 'lowpass'; f.frequency.value = 800; f.Q.value = 8;
-  lfo.type = 'triangle'; lfo.frequency.value = 1 / period; depth.gain.value = 3000;
-  lfo.connect(depth).connect(f.detune);
+  const f = freq(n);
+  const saw = ctx.createOscillator(), sub = ctx.createOscillator(), subG = ctx.createGain();
+  saw.type = 'sawtooth'; saw.frequency.value = f;
+  sub.type = 'sine'; sub.frequency.value = f; subG.gain.value = f < 230 ? 0.5 : 0;
+  const f1 = ctx.createBiquadFilter(), f2 = ctx.createBiquadFilter(), mix = ctx.createGain();
+  f1.type = f2.type = 'bandpass'; f1.Q.value = f2.Q.value = 5;
+  f1.frequency.value = 575; f2.frequency.value = 1000; mix.gain.value = 4;
+  const lfo = ctx.createOscillator(), d1 = ctx.createGain(), d2 = ctx.createGain();
+  lfo.frequency.value = 1 / period; d1.gain.value = 225; d2.gain.value = 300;
+  lfo.connect(d1).connect(f1.frequency); lfo.connect(d2).connect(f2.frequency);
+  const ws = ctx.createWaveShaper(), hp = ctx.createBiquadFilter(), g = ctx.createGain();
+  ws.curve = shaper; hp.type = 'highpass'; hp.frequency.value = 150;
+  saw.connect(f1).connect(mix); saw.connect(f2).connect(mix);
+  mix.connect(ws).connect(hp).connect(g); sub.connect(subG).connect(g);
+  g.connect(ctx.destination);
   g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(vol * 1.4, t + 0.01);
-  g.gain.setValueAtTime(vol * 1.4, t + dur - 0.03);
+  g.gain.linearRampToValueAtTime(vol * 1.6, t + 0.01);
+  g.gain.setValueAtTime(vol * 1.6, t + dur - 0.03);
   g.gain.linearRampToValueAtTime(0, t + dur);
-  const pre = ctx.createGain(); pre.gain.value = 0.5; /* (saw + sub) / 2, as the SoundFont */
-  a.connect(pre); b.connect(bg).connect(pre); pre.connect(ws);
-  ws.connect(f).connect(g).connect(ctx.destination);
-  for (const o of [a, b, lfo]) { o.start(t); o.stop(t + dur + 0.02); }
+  for (const o of [saw, sub, lfo]) { o.start(t); o.stop(t + dur + 0.02); }
 }
 function noise(t, dur, type, fq, vol) {
   const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
