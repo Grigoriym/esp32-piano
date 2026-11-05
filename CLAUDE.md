@@ -339,8 +339,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   fixed window read a correctly tuned note 58 cents off, and F3 as its third harmonic.
 - **Testing the pages from here:** the Chrome extension needs Brave open and refuses
   `file://` (serve `docs/` on 127.0.0.1); `brave-browser --headless` hangs here even on
-  about:blank; `firefox --headless --screenshot` works, and a copy of the page with a
-  test script appended can POST its results to a small local server.
+  about:blank; `firefox --headless --screenshot` worked until 2026-11-05, when it hung twice
+  (also with its own `--profile`; the user's Firefox may have been open). A copy of the page with a
+  test script appended can POST its results to a small local server. Cheap check that always
+  works: extract the `<script>` and `node --check` it.
 - **Flashing failed once on each of the last 3 flashes, 2026-10-31** (`No serial data
   received`, `Serial data stream stopped`); each retry ended in `Done`. Cause unknown,
   the cable or USB connection not checked. Read the `Done`, it isn't a given here.
@@ -439,6 +441,13 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
+**State 2026-11-05 (end of session):** two new EDM buttons: SLOW ROCK = techno (130), ROCK =
+dubstep (140 half-time, the growl bass "E" picked by ear from 7 rendered variants). Riffs page:
+#3 Warehouse, #4 Bunker (Berlin, aggressive), #5 Riddim Drop; not yet played through by the user.
+LEDs turned (beat on strip LEDs 7, 8, 1, 2). Pot bar only for a 3-level turn. The user's taste:
+heavy dubstep drops (Skrillex, "heaviest dubstep drops"), drum & bass interesting; a D&B beat
+(~174) on another button was offered, not started. The toy's RECORD LED: for later (Future).
+
 **State 2026-11-04 (end of session):** the hiccups are gone (root cause: the bridge's
 blocking mDNS lookup, see the MIDI-link notes). New: 3 pots as a mixer and the 8-LED
 strip (wired, flashed, every pot reads its full range). Not yet tried by ear: the beat and
@@ -602,8 +611,12 @@ Open items:
   unplugged, so the 2026-11-04 V-only test didn't rule it out). Test when the bar is stuck: pull
   the strip's V and data both.
   The log has no timestamps: take a window by byte offset (`stat -c %s`, `timeout 10 tail -f`,
-  then `tail -c +offset | grep -a POT`). Not fixed, by choice: every level change restarts
-  the LED bar's 1.5 s, so one jittering pot hides the beat count for good.
+  then `tail -c +offset | grep -a POT`), or read `build-host/pot-watch.log` (pot_watch.py).
+  Symptom handled 2026-11-05 (flashed, not yet judged by the user over a session): a key press
+  tipped resting pot 3 a level (118<->119 in step with DOWN/UP lines) and lit its white bar; now
+  each read is the mean of 8 and the bar needs a 3-level move (`MIXER_TURN`), so 1-2 level hops
+  no longer hold the bar up. The noise itself (key press / WiFi / screen load on 3V3?) is not
+  found; if the bar sticks again, the hops are bigger than 2 levels: check pot-watch.log.
 - The 2026-11-03 cable/WiFi winner flips and the 94 ms slow key: not seen again with the
   cable clean (2026-11-04, only `the cable` won); the 2-minute lookup stall
   explains slow keys like it. Closed unless they come back.
