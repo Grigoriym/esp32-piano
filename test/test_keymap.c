@@ -129,15 +129,16 @@ static void test_slow_rock_is_edm_mode_with_techno(void)
     keymap_event(&k, 4, EDM_STYLE_3, true, midi_rec, &rec); /* SLOW ROCK */
     TEST_ASSERT_EQUAL(81, k.program);
     TEST_ASSERT_EQUAL_STRING("Saw lead, Am", keymap_program_name(k.program));
+    TEST_ASSERT_EQUAL(33, keymap_key_note(&k, 0));          /* key 1 = A1 */
+    keymap_event(&k, 4, EDM_STYLE_4, true, midi_rec, &rec); /* ROCK: dubstep */
+    TEST_ASSERT_EQUAL_STRING("Growl bass, Am", keymap_program_name(k.program));
     TEST_ASSERT_EQUAL(33, keymap_key_note(&k, 0)); /* key 1 = A1 */
-    keymap_event(&k, 4, 1, true, midi_rec, &rec);  /* ROCK */
-    TEST_ASSERT_EQUAL_STRING("Cat", keymap_program_name(k.program));
 }
 
 static void test_program_names(void)
 {
     TEST_ASSERT_EQUAL_STRING("Piano", keymap_program_name(k.program));
-    TEST_ASSERT_EQUAL_STRING("Cat", keymap_program_name(19));
+    TEST_ASSERT_EQUAL_STRING("?", keymap_program_name(19)); /* ROCK's cat is gone (dubstep) */
     TEST_ASSERT_EQUAL_STRING("Siamese cat", keymap_program_name(88));
     TEST_ASSERT_EQUAL_STRING("?", keymap_program_name(56)); /* MARCH's trumpet is gone (EDM) */
     TEST_ASSERT_EQUAL_STRING("Electric piano", keymap_program_name(4));

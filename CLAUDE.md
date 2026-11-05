@@ -175,7 +175,11 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   after a mapping change).
 - EDM mode (2026-11-03, the user wants to make simple electronic music, not learn
   piano): DISCO or MARCH (`keymap_is_edm`; MARCH's trumpet and march beat gone, its
-  beat is `BREAKS`, a 124 bpm breakbeat, the user's ask; SLOW ROCK since 2026-11-05, beat `TECHNO`, 130 bpm, 16th hats, its 12/8 slow rock and piano gone, RESET still gives piano) makes the keys play only A natural minor (`keymap_key_note`: key 1 =
+  beat is `BREAKS`, a 124 bpm breakbeat, the user's ask; SLOW ROCK since 2026-11-05, beat `TECHNO`, 130 bpm, 16th hats, its 12/8 slow rock and piano gone, RESET still gives piano;
+  ROCK since 2026-11-05 too, dubstep: beat `DUBSTEP` 140 bpm half-time (kick 1, snare+clap on 3), keys play the growl bass, program 38
+  from `tools/gen_growl_sf2.py` (looped driven saw + sub square, resonant low-pass swept by the SF2 mod LFO in 8ths at 140, restarting at
+  each note on; velocity modulators zeroed so the soft EDM keys are full loudness), loaded last by `pc_synth.sh`; its cat is off the
+  button (the user: keep the cat files). `DEFAULT_STYLE` (SELECT before any style button, and after RESET) is BLUES now) makes the keys play only A natural minor (`keymap_key_note`: key 1 =
   A1, 7 keys an octave, key 8 = A2), keys at velocity 55, beat `EDM` 124 bpm four on the floor at
   110/127 (the saw lead drowned the beat twice). Its drums are kit 30 (`EDM_KIT`), built by
   `tools/gen_edm_kit_sf2.py` (synthesized: the page synth's kick/clap/hats, which the
@@ -191,7 +195,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   piece's `plan` is its song plan). The page opens on a list of the songs; each song
   is its own view (`#<slug>`, e.g. `#2-night-drive`). 2026-11-03: #1 First Drop (bass,
   chords, arpeggio, hook; the clap roll was dropped at the user's ask, pad layers still
-  work) #4 Bunker (2026-11-05, replaced #4 Sunset, which is in git at `e514df5`; SLOW ROCK/TECHNO, the user wanted something heavier, Berlin style, "let's experiment": key 1 rumbling after every kick, then "aggressive": a 16th-note sequence around key 8, a stab on every offbeat, built by layers and pots) and #3 Warehouse (2026-11-05, SLOW ROCK/TECHNO 130 bpm, Am Am Dm Em: a bass rolling on the 16ths after each kick, offbeat stabs, a one-bar hook moved up on bars 3-4) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
+  work) #5 Wobble Drop (2026-11-05, ROCK/DUBSTEP: a held Wub layer, the drop's growl Hits, a high Screech, a snare-pad Build that stops dead; the user likes "heaviest dubstep drops" and Skrillex; page synth has a `growl` voice for pieces with `sound: 'growl'`; `render_riffs.py` takes each piece's program from its button) and #4 Bunker (2026-11-05, replaced #4 Sunset, which is in git at `e514df5`; SLOW ROCK/TECHNO, the user wanted something heavier, Berlin style, "let's experiment": key 1 rumbling after every kick, then "aggressive": a 16th-note sequence around key 8, a stab on every offbeat, built by layers and pots) and #3 Warehouse (2026-11-05, SLOW ROCK/TECHNO 130 bpm, Am Am Dm Em: a bass rolling on the 16ths after each kick, offbeat stabs, a one-bar hook moved up on bars 3-4) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
   its `button` and `beat` (#1 DISCO/EDM, #2 MARCH/BREAKS); the page synth's `BEATS`
   copies main/rhythm.c's patterns (change both), the clips read rhythm.c. After changing a chord or `matrix_diodes`: `tools/check_riff_chords.py`
   (some key sets are held back and would never sound). Its Listen buttons play
@@ -202,7 +206,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   Rendering #1 at `pc_synth.sh`'s gain 1.0 peaks ~9 dB over full scale (the script uses
   0.3); whether the live toy clips too isn't checked.
 - `tools/gen_cat_sf2.py` + `tools/sounds/` (free recordings, see its README; the
-  table `CATS` lists them): ROCK's program 19 is a cat, NEW AGE's 88 a deeper
+  table `CATS` lists them): ROCK's program 19 was a cat (off the button since 2026-11-05, ROCK is dubstep; the file and entry stay), NEW AGE's 88 a deeper
   Siamese (2026-10-31; ~0.9 s at F3, a ~0.15 s blip at C6). `pc_synth.sh` builds `build-host/cat.sf2` and
   loads it after FluidR3; the last SoundFont loaded with a program wins, so only 19
   changes. Tuning: rendered through FluidSynth, within 1 cent at F3 to C6 of the

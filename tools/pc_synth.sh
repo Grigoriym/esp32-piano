@@ -28,9 +28,14 @@ if [ ! -f "$KIT" ] || [ tools/gen_edm_kit_sf2.py -nt "$KIT" ]; then
     python3 tools/gen_edm_kit_sf2.py "$KIT" || exit 1
 fi
 
+GROWL=build-host/growl.sf2
+if [ ! -f "$GROWL" ] || [ tools/gen_growl_sf2.py -nt "$GROWL" ]; then
+    python3 tools/gen_growl_sf2.py "$GROWL" || exit 1
+fi
+
 fluidsynth -a pipewire -m alsa_seq -g 1.0 -is \
     -o audio.period-size=256 -o audio.periods=2 -o midi.autoconnect=0 \
-    "$SF2" "$CAT" "$KIT" >/dev/null 2>&1 &
+    "$SF2" "$CAT" "$KIT" "$GROWL" >/dev/null 2>&1 &
 SYNTH=$!
 build-host/piano_bridge chicco-piano.local "$CABLE" &
 BRIDGE=$!

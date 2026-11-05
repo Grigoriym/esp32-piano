@@ -26,10 +26,12 @@ static const rhythm_style_t STYLES[RHYTHM_STYLES] = {
         {HAT,       "xx.xxx.xxx.xxx.x"}, /* 16ths, but not over the open hat: it would cut it */
         {OPEN_HAT,  "..x...x...x...x."}},
         110, 127},
-    {"ROCK", 116, 4, 16, {
-        {KICK,      "x.......x.x....."},
-        {SNARE,     "....X.......X..."},
-        {HAT,       "X.x.x.x.X.x.x.x."}}, RHYTHM_VELOCITY, RHYTHM_ACCENT},
+    {"DUBSTEP", 140, 4, 16, { /* half-time: one big snare a bar (ROCK button, EDM mode), 2026-11-05 */
+        {KICK,      "X.........X....."},
+        {SNARE,     "........X......."},
+        {CLAP,      "........X......."}, /* with the snare: the one heavy hit */
+        {HAT,       "x.x.x.x.x.x.x.x."}},
+        110, 127},
     {"NEW AGE", 80, 4, 16, {
         {KICK,      "x.........x....."},
         {SIDESTICK, "....x.......x..."},

@@ -22,6 +22,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs/riffs-audio"
 SF2 = os.environ.get("SF2", "/usr/share/sounds/sf2/FluidR3_GM.sf2")
 KIT = ROOT / "build-host/edm_kit.sf2"
+GROWL = ROOT / "build-host/growl.sf2"  # ROCK's growl bass (tools/gen_growl_sf2.py)
 PAD_VELOCITY = 100  # main/keymap.h VELOCITY: the pads aren't softened in EDM mode
 RATE = 44100
 PASSES = 2
@@ -34,7 +35,7 @@ def slug(s):
 def pieces():
     page = (ROOT / "docs/riffs.html").read_text()
     src = page[page.index("const PIECES = ") :]
-    src = src[: src.index("\n", src.index("const PADS = ")) + 1]  # the pieces and the pads
+    src = src[: src.index("};", src.index("const PADS = ")) + 3]  # the pieces and the pads
     js = src + "\nprocess.stdout.write(JSON.stringify({pieces: PIECES, pads: PADS}));"
     data = json.loads(subprocess.run(["node", "-e", js], capture_output=True, text=True, check=True).stdout)
     return data["pieces"], data["pads"]
@@ -52,12 +53,13 @@ def beat_named(name):
     return bpm, lanes, vel, acc
 
 
-def keys_setup():
+def keys_setup(button):
+    """The keys' velocity, scale root, program (the piece's style button) and kit."""
     h = (ROOT / "main/keymap.h").read_text()
     c = (ROOT / "main/keymap.c").read_text()
     vel = int(re.search(r"#define EDM_VELOCITY\s+(\d+)", h)[1])
     root = int(re.search(r"#define SCALE_ROOT\s+(\d+)", h)[1])
-    program = int(re.search(r"(\d+), /\* DISCO", c)[1])
+    program = int(re.search(r"(\d+), /\* " + re.escape(button) + ":", c)[1])
     kit = int(re.search(r"#define EDM_KIT\s+(\d+)", h)[1])
     return vel, root, program, kit
 
@@ -120,7 +122,7 @@ def render(piece, layers, beat, keys, pads, path):
     with tempfile.TemporaryDirectory() as d:
         mid, raw = pathlib.Path(d, "x.mid"), pathlib.Path(d, "x.wav")
         mid.write_bytes(midi_file(bpm, total, ev))
-        subprocess.run(["fluidsynth", "-ni", "-g", "0.3", "-r", str(RATE), "-F", str(raw), SF2, str(KIT), str(mid)],
+        subprocess.run(["fluidsynth", "-ni", "-g", "0.3", "-r", str(RATE), "-F", str(raw), SF2, str(KIT), str(GROWL), str(mid)],
                        check=True, capture_output=True)
         # Exactly the piece's length, so the loop and the page's playhead line up.
         frames = round(total * 60 / bpm / 4 * RATE)
@@ -138,13 +140,14 @@ def main():
     OUT.mkdir(exist_ok=True)
     KIT.parent.mkdir(exist_ok=True)
     subprocess.run([sys.executable, str(ROOT / "tools/gen_edm_kit_sf2.py"), str(KIT)], check=True)
-    keys = keys_setup()
+    subprocess.run([sys.executable, str(ROOT / "tools/gen_growl_sf2.py"), str(GROWL)], check=True)
     all_pieces, pads = pieces()
     for piece in all_pieces:
         base = slug(piece["name"])
         beat = beat_named(piece["beat"])
         if piece["bpm"] != beat[0]:
             sys.exit(f"{piece['name']}: {piece['bpm']} bpm, its beat {piece['beat']} is {beat[0]}")
+        keys = keys_setup(piece["button"])
         render(piece, piece["layers"], beat, keys, pads, OUT / f"{base}-all.mp3")
         for layer in piece["layers"]:
             render(piece, [layer], beat, keys, pads, OUT / f"{base}-{slug(layer['name'])}.mp3")

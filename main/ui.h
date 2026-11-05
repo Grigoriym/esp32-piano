@@ -14,7 +14,7 @@
  *   Trumpet
  *   Volume   ██████░░░░    100
  *   Octave       □ □ ■ □ □
- *   Beat           ROCK 116 bpm     or "off"
+ *   Beat           BLUES 88 bpm      or "off"
  *   Loop               recording
  *
  * The knob turns to the Play screen: the header, then

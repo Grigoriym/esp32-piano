@@ -96,7 +96,7 @@ label.slow { display: flex; gap: 6px; align-items: center; font-size: .9rem; col
     <h3>On the toy</h3>
     <ol>
       <li>Start <b>Chicco Piano</b> from the app menu.</li>
-      <li>Press the song's button, <b>DISCO</b>, <b>MARCH</b> or <b>SLOW ROCK</b> (EDM mode: every key is in A minor, so nothing sounds wrong), then <b>SELECT</b> for its beat: four on the floor, a breakbeat or techno.</li>
+      <li>Press the song's button, <b>DISCO</b>, <b>MARCH</b>, <b>SLOW ROCK</b> or <b>ROCK</b> (EDM mode: every key is in A minor, so nothing sounds wrong), then <b>SELECT</b> for its beat: four on the floor, a breakbeat, techno or dubstep (ROCK's keys are the growl bass).</li>
       <li>Play the numbers below. Keys 1, 8, 15, 22, 29 are all A: each run of 7 keys is one octave.</li>
       <li>Chords are always <b>a key, skip one, a key, skip one, a key</b>.</li>
     </ol>
@@ -255,10 +255,51 @@ const PIECES = [
       ['End', 'Undo the layers one by one with the knob, last the Rumble. SELECT stops the beat.'],
     ],
   },
+  {
+    name: '#5 Wobble Drop',
+    button: 'ROCK', beat: 'DUBSTEP', sound: 'growl', /* ROCK's keys play the growl bass */
+    about: 'Dubstep: a half-time beat at 140 (one huge snare a bar), the growl bass wobbling in 8ths, a snare build-up that stops dead, then the drop: short growl hits with a screech on top. On ROCK every key is the growl; the low keys are the heavy ones.',
+    bpm: 140,
+    bars: 4,
+    chords: ['Am', 'F', 'Dm', 'Em'],
+    layers: [
+      {
+        name: 'Wub', color: 'chords', hand: 'left hand',
+        tip: 'One key held a whole bar: 1, 6, 4, 5. You only press; the wobble comes by itself, in time with the beat if you press on the "1".',
+        notes: '0:1/16 16:6/16 32:4/16 48:5/16',
+      },
+      {
+        name: 'Hits', color: 'bass', hand: 'left hand, or both',
+        tip: 'The drop. Short growl hits around the kick and the big snare (beat 3): mostly key 1, jumping up to 8 on the snare. Bar 4 ends with four fast 8s and a long 15.',
+        notes: '0:1/4 6:1/2 8:8/2 11:1/2 14:4/2 16:1/4 22:1/2 24:6/2 27:5/2 30:3/2 32:1/4 38:1/2 40:8/2 43:1/2 46:4/2 48:1/4 54:1/2 56:8/1 57:8/1 58:8/1 59:8/1 60:15/4',
+      },
+      {
+        name: 'Screech', color: 'hook', hand: 'right hand',
+        tip: 'High keys on the growl scream: three quick notes at the end of bars 2 and 4, after the snare. Sparse; it answers the hits.',
+        notes: '26:22/2 28:24/2 30:27/2 58:29/2 60:27/2 62:25/2',
+      },
+      {
+        name: 'Build', color: 'arp', hand: 'one finger on a chick pad',
+        tip: 'Before the drop, on the snare pad: 4 hits in bar 1, 8 in bar 2, 16 in bars 3 and 4, then stop dead for the last beat. That silence is what makes the drop hit.',
+        pads: '0:snare/1 4:snare/1 8:snare/1 12:snare/1 16:snare/1 18:snare/1 20:snare/1 22:snare/1 24:snare/1 26:snare/1 28:snare/1 30:snare/1 32:snare/1 33:snare/1 34:snare/1 35:snare/1 36:snare/1 37:snare/1 38:snare/1 39:snare/1 40:snare/1 41:snare/1 42:snare/1 43:snare/1 44:snare/1 45:snare/1 46:snare/1 47:snare/1 48:snare/1 49:snare/1 50:snare/1 51:snare/1 52:snare/1 53:snare/1 54:snare/1 55:snare/1 56:snare/1 57:snare/1 58:snare/1 59:snare/1',
+      },
+    ],
+    plan: [
+      ['Intro', 'ROCK, then SELECT: the half-time beat. Hold the Wub notes, one a bar, and listen to them wobble.'],
+      ['Build', 'Pot 1 (beat) down low. Play the Build on the snare pad, faster every bar, and stop dead at the end.'],
+      ['Drop', 'Pot 1 all the way up and RECORD on the drop: play the Hits, RECORD again at the end.'],
+      ['Drop, layer 2', 'RECORD while it plays: the Wub under it, or the Screech on top.'],
+      ['Breakdown', 'REPLAY: only the beat. Pot 1 down, the Build again.'],
+      ['Drop again', 'REPLAY right after the build: the loop slams back in on the next bar line.'],
+    ],
+  },
 ];
 
 /* Chick pads a layer can use: name -> General MIDI drum note, and where it is. */
-const PADS = { clap: { note: 39, where: 'Bottom 2: bottom row, second from the BLUES end' } };
+const PADS = {
+  clap: { note: 39, where: 'Bottom 2: bottom row, second from the BLUES end' },
+  snare: { note: 38, where: 'Bottom 1: bottom row, first from the BLUES end' },
+};
 
 const MINOR = [0, 2, 3, 5, 7, 8, 10];
 const keyNote = k => 33 + 12 * Math.floor((k - 1) / 7) + MINOR[(k - 1) % 7];
@@ -304,6 +345,32 @@ function saw(n, t, dur, vol) {
   o.connect(f).connect(g).connect(ctx.destination);
   o.start(t); o.stop(t + dur + 0.02);
 }
+/* ROCK's growl, roughly as tools/gen_growl_sf2.py makes it: a saw and a square an
+ * octave down, driven, behind a resonant low-pass that a triangle LFO sweeps 3
+ * octaves each way, once per 8th note (period), restarting at the note on. */
+let shaper = null;
+function growl(n, t, dur, vol, period) {
+  if (!shaper) {
+    shaper = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) shaper[i] = Math.tanh(3 * (i / 511.5 - 1));
+  }
+  const a = ctx.createOscillator(), b = ctx.createOscillator(), bg = ctx.createGain();
+  const ws = ctx.createWaveShaper(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+  const lfo = ctx.createOscillator(), depth = ctx.createGain();
+  a.type = 'sawtooth'; a.frequency.value = freq(n);
+  b.type = 'square'; b.frequency.value = freq(n) / 2; bg.gain.value = 0.7;
+  ws.curve = shaper;
+  f.type = 'lowpass'; f.frequency.value = 500; f.Q.value = 8;
+  lfo.type = 'triangle'; lfo.frequency.value = 1 / period; depth.gain.value = 3600;
+  lfo.connect(depth).connect(f.detune);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol * 1.4, t + 0.01);
+  g.gain.setValueAtTime(vol * 1.4, t + dur - 0.03);
+  g.gain.linearRampToValueAtTime(0, t + dur);
+  a.connect(ws); b.connect(bg).connect(ws);
+  ws.connect(f).connect(g).connect(ctx.destination);
+  for (const o of [a, b, lfo]) { o.start(t); o.stop(t + dur + 0.02); }
+}
 function noise(t, dur, type, fq, vol) {
   const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
   s.buffer = noiseBuf; f.type = type; f.frequency.value = fq;
@@ -320,6 +387,7 @@ function kick(t) {
 /* The firmware's EDM-mode beats (main/rhythm.c: copy a change there here too). */
 const BEATS = {
   EDM: { kick: 'X...X...X...X...', clap: '....X.......X...', hat: '.x.x.x.x.x.x.x.x', open: '..x...x...x...x.' },
+  DUBSTEP: { kick: 'X.........X.....', clap: '........X.......', hat: 'x.x.x.x.x.x.x.x.', open: '................' }, /* snare + clap on 3 */
   TECHNO: { kick: 'X...X...X...X...', clap: '....X.......X...', hat: 'xx.xxx.xxx.xxx.x', open: '..x...x...x...x.' },
   BREAKS: { kick: 'X.....X...X.....', clap: '....X.......X...', hat: 'x.xxx.x.x.xxx.x.', open: '..............x.' },
 };
@@ -396,8 +464,12 @@ function play(piece, layers, button, slow, mode, clipName) {
       drums(s, t, piece.beat);
       for (const e of events) {
         if (e.step !== s) continue;
-        if (e.pad) noise(t, 0.15, 'bandpass', 1500, 0.5); /* the clap, as in the beat */
-        else for (const k of e.keys) saw(keyNote(k), t, e.len * stepDur * 0.95, e.vol / e.keys.length);
+        if (e.pad === 'snare') noise(t, 0.12, 'bandpass', 1800, 0.45);
+        else if (e.pad) noise(t, 0.15, 'bandpass', 1500, 0.5); /* the clap, as in the beat */
+        else for (const k of e.keys) {
+          if (piece.sound === 'growl') growl(keyNote(k), t, e.len * stepDur * 0.95, e.vol / e.keys.length, 2 * stepDur);
+          else saw(keyNote(k), t, e.len * stepDur * 0.95, e.vol / e.keys.length);
+        }
       }
       next++;
     }
@@ -527,7 +599,7 @@ for (const p of PIECES) {
   card.href = '#' + slug(p.name);
   card.append(el('h2', null, p.name), el('p', 'muted', p.about || ''));
   const chips = el('div', 'chips');
-  [`${p.button}: ${{ EDM: 'four on the floor', BREAKS: 'breakbeat', TECHNO: 'techno' }[p.beat]}`, `${p.bpm} bpm`, p.chords.join(' – '), p.layers.map(l => l.name).join(', ')].forEach(t => chips.append(el('span', 'chip', t)));
+  [`${p.button}: ${{ EDM: 'four on the floor', BREAKS: 'breakbeat', TECHNO: 'techno', DUBSTEP: 'dubstep, half-time' }[p.beat]}`, `${p.bpm} bpm`, p.chords.join(' – '), p.layers.map(l => l.name).join(', ')].forEach(t => chips.append(el('span', 'chip', t)));
   card.append(chips);
   list.append(card);
 }

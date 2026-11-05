@@ -17,7 +17,7 @@
  * the caller (KEYMAP_DEMO), and so are RECORD and REPLAY (looper.h) and
  * SELECT (rhythm.h: the drum beat of the last style button, k->style).
  *
- * EDM mode (DISCO, MARCH or SLOW ROCK, until another style button or RESET): the keys play only
+ * EDM mode (DISCO, MARCH, SLOW ROCK or ROCK, until another style button or RESET): the keys play only
  * the notes of A natural minor, 7 keys an octave, so no key sounds wrong, and
  * the drum channel plays EDM_KIT (every other style: kit 0). */
 #define KEY_CH         0
@@ -30,10 +30,11 @@
 #define VOLUME_STEP    16
 #define DEFAULT_VOLUME 127 /* max: what RESET and boot give */
 #define MAX_OCTAVE     2
-#define DEFAULT_STYLE  1  /* ROCK: SELECT's beat before a style button is pressed */
+#define DEFAULT_STYLE  7  /* BLUES: SELECT's beat before a style button is pressed (not an EDM one) */
 #define EDM_STYLE      3  /* DISCO: EDM mode, the keys play A natural minor */
 #define EDM_STYLE_2    4  /* MARCH: EDM mode too, with a breakbeat */
 #define EDM_STYLE_3    0  /* SLOW ROCK: EDM mode too, with a techno beat */
+#define EDM_STYLE_4    1  /* ROCK: EDM mode too, dubstep: the growl bass, a half-time beat */
 #define EDM_KIT        30 /* drum program in EDM mode: tools/gen_edm_kit_sf2.py on the PC */
 #define SCALE_ROOT     33 /* EDM mode: key 1 = A1, then one key per scale step (key 8 = A2) */
 

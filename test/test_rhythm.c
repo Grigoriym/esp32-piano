@@ -5,8 +5,8 @@
 #include "rhythm.h"
 #include "unity.h"
 
-#define ROCK 1
-#define EDM  3
+#define DUBSTEP 1
+#define EDM     3
 
 static rhythm_t r;
 static midi_rec_t rec;
@@ -55,22 +55,23 @@ static void test_edm_buttons_have_edm_beats(void)
     TEST_ASSERT_EQUAL_STRING("EDM", rhythm_style(EDM_STYLE)->name);
     TEST_ASSERT_EQUAL_STRING("BREAKS", rhythm_style(EDM_STYLE_2)->name);
     TEST_ASSERT_EQUAL_STRING("TECHNO", rhythm_style(EDM_STYLE_3)->name);
+    TEST_ASSERT_EQUAL_STRING("DUBSTEP", rhythm_style(EDM_STYLE_4)->name);
     TEST_ASSERT_EQUAL(130, rhythm_style(EDM_STYLE_3)->bpm);
 }
 
-static void test_rock_starts_with_kick_and_hat_then_hat_an_eighth_later(void)
+static void test_dubstep_starts_with_kick_and_hat_then_hat_an_eighth_later(void)
 {
-    rhythm_toggle(&r, ROCK, 0, midi_rec, &rec);
+    rhythm_toggle(&r, DUBSTEP, 0, midi_rec, &rec);
     rhythm_tick(&r, 0, midi_rec, &rec);
     /* log, kick, hat (accent) */
     TEST_ASSERT_EQUAL(3, rec.n);
     TEST_ASSERT_EQUAL_HEX8(0x90 | DRUM_CH, rec.e[1].msg[0]);
     TEST_ASSERT_EQUAL(36, rec.e[1].msg[1]);
-    TEST_ASSERT_EQUAL(RHYTHM_VELOCITY, rec.e[1].msg[2]);
+    TEST_ASSERT_EQUAL(127, rec.e[1].msg[2]); /* accent */
     TEST_ASSERT_EQUAL(42, rec.e[2].msg[1]);
-    TEST_ASSERT_EQUAL(RHYTHM_ACCENT, rec.e[2].msg[2]);
-    int64_t step = rhythm_step_us(rhythm_style(ROCK));
-    TEST_ASSERT_EQUAL(60000000 / 116 / 4, step);
+    TEST_ASSERT_EQUAL(110, rec.e[2].msg[2]);
+    int64_t step = rhythm_step_us(rhythm_style(DUBSTEP));
+    TEST_ASSERT_EQUAL(60000000 / 140 / 4, step);
     run(1000, 2 * step - 1000);
     /* step 1: offs for kick and hat, nothing on */
     TEST_ASSERT_EQUAL(5, rec.n);
@@ -82,12 +83,12 @@ static void test_rock_starts_with_kick_and_hat_then_hat_an_eighth_later(void)
 
 static void test_a_style_change_waits_for_the_bar_line(void)
 {
-    int64_t step = rhythm_step_us(rhythm_style(ROCK));
-    rhythm_toggle(&r, ROCK, 0, midi_rec, &rec);
+    int64_t step = rhythm_step_us(rhythm_style(DUBSTEP));
+    rhythm_toggle(&r, DUBSTEP, 0, midi_rec, &rec);
     run(0, 4 * step);
     rhythm_select(&r, EDM);
     run(4 * step + 1000, 16 * step - 1000);
-    TEST_ASSERT_EQUAL(ROCK, r.style);
+    TEST_ASSERT_EQUAL(DUBSTEP, r.style);
     rec.n = 0;
     run(16 * step, 16 * step);
     TEST_ASSERT_EQUAL(EDM, r.style);
@@ -128,9 +129,9 @@ static void test_every_style_stops_every_hit(void)
 
 static void test_silent_once_stopped(void)
 {
-    rhythm_toggle(&r, ROCK, 0, midi_rec, &rec);
+    rhythm_toggle(&r, DUBSTEP, 0, midi_rec, &rec);
     run(0, 0);
-    rhythm_toggle(&r, ROCK, 1000, midi_rec, &rec);
+    rhythm_toggle(&r, DUBSTEP, 1000, midi_rec, &rec);
     size_t n = rec.n;
     run(2000, 2000000);
     TEST_ASSERT_EQUAL(n, rec.n);
@@ -151,7 +152,7 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_every_pattern_is_one_bar_of_hits);
     RUN_TEST(test_edm_buttons_have_edm_beats);
-    RUN_TEST(test_rock_starts_with_kick_and_hat_then_hat_an_eighth_later);
+    RUN_TEST(test_dubstep_starts_with_kick_and_hat_then_hat_an_eighth_later);
     RUN_TEST(test_a_style_change_waits_for_the_bar_line);
     RUN_TEST(test_every_style_stops_every_hit);
     RUN_TEST(test_silent_once_stopped);
