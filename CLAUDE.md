@@ -551,6 +551,13 @@ not yet judged by ear.
   updates with the case closed (OTA vs a USB hole), mounting.
 
 Future improvements:
+- The toy's own LED next to RECORD as a recording light (the user, 2026-11-05, for later). Its
+  path from the old chip was never measured; the toy has 2 LEDs, the other lights straight from
+  the batteries. Guess, not measured: the slot's `CD0` (the one non-key pin besides power/audio).
+  When the toy is open: batteries out, a sharp photo of the main board at the LED's legs, then
+  beep each leg to the slot pads (`CD0` first). If it reaches a pad, drive it from D25 through
+  the slot (check for a series resistor first). Instead of a separate plain LED (not needed:
+  the strip shows everything).
 - A custom key board with a diode on all 32 keys (the user's idea, 2026-10-30,
   parked): the current board can't take them all. Same grid, the old board stays
   as a fallback. The hard part is the fit (pads under the domes, screw holes,
