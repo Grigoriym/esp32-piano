@@ -123,13 +123,14 @@ static void test_buttons(void)
     TEST_ASSERT_EQUAL(4, rec.n);
 }
 
-static void test_first_style_button_is_the_default_piano(void)
+static void test_slow_rock_is_edm_mode_with_techno(void)
 {
-    keymap_event(&k, 4, 5, true, midi_rec, &rec); /* WALTZ: accordion */
-    keymap_event(&k, 4, 0, true, midi_rec, &rec); /* SLOW ROCK */
-    TEST_ASSERT_EQUAL(0, k.program);
-    TEST_ASSERT_EQUAL_STRING("Piano", keymap_program_name(k.program));
-    keymap_event(&k, 4, 1, true, midi_rec, &rec); /* ROCK */
+    keymap_event(&k, 4, 5, true, midi_rec, &rec);           /* WALTZ: accordion */
+    keymap_event(&k, 4, EDM_STYLE_3, true, midi_rec, &rec); /* SLOW ROCK */
+    TEST_ASSERT_EQUAL(81, k.program);
+    TEST_ASSERT_EQUAL_STRING("Saw lead, Am", keymap_program_name(k.program));
+    TEST_ASSERT_EQUAL(33, keymap_key_note(&k, 0)); /* key 1 = A1 */
+    keymap_event(&k, 4, 1, true, midi_rec, &rec);  /* ROCK */
     TEST_ASSERT_EQUAL_STRING("Cat", keymap_program_name(k.program));
 }
 
@@ -161,7 +162,7 @@ static void test_edm_mode_switches_the_drum_kit(void)
 {
     keymap_event(&k, 4, EDM_STYLE, true, midi_rec, &rec);
     assert_msg(1, 0xc9, EDM_KIT, 0);
-    keymap_event(&k, 4, 0, true, midi_rec, &rec); /* SLOW ROCK */
+    keymap_event(&k, 4, 7, true, midi_rec, &rec); /* BLUES */
     assert_msg(3, 0xc9, 0, 0);
     keymap_event(&k, 4, EDM_STYLE, true, midi_rec, &rec);
     rec.n = 0;
@@ -173,7 +174,7 @@ static void test_edm_mode_switches_the_drum_kit(void)
 static void test_edm_mode_ends_with_another_style_or_reset(void)
 {
     keymap_event(&k, 4, EDM_STYLE, true, midi_rec, &rec);
-    keymap_event(&k, 4, 0, true, midi_rec, &rec); /* SLOW ROCK */
+    keymap_event(&k, 4, 7, true, midi_rec, &rec); /* BLUES */
     TEST_ASSERT_EQUAL(53, keymap_key_note(&k, 0));
     keymap_event(&k, 4, EDM_STYLE, true, midi_rec, &rec);
     keymap_event(&k, 5, 4, true, midi_rec, &rec); /* RESET */
@@ -207,7 +208,7 @@ int main(void)
     RUN_TEST(test_volume_steps_and_clamps);
     RUN_TEST(test_reset_restores_the_defaults);
     RUN_TEST(test_buttons);
-    RUN_TEST(test_first_style_button_is_the_default_piano);
+    RUN_TEST(test_slow_rock_is_edm_mode_with_techno);
     RUN_TEST(test_program_names);
     RUN_TEST(test_edm_keys_play_a_minor);
     RUN_TEST(test_edm_mode_switches_the_drum_kit);

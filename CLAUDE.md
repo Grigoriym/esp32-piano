@@ -173,7 +173,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   after a mapping change).
 - EDM mode (2026-11-03, the user wants to make simple electronic music, not learn
   piano): DISCO or MARCH (`keymap_is_edm`; MARCH's trumpet and march beat gone, its
-  beat is `BREAKS`, a 124 bpm breakbeat, the user's ask) makes the keys play only A natural minor (`keymap_key_note`: key 1 =
+  beat is `BREAKS`, a 124 bpm breakbeat, the user's ask; SLOW ROCK since 2026-11-05, beat `TECHNO`, 130 bpm, 16th hats, its 12/8 slow rock and piano gone, RESET still gives piano) makes the keys play only A natural minor (`keymap_key_note`: key 1 =
   A1, 7 keys an octave, key 8 = A2), keys at velocity 55, beat `EDM` 124 bpm four on the floor at
   110/127 (the saw lead drowned the beat twice). Its drums are kit 30 (`EDM_KIT`), built by
   `tools/gen_edm_kit_sf2.py` (synthesized: the page synth's kick/clap/hats, which the

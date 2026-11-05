@@ -50,6 +50,14 @@ static void test_every_pattern_is_one_bar_of_hits(void)
     }
 }
 
+static void test_edm_buttons_have_edm_beats(void)
+{
+    TEST_ASSERT_EQUAL_STRING("EDM", rhythm_style(EDM_STYLE)->name);
+    TEST_ASSERT_EQUAL_STRING("BREAKS", rhythm_style(EDM_STYLE_2)->name);
+    TEST_ASSERT_EQUAL_STRING("TECHNO", rhythm_style(EDM_STYLE_3)->name);
+    TEST_ASSERT_EQUAL(130, rhythm_style(EDM_STYLE_3)->bpm);
+}
+
 static void test_rock_starts_with_kick_and_hat_then_hat_an_eighth_later(void)
 {
     rhythm_toggle(&r, ROCK, 0, midi_rec, &rec);
@@ -142,6 +150,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_every_pattern_is_one_bar_of_hits);
+    RUN_TEST(test_edm_buttons_have_edm_beats);
     RUN_TEST(test_rock_starts_with_kick_and_hat_then_hat_an_eighth_later);
     RUN_TEST(test_a_style_change_waits_for_the_bar_line);
     RUN_TEST(test_every_style_stops_every_hit);

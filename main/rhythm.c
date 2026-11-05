@@ -20,10 +20,12 @@
 /* Style buttons' order. Hand-aligned so a beat's lanes line up step by step. */
 // clang-format off
 static const rhythm_style_t STYLES[RHYTHM_STYLES] = {
-    {"SLOW ROCK", 66, 3, 12, { /* 12/8 */
-        {KICK,      "x.....x.x..."},
-        {SNARE,     "...X.....X.."},
-        {HAT,       "Xxxxxxxxxxxx"}}, RHYTHM_VELOCITY, RHYTHM_ACCENT},
+    {"TECHNO", 130, 4, 16, { /* EDM mode too (SLOW ROCK button), 2026-11-05 */
+        {KICK,      "X...X...X...X..."},
+        {CLAP,      "....X.......X..."},
+        {HAT,       "xx.xxx.xxx.xxx.x"}, /* 16ths, but not over the open hat: it would cut it */
+        {OPEN_HAT,  "..x...x...x...x."}},
+        110, 127},
     {"ROCK", 116, 4, 16, {
         {KICK,      "x.......x.x....."},
         {SNARE,     "....X.......X..."},

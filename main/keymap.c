@@ -14,7 +14,7 @@ static const char *const BUTTONS[4][N_COLS] = {
 
 /* General MIDI programs for the style buttons, AB4 EF0-EF7 order. */
 static const uint8_t STYLE_PROGRAM[N_COLS] = {
-    0,  /* SLOW ROCK: piano, the default sound */
+    81, /* SLOW ROCK: saw lead, EDM mode with a techno beat (rhythm.c: TECHNO) */
     19, /* ROCK: cat (tools/gen_cat_sf2.py takes over this program on the PC) */
     88, /* NEW AGE: Siamese cat (same way) */
     81, /* DISCO: saw lead, EDM mode (A minor keys, rhythm.c: EDM beat) */
@@ -27,7 +27,7 @@ static const uint8_t STYLE_PROGRAM[N_COLS] = {
 const char *keymap_program_name(uint8_t program)
 {
     static const char *const NAMES[N_COLS] = {
-        "Piano",        "Cat",       "Siamese cat", "Saw lead, Am",
+        "Saw lead, Am", "Cat",       "Siamese cat", "Saw lead, Am",
         "Saw lead, Am", "Accordion", "Marimba",     "Electric piano",
     };
     if (program == 0) return "Piano";
@@ -99,7 +99,7 @@ static int clamp(int v, int lo, int hi)
 
 bool keymap_is_edm(size_t style)
 {
-    return style == EDM_STYLE || style == EDM_STYLE_2;
+    return style == EDM_STYLE || style == EDM_STYLE_2 || style == EDM_STYLE_3;
 }
 
 uint8_t keymap_key_note(const keymap_t *k, size_t key)
