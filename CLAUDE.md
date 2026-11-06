@@ -101,7 +101,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   every scan) it starts on that note's bar line, its length is first note to
   RECORD rounded to whole bars (from the bar line, a bass begun on step 6 made a
   5-bar loop with an empty bar, 2026-11-03), notes past the end before the first
-  note's place wrap to the start, a late RECORD's next-pass notes are dropped; RECORD while playing adds a layer (up to 4, keys on
+  note's place wrap to the start, a late RECORD's next-pass notes are dropped; RECORD while playing adds a layer, heard once closed; recorded over several passes (second RECORD rounded to
+  whole passes from the pass start nearest the first) the loop grows to that many passes, older layers repeated, up to
+  8 (the user, 2026-11-06: a part, then a pass of silence; before, every pass stacked into one) (up to 4, keys on
   channels 3-6 each with its instrument, drums on 10), the knob's press undoes
   one (2026-11-03); RESET erases it), `rhythm.c` (SELECT: a drum
   beat per style button, one bar of `x`/`X`/`.` steps per drum; while it plays a style button changes only the

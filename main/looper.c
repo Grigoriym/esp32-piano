@@ -144,15 +144,76 @@ static void close_loop(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx
     }
 }
 
-static void end_dub(looper_t *l, midi_send_fn send, void *ctx)
+/* The pass start nearest t. */
+static int64_t nearest_pass(const looper_t *l, int64_t t)
+{
+    int64_t len = l->length_us;
+    return l->start_us + floor_div(t - l->start_us + len / 2, len) * len;
+}
+
+/* Closes the layer being added: the loop grows to the passes it was played over
+ * (each older layer repeated), then the layer goes in. */
+static void end_dub(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
 {
     l->dubbing = false;
-    if (l->dub_events) {
-        l->n_layers++;
-        log_msg(send, ctx, "loop: layer added");
-    } else {
+    if (!l->dub_events) {
         log_msg(send, ctx, "loop: nothing added");
+        return;
     }
+    int64_t len = l->length_us;
+    int64_t passes = (now_us - l->dub_base_us + len / 2) / len;
+    if (passes < 1) passes = 1;
+    if (passes > LOOPER_MAX_PASSES) passes = LOOPER_MAX_PASSES;
+    while (passes > 1 && l->n * (size_t)passes + l->dub_events > LOOPER_MAX_EVENTS) passes--;
+    size_t n = l->n;
+    for (int64_t p = 1; p < passes; p++) { /* the older layers, once a pass */
+        for (size_t i = 0; i < n; i++) {
+            l->ev[l->n] = l->ev[i];
+            l->ev[l->n++].t_us += (uint32_t)(p * len);
+        }
+    }
+    int64_t total = passes * len;
+    l->length_us = (uint32_t)total;
+    uint8_t dropped[16] = {0}; /* notes on past the end, so their offs go too */
+    for (size_t i = 0; i < l->dub_events && l->n < LOOPER_MAX_EVENTS; i++) {
+        looper_event_t e = {.msg = {l->dub[i].msg[0], l->dub[i].msg[1], l->dub[i].msg[2]},
+                            .layer = (uint8_t)l->n_layers};
+        bool on = (e.msg[0] & 0xf0) == 0x90 && e.msg[2];
+        int64_t t = l->dub[i].t_us;
+        if (t < 0) t += total; /* a pickup: before the loop's start comes round again */
+        if (t < 0) t = 0;
+        if (t >= total) {
+            if (on) {
+                set_bit(dropped, e.msg[1], true);
+                continue;
+            }
+            if (get_bit(dropped, e.msg[1])) {
+                set_bit(dropped, e.msg[1], false);
+                continue;
+            }
+            t = total - 1;
+        } else if (on) {
+            set_bit(dropped, e.msg[1], false);
+        }
+        e.t_us = (uint32_t)t;
+        l->ev[l->n++] = e;
+    }
+    for (size_t i = 1; i < l->n; i++) { /* in time order, stable */
+        looper_event_t e = l->ev[i];
+        size_t j = i;
+        for (; j > 0 && l->ev[j - 1].t_us > e.t_us; j--) l->ev[j] = l->ev[j - 1];
+        l->ev[j] = e;
+    }
+    l->n_layers++;
+    char what[48];
+    snprintf(what, sizeof(what), "loop: layer added (%d pass%s)", (int)passes, passes > 1 ? "es" : "");
+    log_msg(send, ctx, what);
+    /* Carry on where the loop is: the new length counts from the layer's first pass, and
+     * what the old loop already sent (up to its start + played) isn't sent again. */
+    int64_t sent_until = l->start_us + l->played_us;
+    int64_t start = now_us - mod(now_us - l->dub_base_us, total);
+    start_playing(l, start, sent_until - start, send, ctx);
+    l->program_due = (uint8_t)(1u << (l->n_layers - 1)); /* the older layers' are sent already */
 }
 
 void looper_record(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
@@ -162,12 +223,13 @@ void looper_record(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
         case LOOPER_RECORDING: close_loop(l, now_us, send, ctx); return;
         case LOOPER_PLAYING:
             if (l->dubbing) {
-                end_dub(l, send, ctx);
+                end_dub(l, now_us, send, ctx);
             } else if (l->n_layers == LOOPER_LAYERS) {
                 log_msg(send, ctx, "loop: full, undo a layer first");
             } else {
                 l->dubbing = true;
                 l->dub_events = 0;
+                l->dub_base_us = nearest_pass(l, now_us);
                 memset(l->rec_held, 0, sizeof(l->rec_held));
                 log_msg(send, ctx, "loop: adding a layer");
             }
@@ -186,7 +248,7 @@ void looper_replay(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
         case LOOPER_ARMED:
         case LOOPER_RECORDING: close_loop(l, now_us, send, ctx); break;
         case LOOPER_PLAYING:
-            if (l->dubbing) end_dub(l, send, ctx);
+            if (l->dubbing) end_dub(l, now_us, send, ctx);
             silence(l, send, ctx);
             l->state = LOOPER_IDLE;
             log_msg(send, ctx, "loop stopped");
@@ -228,9 +290,7 @@ void looper_undo(looper_t *l, midi_send_fn send, void *ctx)
         return;
     }
     if (l->dubbing) {
-        silence(l, send, ctx);
-        drop_layers(l, l->n_layers);
-        l->dubbing = false;
+        l->dubbing = false; /* its notes were never in the loop */
         log_msg(send, ctx, "loop: new layer dropped");
     } else if (l->n_layers > 1) {
         silence(l, send, ctx);
@@ -249,16 +309,6 @@ void looper_clear(looper_t *l, midi_send_fn send, void *ctx)
     looper_init(l);
 }
 
-/* Puts e in time order; one played already this pass doesn't play again. */
-static void insert(looper_t *l, const looper_event_t *e)
-{
-    size_t i = first_after(l, e->t_us);
-    memmove(&l->ev[i + 1], &l->ev[i], (l->n - i) * sizeof(l->ev[0]));
-    l->ev[i] = *e;
-    l->n++;
-    if (i < l->pos || (i == l->pos && (int64_t)e->t_us <= l->played_us)) l->pos++;
-}
-
 void looper_capture(looper_t *l, int64_t now_us, const uint8_t *msg, size_t len, uint8_t program)
 {
     bool first_layer = l->state == LOOPER_ARMED || l->state == LOOPER_RECORDING;
@@ -270,8 +320,10 @@ void looper_capture(looper_t *l, int64_t now_us, const uint8_t *msg, size_t len,
     bool on = kind == 0x90 && msg[2];
     uint8_t *held = l->rec_held[ch == DRUM_CH];
     if (!on && !get_bit(held, msg[1])) return; /* pressed before recording started */
-    if (l->n == LOOPER_MAX_EVENTS) return;
-    if (on && l->n == LOOPER_MAX_EVENTS - 1) return; /* keep room for a note off */
+    size_t used = first_layer ? l->n : l->dub_events;
+    size_t room = first_layer ? LOOPER_MAX_EVENTS : LOOPER_DUB_EVENTS;
+    if (used == room) return;
+    if (on && used == room - 1) return; /* keep room for a note off */
     size_t layer = first_layer ? 0 : l->n_layers;
     if (l->state == LOOPER_ARMED) {
         memset(l->rec_held, 0, sizeof(l->rec_held));
@@ -283,18 +335,15 @@ void looper_capture(looper_t *l, int64_t now_us, const uint8_t *msg, size_t len,
         }
     }
     if (first_layer ? l->n == 0 : l->dub_events == 0) l->program[layer] = program;
-    if (!first_layer && l->dub_events == 0) l->program_due |= (uint8_t)(1u << layer);
     set_bit(held, msg[1], on);
     int64_t t = now_us - l->start_us;
-    looper_event_t e = {
-        .t_us = (uint32_t)(first_layer ? (t < 0 ? 0 : t) : mod(t, l->length_us)),
-        .msg = {(uint8_t)(kind | (ch == KEY_CH ? LOOP_CH + layer : DRUM_CH)), msg[1], msg[2]},
-        .layer = (uint8_t)layer,
-    };
+    uint8_t status = (uint8_t)(kind | (ch == KEY_CH ? LOOP_CH + layer : DRUM_CH));
     if (first_layer) {
-        l->ev[l->n++] = e;
-    } else {
-        insert(l, &e);
+        l->ev[l->n++] =
+            (looper_event_t){.t_us = (uint32_t)(t < 0 ? 0 : t), .msg = {status, msg[1], msg[2]}, .layer = 0};
+    } else { /* kept apart until RECORD closes it: then the loop's length is known */
+        l->dub[l->dub_events].t_us = (int32_t)(now_us - l->dub_base_us);
+        memcpy(l->dub[l->dub_events].msg, (uint8_t[3]){status, msg[1], msg[2]}, 3);
         l->dub_events++;
     }
 }

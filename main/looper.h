@@ -19,8 +19,13 @@
  * first note's place finish a phrase begun mid-bar and wrap to the start; the
  * others (the next pass, played before a late RECORD) are dropped. Without the beat the loop is as long as played.
  *
- * RECORD while the loop plays adds a layer on top, recorded as the loop goes
- * round, until RECORD again; up to LOOPER_LAYERS. Each layer's keys play on
+ * RECORD while the loop plays adds a layer on top, until RECORD again; up to
+ * LOOPER_LAYERS. It is heard once closed. Its passes count from the loop's start
+ * nearest the first RECORD; recorded over more than one pass (the second RECORD
+ * rounded to whole passes), the loop grows to that many passes and the older
+ * layers repeat in it: a part played once, then a pass of silence, is a layer that
+ * plays every other pass (the user, 2026-11-06). Notes before that start (a
+ * pickup) go to the new loop's end; notes past its end (a late RECORD) are dropped. Each layer's keys play on
  * their own channel (LOOP_CH + layer) with the instrument they were recorded
  * with, drums stay on DRUM_CH. looper_undo (the knob's press) drops the layer
  * being added, or else the last one; the last one left: the whole loop.
@@ -31,6 +36,8 @@
  * the loop stops there. */
 #define LOOPER_MAX_EVENTS 1024
 #define LOOPER_LAYERS     LOOP_CHANNELS
+#define LOOPER_DUB_EVENTS 512 /* the layer being added, until it is closed */
+#define LOOPER_MAX_PASSES 8   /* how far a layer can grow the loop */
 
 typedef enum {
     LOOPER_IDLE, /* empty, or a loop that is stopped */
@@ -51,7 +58,12 @@ typedef struct {
     looper_event_t ev[LOOPER_MAX_EVENTS]; /* sorted by t_us */
     size_t n;
     size_t n_layers;
-    size_t dub_events;                   /* in the layer being added */
+    size_t dub_events; /* in the layer being added */
+    struct {
+        int32_t t_us; /* from dub_base_us; <0: before it */
+        uint8_t msg[3];
+    } dub[LOOPER_DUB_EVENTS];
+    int64_t dub_base_us;                 /* the pass start nearest the RECORD that began the layer */
     uint32_t length_us;                  /* 0: no loop */
     uint8_t program[LOOPER_LAYERS];      /* each layer's keys' instrument */
     uint8_t program_due;                 /* bit per layer: program change still to send */

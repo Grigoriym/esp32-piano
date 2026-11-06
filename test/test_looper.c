@@ -378,6 +378,72 @@ static void test_no_more_than_four_layers(void)
     TEST_ASSERT_FALSE(l.dubbing);
 }
 
+/* record_one_note's 2 s loop plays from 3 s; RECORD at 3.05 s: the layer's passes count from 3 s. */
+static void start_layer(void)
+{
+    record_one_note();
+    run(3000000, 3050000);
+    looper_record(&l, 3050000, midi_rec, &rec);
+}
+
+static void test_a_layer_over_two_passes_doubles_the_loop(void)
+{
+    start_layer();
+    note_p(3500000, 64, true, 19); /* pass 1: a note */
+    note_p(3700000, 64, false, 19);
+    run(3050000, 6990000); /* pass 2: silence */
+    looper_record(&l, 7000000, midi_rec, &rec);
+    TEST_ASSERT_EQUAL(4000000, l.length_us);
+    TEST_ASSERT_EQUAL(2, l.n_layers);
+    size_t start = rec.n;
+    run(7000000, 10990000);                                       /* one pass of the new loop */
+    TEST_ASSERT_EQUAL(2, count(start, 0x90 | LOOP_CH, 60));       /* the old layer, twice */
+    TEST_ASSERT_EQUAL(1, count(start, 0x90 | (LOOP_CH + 1), 64)); /* the new one, once */
+}
+
+static void test_a_layer_is_heard_once_closed(void)
+{
+    start_layer();
+    note_p(3500000, 64, true, 19);
+    note_p(3700000, 64, false, 19);
+    run(3050000, 6990000);
+    TEST_ASSERT_EQUAL(0, count(0, 0x90 | (LOOP_CH + 1), 64)); /* not played back while recording */
+}
+
+static void test_a_record_near_the_pass_end_counts_from_the_next_pass(void)
+{
+    record_one_note();
+    run(3000000, 4900000);
+    looper_record(&l, 4900000, midi_rec, &rec); /* 0.1 s before the pass from 5 s */
+    note_p(4950000, 64, true, 19);              /* a pickup */
+    note_p(5050000, 64, false, 19);
+    note_p(5500000, 65, true, 19);
+    note_p(5600000, 65, false, 19);
+    run(4900000, 6990000);
+    looper_record(&l, 7000000, midi_rec, &rec);
+    TEST_ASSERT_EQUAL(2000000, l.length_us); /* one pass: 5 s to 7 s */
+    size_t start = rec.n;
+    run(7000000, 8990000);
+    TEST_ASSERT_EQUAL(1, count(start, 0x90 | (LOOP_CH + 1), 65));
+    TEST_ASSERT_EQUAL(1, count(start, 0x90 | (LOOP_CH + 1), 64)); /* the pickup, at the pass's end */
+}
+
+static void test_a_late_record_drops_the_layers_next_pass(void)
+{
+    start_layer();
+    note_p(3500000, 64, true, 19);
+    note_p(3700000, 64, false, 19);
+    run(3050000, 5300000);
+    note_p(5100000, 66, true, 19); /* the next pass begun before a late RECORD */
+    note_p(5200000, 66, false, 19);
+    looper_record(&l, 5300000, midi_rec, &rec);
+    TEST_ASSERT_EQUAL(2000000, l.length_us);
+    size_t start = rec.n;
+    run(5300000, 9000000);
+    TEST_ASSERT_EQUAL(0, count(start, 0x90 | (LOOP_CH + 1), 66));
+    TEST_ASSERT_EQUAL(2, count(start, 0x90 | (LOOP_CH + 1), 64));
+}
+
 static void test_clear_forgets_the_loop(void)
 {
     record_one_note();
@@ -436,6 +502,10 @@ int main(void)
     RUN_TEST(test_undo_while_adding_drops_the_new_layer);
     RUN_TEST(test_a_layer_with_nothing_played_is_not_added);
     RUN_TEST(test_no_more_than_four_layers);
+    RUN_TEST(test_a_layer_over_two_passes_doubles_the_loop);
+    RUN_TEST(test_a_layer_is_heard_once_closed);
+    RUN_TEST(test_a_record_near_the_pass_end_counts_from_the_next_pass);
+    RUN_TEST(test_a_late_record_drops_the_layers_next_pass);
     RUN_TEST(test_clear_forgets_the_loop);
     RUN_TEST(test_a_full_loop_keeps_room_for_the_last_note_off);
     return UNITY_END();
