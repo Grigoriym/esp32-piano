@@ -15,7 +15,7 @@
  * The pure parts, host-tested (tools/test.sh): matrix.c (debounce, ghosts),
  * keymap.c (names, what each key and button plays), demo.c (DEMO button),
  * looper.c (RECORD / REPLAY), rhythm.c (SELECT: drum beats), mixer.c (the five
- * pots: beat, newest layer, live keys, filter, reverb, metronome), metronome.c
+ * pots: beat, newest layer, live keys, filter, reverb, metronome tempo), metronome.c
  * (FROG), leds.c (the LED strip).
  * MIDI goes out as UDP over WiFi to tools/piano_bridge.c (main/midi_link.h).
  *
@@ -253,14 +253,16 @@ static void pots_read(int64_t now)
         if (!n) continue;
         if (mixer_feed(&mixer, (mixer_pot_t)i, sum / n, now)) {
             printf("POT   %s %u\n", POT_NAME[i], (unsigned)mixer.pot[i]);
-            if (i >= MIXER_KEYS) fx_due[i] = true;
+            if (i >= MIXER_KEYS && i <= MIXER_REVERB) fx_due[i] = true;
+            if (i == MIXER_METRO) metro_set_bpm(&metro, metro_bpm_for(mixer.metro));
         }
     }
     /* A PC that just said HELLO (the bridge or FluidSynth restarted) gets the effects again. */
     static bool was_connected;
     bool connected = midi_link_connected();
     if (connected && !was_connected) {
-        for (size_t i = MIXER_KEYS; i < MIXER_POTS; i++) fx_due[i] = true;
+        for (size_t i = MIXER_KEYS; i <= MIXER_REVERB; i++) fx_due[i] = true;
+        if (metro.on) metro_setup(send_midi, NULL);
         for (size_t l = 0; l < looper.n_layers; l++) mixer_send_layer_fx(&mixer, l, send_midi, NULL);
     }
     was_connected = connected;
@@ -268,7 +270,7 @@ static void pots_read(int64_t now)
      * messages a step, too many for the cable at every reading. */
     static int64_t fx_sent;
     if (now - fx_sent < FX_PERIOD_US) return;
-    for (size_t i = MIXER_KEYS; i < MIXER_POTS; i++) {
+    for (size_t i = MIXER_KEYS; i <= MIXER_REVERB; i++) {
         if (!fx_due[i]) continue;
         fx_due[i] = false;
         fx_sent = now;
@@ -342,6 +344,7 @@ static void show(const matrix_t *m)
     s.octave = keymap.octave;
     s.beat = beat ? beat->name : NULL;
     s.beat_bpm = beat ? beat->bpm : 0;
+    s.metro_bpm = !metro.on ? 0 : beat ? beat->bpm : (int)(60000000LL / metro_beat_us(&metro));
     s.screen = screen_shown;
     if (rhythm.on) {
         const rhythm_style_t *st = rhythm_style(rhythm.style);
@@ -465,13 +468,15 @@ void app_main(void)
         demo_tick(&demo, ahead, send_at, &ahead);
         looper_tick(&looper, ahead, send_at, &looper.due_us);
         rhythm_tick(&rhythm, ahead, send_beat, &beat_due);
-        /* The metronome: on the beat's grid while it plays, else its own at the style's tempo. */
-        {
-            const rhythm_style_t *st = rhythm_style(rhythm.on ? rhythm.style : keymap.style);
+        /* The metronome: on the beat's grid while it plays, else its own at pot 6's tempo. */
+        if (rhythm.on) {
+            const rhythm_style_t *st = rhythm_style(rhythm.style);
             int64_t step = rhythm_step_us(st);
-            int64_t origin = rhythm.on ? rhythm.next_us - (int64_t)rhythm.step * step : metro.origin_us;
-            metro_tick(&metro, ahead, origin, step * st->steps_per_beat, st->steps / st->steps_per_beat,
-                       send_at, &metro.due_us);
+            metro_tick(&metro, ahead, rhythm.next_us - (int64_t)rhythm.step * step, step * st->steps_per_beat,
+                       st->steps / st->steps_per_beat, send_at, &metro.due_us);
+        } else {
+            metro_tick(&metro, ahead, metro.origin_us, metro_beat_us(&metro), METRO_BEATS, send_at,
+                       &metro.due_us);
         }
         if (t >= next_pots) {
             next_pots = t + POT_PERIOD_US;

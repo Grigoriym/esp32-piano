@@ -130,9 +130,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   pick C of three rendered rooms, 2026-11-06). LED bar: filter
   blue, reverb violet. VN (ADC1 ch 3) is the last free ADC1 pin. An unwired ADC pin floats: wire before flashing.
   `metronome.c` (pure, 2026-11-06, the user's ask): FROG (was a low tom) toggles a woodblock click (program 115, beat 1
-  note 84, others 77) on its own channel 9 (`METRO_CH` 8), sent 150 ms ahead like the beat; on the beat's grid while it
-  plays, else its own from the press at the style's tempo; never recorded. Pot 6 on VN (the last ADC1 pin) is its
-  fader (CC11). More pots would need an analog chip (ADS1115 / a 4067 mux; none in Homebox): an MCP23017 is digital only.
+  note 84, others 77) on its own channel 9 (`METRO_CH` 8), sent 150 ms ahead like the beat, dry (CC91 0 + reverb-send
+  NRPN -100%, no filter: the user); never recorded. Pot 6 on VN (the last ADC1 pin) is its tempo, 60-180 bpm (the
+  user: tempo, not volume; volume fixed until an ADS1115 pot); a new tempo carries on from the last click. While the
+  beat plays it follows the beat's grid. Status/Groove screen: `click N bpm`, or a dot before the beat's name. More pots would need an analog chip (ADS1115 / a 4067 mux; none in Homebox): an MCP23017 is digital only.
   `leds.c` (pure) + `strip.c` (RMT, WS2812 on TX2, channels capped at 24/255 on 3V3):
   LEDs 1-4 the layers in cyan/magenta/yellow/orange (pot 2's brighter, recording blinks
   red), 5-8 the beat's count (all turned 2 along the strip, `LEDS_TURN`: the strip lies in a circle, the user
@@ -458,8 +459,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
-**State 2026-11-06:** pots 4-6 (filter, reverb, metronome) and pot 3 as a CC11 fader; FROG = metronome (written,
-committed, not flashed: waits for pot 6 on VN, the user will say when it's wired; flashing wipes a loop). The user
+**State 2026-11-06:** pots 4-6 (filter, reverb, metronome) and pot 3 as a CC11 fader; FROG = metronome, pot 6 on VN its tempo (flashed). The user
 ordered 5 ADS1115 boards (16-bit, 4 channels, I2C; listing photos match the usual breakout, chip marking unread) for
 more pots: when they arrive, a Homebox entry (user's OK) and an `esp32-hw-checks` test first, then on the piano's
 I2C (D21/D22, beside the MCP23017 at 0x20). VDD on 3V3, not 5 V (its 10k SCL/SDA pull-ups go to VDD). Up to 4

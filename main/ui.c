@@ -85,9 +85,14 @@ static void loop(canvas_t *c, ui_loop_t l, int layers)
 static void beat_line(canvas_t *c, const ui_state_t *s, int y)
 {
     canvas_text(c, &FONT_TEXT, LEFT, y, "Beat", MUTED);
+    char beat[40];
     if (s->beat) {
-        char beat[32];
         snprintf(beat, sizeof(beat), "%s %d bpm", s->beat, s->beat_bpm);
+        canvas_text_right(c, &FONT_TEXT, RIGHT, y, beat, ACCENT);
+        /* The metronome clicks along: a dot (the text with " +click" ran into "Beat"). */
+        if (s->metro_bpm) dot(c, RIGHT - font_text_width(&FONT_TEXT, beat) - 10, y + 10, INK);
+    } else if (s->metro_bpm) {
+        snprintf(beat, sizeof(beat), "click %d bpm", s->metro_bpm);
         canvas_text_right(c, &FONT_TEXT, RIGHT, y, beat, ACCENT);
     } else {
         canvas_text_right(c, &FONT_TEXT, RIGHT, y, "off", MUTED);

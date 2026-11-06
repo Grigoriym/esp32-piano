@@ -1,6 +1,5 @@
 #include "mixer.h"
 
-#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -156,11 +155,9 @@ void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *c
         offset = reverb_offset(m->reverb);
         snprintf(what, sizeof(what), "reverb %u (send %+d.%d%%)", (unsigned)m->reverb, offset / 10,
                  (offset < 0 ? -offset : offset) % 10);
-    } else if (pot == MIXER_KEYS || pot == MIXER_METRO) {
-        bool keys = pot == MIXER_KEYS;
-        uint8_t level = keys ? m->keys : m->metro;
-        snprintf(what, sizeof(what), "%s %u", keys ? "keys" : "metronome", (unsigned)level);
-        uint8_t cc[3] = {(uint8_t)(0xb0 | (keys ? KEY_CH : METRO_CH)), 11, level};
+    } else if (pot == MIXER_KEYS) {
+        snprintf(what, sizeof(what), "keys %u", (unsigned)m->keys);
+        uint8_t cc[3] = {0xb0 | KEY_CH, 11, m->keys};
         send(cc, 3, what, ctx);
         return;
     } else {

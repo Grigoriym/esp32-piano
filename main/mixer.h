@@ -5,7 +5,7 @@
  * the note-on velocities of its part (0-127, 127 = as played). Pot 3 is the live
  * keys' fader: CC11 (expression) on the keys' channel, so a held note follows it
  * too (2026-11-06, the user's ask; it also works on ROCK's growl, which ignores
- * velocity). Pot 6 is the metronome's fader the same way (CC11 on METRO_CH).
+ * velocity). Pot 6 is the metronome's tempo (main/metronome.h): only its level here.
  * VOLUME +/- stays the master volume on top.
  *
  * Pot 4 is a filter (127 open, 0 dark), pot 5 the reverb (0 dry), on the live
@@ -30,7 +30,6 @@
 #include <stdint.h>
 
 #include "keymap.h"
-#include "metronome.h"
 #include "looper.h"
 #include "midi_out.h"
 
@@ -74,7 +73,7 @@ uint8_t mixer_scale(uint8_t velocity, uint8_t level);
  * the length to send: 0 for a note on at level 0, which is left out. */
 size_t mixer_apply(const uint8_t *msg, size_t len, uint8_t level, uint8_t *out);
 
-/* Sends pot 3's, 4's, 5's or 6's setting to the live channels (what: for the log, once). */
+/* Sends pot 3's, 4's or 5's setting to the live channels (what: for the log, once). */
 void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx);
 
 /* A loop layer just added: it keeps the filter and reverb as they are now. */

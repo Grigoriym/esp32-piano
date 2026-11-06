@@ -1,5 +1,7 @@
 #include "metronome.h"
 
+#include <stddef.h>
+
 static int64_t floor_div(int64_t a, int64_t b)
 {
     int64_t q = a / b;
@@ -16,8 +18,46 @@ void metro_toggle(metro_t *m, int64_t at_us, midi_send_fn send, void *ctx)
     m->origin_us = at_us;
     m->last_us = INT64_MIN / 2;
     m->due_us = at_us;
+    metro_setup(send, ctx);
+}
+
+void metro_setup(midi_send_fn send, void *ctx)
+{
     uint8_t program[2] = {0xc0 | METRO_CH, METRO_PROGRAM};
     send(program, 2, "metronome on", ctx);
+    /* Full expression, no reverb or chorus, and the SF2 reverb send NRPN at -100%
+     * (the preset's own send too; see mixer.c), LSB before MSB. */
+    int v = 8192 - 1000;
+    const uint8_t cc[][3] = {
+        {0xb0 | METRO_CH, 11, 127},
+        {0xb0 | METRO_CH, 91, 0},
+        {0xb0 | METRO_CH, 93, 0},
+        {0xb0 | METRO_CH, 99, 120},
+        {0xb0 | METRO_CH, 98, 16},
+        {0xb0 | METRO_CH, 38, (uint8_t)(v & 0x7f)},
+        {0xb0 | METRO_CH, 6, (uint8_t)(v >> 7)},
+    };
+    for (size_t i = 0; i < sizeof(cc) / sizeof(cc[0]); i++) send(cc[i], 3, NULL, ctx);
+}
+
+int metro_bpm_for(int level)
+{
+    if (level < 0) level = 0;
+    if (level > 127) level = 127;
+    return METRO_MIN_BPM + (level * (METRO_MAX_BPM - METRO_MIN_BPM) + 63) / 127;
+}
+
+void metro_set_bpm(metro_t *m, int bpm)
+{
+    if (bpm == m->bpm) return;
+    /* Re-anchored on the last click: the next one comes a new beat after it. */
+    if (m->on && m->last_us > INT64_MIN / 4) m->origin_us = m->last_us;
+    m->bpm = bpm;
+}
+
+int64_t metro_beat_us(const metro_t *m)
+{
+    return 60000000LL / (m->bpm > 0 ? m->bpm : 120);
 }
 
 void metro_tick(metro_t *m, int64_t until_us, int64_t origin_us, int64_t beat_us, int beats_per_bar,
