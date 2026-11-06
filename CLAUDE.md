@@ -127,8 +127,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (reverbEffectsSend), -100% to +100% (0 dry, middle = the preset's own, 127 full). CC91 was inaudible (the user: "no
   diff"): FluidSynth's default room left the tail ~57 dB under the note, CC91 adds only 20%, and the saw lead has its
   own send, so CC91 0 wasn't dry. `pc_synth.sh` sets the room: room-size 1.0, damp 0, level 1, width 1 (the user's
-  pick C of three rendered rooms, 2026-11-06). LED bar: filter
-  blue, reverb violet. VN (ADC1 ch 3) is the last free ADC1 pin. An unwired ADC pin floats: wire before flashing.
+  pick C of three rendered rooms, 2026-11-06). LED bar per pot: 1 green, 2 pink (click
+  volume), 3 white, 4 blue (filter), 5 violet (reverb), 6 warm white (click tempo). VN (ADC1 ch 3) is the last free ADC1 pin. An unwired ADC pin floats: wire before flashing.
   `metronome.c` (pure, 2026-11-06, the user's ask): FROG (was a low tom) toggles a woodblock click (program 115, beat 1
   note 84, others 77) on its own channel 9 (`METRO_CH` 8), sent 150 ms ahead like the beat, dry (CC91 0 + reverb-send
   NRPN -100%, no filter: the user); never recorded. Pot 6 on VN (the last ADC1 pin) is its tempo, 60-180 bpm, pot 2
@@ -136,7 +136,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   beat plays it follows the beat's grid. The header of every screen shows `Click N bpm` with a dot flashing on each
   click, red on beat 1 (`metro_flash`, the click's own time, not the send's); it takes DEMO's place there. More pots would need an analog chip (ADS1115 / a 4067 mux; none in Homebox): an MCP23017 is digital only.
   `leds.c` (pure) + `strip.c` (RMT, WS2812 on TX2, channels capped at 24/255 on 3V3):
-  LEDs 1-4 the layers in cyan/magenta/yellow/orange (pot 2's brighter, recording blinks
+  LEDs 1-4 the layers in cyan/magenta/yellow/orange (the newest brighter, recording blinks
   red), 5-8 the beat's count (all turned 2 along the strip, `LEDS_TURN`: the strip lies in a circle, the user
   wanted the beat on strip LEDs 7, 8, 1, 2, 2026-11-05); a pot turned shows its level as a bar for 1.5 s. All 3 pots
   read 0-127 over their travel (2026-11-04); mid-travel they can jitter, see Open items.
@@ -239,7 +239,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `ABn` → `An`), the 10 kΩ pull-ups gone, all keys checked by the user. Screen (TFT 1.69",
   HSPI: SCL D14, SDA D13, CS D15, RES D5, DC D4, BLK open) works, shows
   `ui.c` (sound, volume, octave, beat, loop, DEMO, PC link); the user checked
-  it. Knob: CLK D18, DT D19, SW D23, + on 3V3. Pots (2026-11-04): wipers on D32 (beat), D33 (newest loop layer), D34 (live keys); LED strip data on TX2 (GPIO17), V on 3V3. The amp is off the wiring doc (2026-11-04, not used; it was planned on D26/D25/D27).
+  it. Knob: CLK D18, DT D19, SW D23, + on 3V3. Pots: wipers on D32 (beat), D33 (metronome volume; the newest loop layer until 2026-11-06), D34 (live keys), D35 (filter), VP (reverb), VN (metronome tempo), all ADC1 (2026-11-06); LED strip data on TX2 (GPIO17), V on 3V3. The amp is off the wiring doc (2026-11-04, not used; it was planned on D26/D25/D27).
 - The BLE-MIDI version (NimBLE, `ble_midi.c`) is in git at `923500c`.
 - **The four checks** (from mukklet, `FIRMWARE_PLAYBOOK.md`): `tools/test.sh`
   (host tests in `test/`, gcc + ASan/UBSan, Unity from `$IDF_PATH`),
@@ -346,6 +346,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - **The small holes in the key board are cut factory links**, not vias: a short
   line between two lines with a hole drilled through it (likely the plating bus,
   inference). Dead spots: don't probe or solder there.
+- **A new `ui_state_t` field also goes in `screen.c`'s `same()`**, or the screen redraws it only
+  when something else changes (2026-11-06: the metronome header waited for key presses; the user caught it,
+  no host test can: `screen.c` isn't host-built).
+- **Check a MIDI message on FluidSynth by rendering before building on it** (`fluidsynth -ni -F out.wav ...`
+  + a level/centroid measurement): 2026-11-06 that showed CC74 does nothing and CC91 is inaudible here before any
+  firmware used them.
 - **Every button is live**: a press of VOLUME− (or a style button) during a
   test can make the toy go quiet. RESET restores the defaults.
 - **A bad `cat.sf2` fails silently**: `pc_synth.sh` throws FluidSynth's output away and
@@ -460,7 +466,11 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
-**State 2026-11-06:** pots 4-6 (filter, reverb, metronome) and pot 3 as a CC11 fader; FROG = metronome, pot 6 on VN its tempo (flashed). The user
+**State 2026-11-06 (end of session):** 6 pots, all flashed and wired: 1 beat, 2 metronome volume, 3 live keys
+(CC11, held notes follow), 4 filter, 5 reverb (huge room, the user's pick C), 6 metronome tempo. Filter and reverb
+touch only live playing; a loop layer keeps what it was recorded with (the user). FROG = metronome, shown in every
+screen's header with a flashing dot (fixed after the user saw it update only on key presses: `same()` in screen.c).
+Not yet confirmed by the user: the header dot after that fix. The user
 ordered 5 ADS1115 boards (16-bit, 4 channels, I2C; listing photos match the usual breakout, chip marking unread) for
 more pots: when they arrive, a Homebox entry (user's OK) and an `esp32-hw-checks` test first, then on the piano's
 I2C (D21/D22, beside the MCP23017 at 0x20). VDD on 3V3, not 5 V (its 10k SCL/SDA pull-ups go to VDD). Up to 4
@@ -477,7 +487,7 @@ heavy dubstep drops (Skrillex, "heaviest dubstep drops"), drum & bass interestin
 **State 2026-11-04 (end of session):** the hiccups are gone (root cause: the bridge's
 blocking mDNS lookup, see the MIDI-link notes). New: 3 pots as a mixer and the 8-LED
 strip (wired, flashed, every pot reads its full range). Not yet tried by ear: the beat and
-keys pots while playing, pot 2 on layers and its pick-up after an undo. Open: pot 3's
+keys pots while playing (pot 2's layer job is gone since 2026-11-06). Open: pot 3's
 noise (Open items). The amp is off the wiring doc (not used).
 
 **State 2026-11-03 (end of session):** the toy is a small groovebox now: EDM mode on
