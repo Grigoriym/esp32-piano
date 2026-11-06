@@ -9,7 +9,10 @@
  * DEMO and the loop's channels; the drums stay as they are. FluidSynth 2.3
  * ignores CC74 (no default modulator, rendered 2026-11-06), so the filter is
  * an SF2 NRPN that offsets the cutoff generator on any SoundFont: 0 to
- * MIXER_FILTER_CENTS. The reverb is CC91.
+ * MIXER_FILTER_CENTS. The reverb is the same kind of NRPN on reverbEffectsSend
+ * (generator 16), -MIXER_REVERB_SEND to +MIXER_REVERB_SEND tenths of a percent:
+ * 0 dry, the middle the preset's own send, 127 full. CC91 couldn't make it dry
+ * (FluidR3's saw lead has its own send) and added only 20% (rendered 2026-11-06).
  *
  * Pot 2 follows the newest layer. A layer just started takes the pot's level.
  * When pot 2 moves to an older layer (an undo), that layer keeps its level and
@@ -30,7 +33,8 @@
 #define MIXER_TURN  3 /* levels a pot must move to count as turned (the LED bar): one-level hops are noise */
 #define MIXER_FILTER_CENTS \
     (-4800) /* the cutoff at pot 4's 0; further down FluidR3's saw lead turns bright again (rendered) */
-#define MIXER_FX_CH 6 /* channels 1-6 (0-5): keys, DEMO, the 4 loop layers */
+#define MIXER_REVERB_SEND 1000 /* 100%: FluidSynth clamps the sum to 0-100% */
+#define MIXER_FX_CH       6    /* channels 1-6 (0-5): keys, DEMO, the 4 loop layers */
 
 typedef enum { MIXER_BEAT, MIXER_LAYER, MIXER_KEYS, MIXER_FILTER, MIXER_REVERB } mixer_pot_t;
 

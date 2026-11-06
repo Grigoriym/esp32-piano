@@ -114,28 +114,37 @@ size_t mixer_apply(const uint8_t *msg, size_t len, uint8_t level, uint8_t *out)
     return len;
 }
 
+/* An SF2 NRPN: an offset (in the generator's units, here 1 a step) to a generator. */
+static void send_nrpn(uint8_t ch, uint8_t gen, int offset, const char *what, midi_send_fn send, void *ctx)
+{
+    /* 99 = 120, 98 = the generator, then a 14-bit data entry centred on 8192.
+     * FluidSynth applies it on the MSB (6) with the LSB (38) it already has, so
+     * the LSB goes first. */
+    int v = 8192 + offset;
+    uint8_t st = (uint8_t)(0xb0 | ch);
+    const uint8_t msgs[4][3] = {
+        {st, 99, 120}, {st, 98, gen}, {st, 38, (uint8_t)(v & 0x7f)}, {st, 6, (uint8_t)(v >> 7)}};
+    for (int i = 0; i < 4; i++) send(msgs[i], 3, i == 3 ? what : NULL, ctx);
+}
+
 void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx)
 {
-    char what[32];
-    if (pot == MIXER_REVERB) {
-        snprintf(what, sizeof(what), "reverb %u", (unsigned)m->reverb);
-        for (uint8_t ch = 0; ch < MIXER_FX_CH; ch++) {
-            uint8_t cc[3] = {(uint8_t)(0xb0 | ch), 91, m->reverb};
-            send(cc, 3, ch == 0 ? what : NULL, ctx);
-        }
+    char what[40];
+    uint8_t gen;
+    int offset;
+    if (pot == MIXER_FILTER) {
+        /* initialFilterFc moves 2 cents a step. */
+        int cents = (MIXER_LEVEL - m->filter) * MIXER_FILTER_CENTS / MIXER_LEVEL;
+        gen = 8;
+        offset = cents / 2;
+        snprintf(what, sizeof(what), "filter %u (%d cents)", (unsigned)m->filter, cents);
+    } else if (pot == MIXER_REVERB) {
+        gen = 16; /* reverbEffectsSend, 0.1% a step */
+        offset = (2 * m->reverb - MIXER_LEVEL) * MIXER_REVERB_SEND / MIXER_LEVEL;
+        snprintf(what, sizeof(what), "reverb %u (send %+d.%d%%)", (unsigned)m->reverb, offset / 10,
+                 (offset < 0 ? -offset : offset) % 10);
+    } else {
         return;
     }
-    if (pot != MIXER_FILTER) return;
-    /* SF2 NRPN: 99 = 120, 98 = the generator (8, initialFilterFc), then a 14-bit
-     * data entry centred on 8192 in steps of 2 cents. FluidSynth applies it on the
-     * MSB (6) with the LSB (38) it already has, so the LSB goes first. */
-    int cents = (MIXER_LEVEL - m->filter) * MIXER_FILTER_CENTS / MIXER_LEVEL;
-    int v = 8192 + cents / 2;
-    snprintf(what, sizeof(what), "filter %u (%d cents)", (unsigned)m->filter, cents);
-    for (uint8_t ch = 0; ch < MIXER_FX_CH; ch++) {
-        uint8_t st = (uint8_t)(0xb0 | ch);
-        const uint8_t msgs[4][3] = {
-            {st, 99, 120}, {st, 98, 8}, {st, 38, (uint8_t)(v & 0x7f)}, {st, 6, (uint8_t)(v >> 7)}};
-        for (int i = 0; i < 4; i++) send(msgs[i], 3, ch == 0 && i == 3 ? what : NULL, ctx);
-    }
+    for (uint8_t ch = 0; ch < MIXER_FX_CH; ch++) send_nrpn(ch, gen, offset, ch == 0 ? what : NULL, send, ctx);
 }

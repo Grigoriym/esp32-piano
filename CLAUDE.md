@@ -121,7 +121,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   Pots 4-5 (2026-11-06, code only, not wired yet): filter on D35, reverb on VP, on channels 1-6 (not the drums),
   sent at most every 30 ms and again when the PC link comes up. FluidSynth 2.3.4 ignores CC74 (rendered: no change),
   so the filter is the SF2 NRPN (99=120, 98=8 initialFilterFc, LSB 38 before MSB 6), 0 to -4800 cents; it
-  survives a program change; past ~-5000 FluidR3's saw lead gets brighter again. Reverb is CC91. LED bar: filter
+  survives a program change; past ~-5000 FluidR3's saw lead gets brighter again. Reverb: the same NRPN on gen 16
+  (reverbEffectsSend), -100% to +100% (0 dry, middle = the preset's own, 127 full). CC91 was inaudible (the user: "no
+  diff"): FluidSynth's default room left the tail ~57 dB under the note, CC91 adds only 20%, and the saw lead has its
+  own send, so CC91 0 wasn't dry. LED bar: filter
   blue, reverb violet. VN (ADC1 ch 3) is the last free ADC1 pin. An unwired ADC pin floats: wire before flashing.
   `leds.c` (pure) + `strip.c` (RMT, WS2812 on TX2, channels capped at 24/255 on 3V3):
   LEDs 1-4 the layers in cyan/magenta/yellow/orange (pot 2's brighter, recording blinks

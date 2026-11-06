@@ -208,7 +208,7 @@ header("knob", [["CLK", "D18", "knob"], ["DT", "D19", "knob"], ["SW", "D23", "kn
 [["pot1", "D32", "beat"], ["pot2", "D33", "the newest loop layer"], ["pot3", "D34", "the live keys"], ["pot4", "D35", "the filter"], ["pot5", "VP", "the reverb"]].forEach(([id, pin, what]) =>
   header(id, [["left end", "−rail", "gnd"], ["wiper", pin, "pot"], ["right end", "+rail", "power"]],
     [id === "pot4" ? "The filter: clockwise brighter, fully left dark (keys, DEMO and the loop, not the drums). Use a B10K."
-     : id === "pot5" ? "The reverb: clockwise more, fully left dry (keys, DEMO and the loop, not the drums). Use a B10K."
+     : id === "pot5" ? "The reverb: fully left dry, the middle the sound's own, clockwise more (keys, DEMO and the loop, not the drums). Use a B10K."
      : `Sets the loudness of ${what}.`, "Clockwise the wrong way? Swap the two ends.",
      ...(id === "pot2" ? ["1 µF from the wiper to the left end (GND), stripe on GND (test, 2026-11-04)."] : [])]));
 

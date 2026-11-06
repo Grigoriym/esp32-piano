@@ -33,8 +33,10 @@ if [ ! -f "$GROWL" ] || [ tools/gen_growl_sf2.py -nt "$GROWL" ]; then
     python3 tools/gen_growl_sf2.py "$GROWL" || exit 1
 fi
 
+# Reverb: a big hall (2026-11-06, the audition's B); the default room is too small to hear.
 fluidsynth -a pipewire -m alsa_seq -g 1.0 -is \
     -o audio.period-size=256 -o audio.periods=2 -o midi.autoconnect=0 \
+    -o synth.reverb.room-size=0.9 -o synth.reverb.damp=0.2 -o synth.reverb.level=1.0 -o synth.reverb.width=1 \
     "$SF2" "$CAT" "$KIT" "$GROWL" >/dev/null 2>&1 &
 SYNTH=$!
 build-host/piano_bridge chicco-piano.local "$CABLE" &
