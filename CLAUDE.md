@@ -129,6 +129,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   own send, so CC91 0 wasn't dry. `pc_synth.sh` sets the room: room-size 1.0, damp 0, level 1, width 1 (the user's
   pick C of three rendered rooms, 2026-11-06). LED bar per pot: 1 green, 2 pink (click
   volume), 3 white, 4 blue (filter), 5 violet (reverb), 6 warm white (click tempo). VN (ADC1 ch 3) is the last free ADC1 pin. An unwired ADC pin floats: wire before flashing.
+  **Pot names (2026-11-06, the user grouped them on the box):** three sections of two, Volume (beat = pot 1, keys = pot 3),
+  Effects (filter = 4, reverb = 5), Metronome (tempo = 6, volume = 2). Docs for the player use these names, not
+  numbers; the numbers stay the code's and wiring's order (pin, `mixer_pot_t`).
   `metronome.c` (pure, 2026-11-06, the user's ask): FROG (was a low tom) toggles a woodblock click (program 115, beat 1
   note 84, others 77) on its own channel 9 (`METRO_CH` 8), sent 150 ms ahead like the beat, dry (CC91 0 + reverb-send
   NRPN -100%, no filter: the user); never recorded. Pot 6 on VN (the last ADC1 pin) is its tempo, 60-180 bpm, pot 2
