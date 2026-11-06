@@ -19,7 +19,7 @@ static void dot(canvas_t *c, int cx, int cy, uint16_t color)
 
 static void header(canvas_t *c, const ui_state_t *s)
 {
-    if (s->metro_bpm) {
+    if (s->metro_on && s->metro_bpm) {
         /* The metronome, on every screen: its tempo and a dot flashing with the
          * click, red on beat 1 (the user, 2026-11-06). Takes DEMO's place. */
         char click[24];
@@ -28,6 +28,12 @@ static void header(canvas_t *c, const ui_state_t *s)
         canvas_text(c, &FONT_TEXT, LEFT + 16, 12, click, INK);
     } else if (s->demo) {
         canvas_text(c, &FONT_TEXT, LEFT, 12, "DEMO playing", ACCENT);
+    } else if (s->metro_bpm) {
+        /* Off: the tempo it would click at, greyed, so the knob can be set first (the user, 2026-11-06). */
+        char click[24];
+        snprintf(click, sizeof(click), "Click %d bpm", s->metro_bpm);
+        dot(c, LEFT + 5, 22, LINE);
+        canvas_text(c, &FONT_TEXT, LEFT + 16, 12, click, MUTED);
     } else {
         canvas_text(c, &FONT_TEXT, LEFT, 12, "Chicco Piano", MUTED);
     }

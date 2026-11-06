@@ -340,7 +340,8 @@ static void show(const matrix_t *m)
     s.octave = keymap.octave;
     s.beat = beat ? beat->name : NULL;
     s.beat_bpm = beat ? beat->bpm : 0;
-    s.metro_bpm = !metro.on ? 0 : beat ? beat->bpm : (int)(60000000LL / metro_beat_us(&metro));
+    s.metro_on = metro.on;
+    s.metro_bpm = beat ? beat->bpm : metro.bpm > 0 ? metro.bpm : 120;
     s.metro_flash = metro_flash(&metro, esp_timer_get_time());
     s.screen = screen_shown;
     if (rhythm.on) {
