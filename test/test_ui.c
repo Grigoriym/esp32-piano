@@ -189,9 +189,28 @@ static void test_chicks_light_on_every_screen(void)
     TEST_ASSERT_TRUE(ui_fx_x(0) >= 18 && ui_fx_x(7) + UI_FX_W <= CANVAS_W - 18);
 }
 
+static void test_debug_screen_draws_inside_the_screen(void)
+{
+    /* ASan catches a write off the canvas; the extremes and past them. */
+    s.screen = UI_SCREEN_DEBUG;
+    s.dbg = (ui_debug_t){.load = {150, -5},
+                         .heap_kb = 999999,
+                         .heap_min_kb = 999999,
+                         .rssi = -100,
+                         .uptime_s = 999999,
+                         .scan_gap_ms = 99999,
+                         .scan_work_us = 99999,
+                         .scan_work_max_us = 999999};
+    ui_render(&c, &s);
+    s.dbg = (ui_debug_t){0};
+    ui_render(&c, &s);
+    TEST_ASSERT_EQUAL_HEX16(UI_BG, canvas_get(&c, CANVAS_W / 2, CANVAS_H - 2));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
+    RUN_TEST(test_debug_screen_draws_inside_the_screen);
     RUN_TEST(test_chicks_light_on_every_screen);
     RUN_TEST(test_volume_bar_follows_the_volume);
     RUN_TEST(test_percent_from_midi_volume);

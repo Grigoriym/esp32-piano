@@ -29,7 +29,10 @@
  *
  *   [E][H][O][A]  [R][T][S][W]      Echo Hold Octave Arp, Rise Tape Stutter Wide
  *
- * One more turn: the Groove screen, the beat's bar as 16 (or 12) steps
+ * The fourth screen, Debug: each core's load as a bar, free memory, the WiFi
+ * signal, the scan loop's timing, the time since boot.
+ *
+ * The third screen: the Groove screen, the beat's bar as 16 (or 12) steps
  *
  *        ●   ○   ○   ○              the beats, the one playing lit
  *   kick ■ · · · ■ · · · ■ · · ·    the beat's first two drums
@@ -52,8 +55,21 @@ typedef enum {
     UI_SCREEN_STATUS,
     UI_SCREEN_PLAY,
     UI_SCREEN_GROOVE,
+    UI_SCREEN_DEBUG,
     UI_SCREEN_COUNT,
 } ui_screen_t;
+
+/* The Debug screen's numbers (stats.c), each over the last second. All int:
+ * screen.c compares them with memcmp. */
+typedef struct {
+    int load[2]; /* each core's busy %, 0..100 */
+    int heap_kb, heap_min_kb;
+    int rssi; /* dBm; 0: no WiFi */
+    int uptime_s;
+    int scan_gap_ms;      /* the longest time between two scan passes (2 ms when all is well) */
+    int scan_work_us;     /* a scan pass's work, on average */
+    int scan_work_max_us; /* and the longest */
+} ui_debug_t;
 
 /* Every field here is compared in screen.c's same(): add a new one there too. */
 typedef struct {
@@ -85,6 +101,7 @@ typedef struct {
     uint32_t g_off;     /* bit per step: a press early or late */
     bool g_has_last;
     int g_last_ms; /* the last press: <0 early, >0 late */
+    ui_debug_t dbg;
 } ui_state_t;
 
 /* Where the volume bar sits, for the tests. */

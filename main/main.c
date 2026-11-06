@@ -55,6 +55,7 @@
 #include "mixer.h"
 #include "rhythm.h"
 #include "screen.h"
+#include "stats.h"
 #include "strip.h"
 #include "wifi.h"
 
@@ -340,6 +341,7 @@ static void leds_update(int64_t now)
 }
 
 static ui_screen_t screen_shown;
+static ui_debug_t debug_stats; /* stats.c, once a second */
 
 /* What the screen shows, from the state of every part. */
 static void show(const matrix_t *m)
@@ -363,6 +365,7 @@ static void show(const matrix_t *m)
     s.metro_bpm = beat ? beat->bpm : metro.bpm > 0 ? metro.bpm : 120;
     s.metro_flash = metro_flash(&metro, esp_timer_get_time());
     s.screen = screen_shown;
+    s.dbg = debug_stats;
     for (size_t k = 0; k < FX_COUNT; k++) {
         if (fx.on[k]) s.fx |= (uint8_t)(1u << k);
     }
@@ -536,7 +539,9 @@ void app_main(void)
             next_leds = t + LEDS_PERIOD_US;
             leds_update(t);
         }
+        stats_update(&debug_stats, t);
         show(&matrix);
+        stats_scan(pass, esp_timer_get_time() - pass);
         vTaskDelay(pdMS_TO_TICKS(SCAN_PERIOD_MS));
     }
 }

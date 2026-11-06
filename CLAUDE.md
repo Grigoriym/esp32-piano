@@ -156,6 +156,11 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   red), 5-8 the beat's count (all turned 2 along the strip, `LEDS_TURN`: the strip lies in a circle, the user
   wanted the beat on strip LEDs 7, 8, 1, 2, 2026-11-05); a pot turned shows its level as a bar for 1.5 s. All 3 pots
   read 0-127 over their travel (2026-11-04); mid-travel they can jitter, see Open items.
+  `stats.c` (2026-11-06, the user felt the chip warm): the fourth knob screen, Debug (each core's load from the idle
+  tasks' run time, `CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS`; free and lowest RAM, WiFi dBm, the longest scan gap,
+  a scan pass's work average / longest, uptime), and a `STATS ...` log line every 10 s. First reading: core 0 ~60%
+  busy, a scan pass ~5.3 ms of work (worst 7.7), so the scan runs every ~7 ms, not the 2 ms the notes assume (debounce
+  3 scans = ~21 ms, not 6). Not looked into yet; core 1 (screen) 2-5%, heap 160 KB.
   `chord.c` (pure) names the held keys for `ui.c`'s Play screen; `FONT_BIG`
   (`tools/gen_font.py`, ASCII only) is its big chord name.
 - `main/wifi.c` (from mukklet, power save off: it holds packets up to a

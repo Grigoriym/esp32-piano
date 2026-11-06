@@ -230,6 +230,45 @@ static void groove_screen(canvas_t *c, const ui_state_t *s)
     timing_meter(c, s, 208); /* its ms ends above the chicks' row */
 }
 
+static void dbg_line(canvas_t *c, int y, const char *label, const char *value, uint16_t color)
+{
+    canvas_text(c, &FONT_TEXT, LEFT, y, label, MUTED);
+    canvas_text_right(c, &FONT_TEXT, RIGHT, y, value, color);
+}
+
+static void debug_screen(canvas_t *c, const ui_state_t *s)
+{
+    const ui_debug_t *d = &s->dbg;
+    char v[32];
+    for (int core = 0; core < 2; core++) {
+        int y = 52 + core * 30;
+        int load = d->load[core] < 0 ? 0 : d->load[core] > 100 ? 100 : d->load[core];
+        snprintf(v, sizeof(v), "Core %d", core);
+        canvas_text(c, &FONT_TEXT, LEFT, y, v, MUTED);
+        canvas_fill(c, UI_VOL_X, y + 5, UI_VOL_W, UI_VOL_H, LINE);
+        canvas_fill(c, UI_VOL_X, y + 5, UI_VOL_W * load / 100, UI_VOL_H, load >= 80 ? UI_RED : ACCENT);
+        snprintf(v, sizeof(v), "%d%%", load);
+        canvas_text_right(c, &FONT_TEXT, RIGHT, y, v, INK);
+    }
+    snprintf(v, sizeof(v), "%d KB", d->heap_kb);
+    dbg_line(c, 118, "Free RAM", v, INK);
+    snprintf(v, sizeof(v), "%d KB", d->heap_min_kb);
+    dbg_line(c, 140, "Lowest", v, INK);
+    if (d->rssi) {
+        snprintf(v, sizeof(v), "%d dBm", d->rssi);
+    } else {
+        snprintf(v, sizeof(v), "off");
+    }
+    dbg_line(c, 162, "WiFi", v, d->rssi ? INK : MUTED);
+    snprintf(v, sizeof(v), "%d ms", d->scan_gap_ms);
+    dbg_line(c, 184, "Scan gap", v, d->scan_gap_ms > 20 ? UI_RED : INK);
+    snprintf(v, sizeof(v), "%d.%d / %d.%d ms", d->scan_work_us / 1000, d->scan_work_us / 100 % 10,
+             d->scan_work_max_us / 1000, d->scan_work_max_us / 100 % 10);
+    dbg_line(c, 206, "Pass", v, INK); /* a scan pass's work: average / longest */
+    snprintf(v, sizeof(v), "%d:%02d:%02d", d->uptime_s / 3600, d->uptime_s / 60 % 60, d->uptime_s % 60);
+    dbg_line(c, 228, "Up", v, INK);
+}
+
 int ui_fx_x(int kind)
 {
     /* Two groups of 4 like the chicks' two rows, a wider gap between them. */
@@ -269,6 +308,10 @@ void ui_render(canvas_t *c, const ui_state_t *s)
     }
     if (s->screen == UI_SCREEN_GROOVE) {
         groove_screen(c, s);
+        return;
+    }
+    if (s->screen == UI_SCREEN_DEBUG) {
+        debug_screen(c, s);
         return;
     }
 
