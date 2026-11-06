@@ -88,11 +88,11 @@ static void loop(canvas_t *c, ui_loop_t l, int layers)
     } else {
         snprintf(text, sizeof(text), "%s", TEXT[l]);
     }
-    canvas_text(c, &FONT_TEXT, LEFT, 226, "Loop", MUTED);
+    canvas_text(c, &FONT_TEXT, LEFT, 222, "Loop", MUTED);
     bool rec = l == UI_LOOP_RECORDING || l == UI_LOOP_ADDING;
     uint16_t color = rec ? UI_RED : l == UI_LOOP_PLAYING ? ACCENT : l == UI_LOOP_EMPTY ? MUTED : INK;
-    canvas_text_right(c, &FONT_TEXT, RIGHT, 226, text, color);
-    if (rec) dot(c, RIGHT - font_text_width(&FONT_TEXT, text) - 10, 236, UI_RED);
+    canvas_text_right(c, &FONT_TEXT, RIGHT, 222, text, color);
+    if (rec) dot(c, RIGHT - font_text_width(&FONT_TEXT, text) - 10, 232, UI_RED);
 }
 
 static void beat_line(canvas_t *c, const ui_state_t *s, int y)
@@ -135,9 +135,9 @@ static void play_screen(canvas_t *c, const ui_state_t *s)
     key_strip(c, s);
     if (s->held) canvas_text_center(c, &FONT_TEXT, 164, "held back", UI_RED);
 
-    canvas_text(c, &FONT_TEXT, LEFT, 188, "Sound", MUTED);
-    canvas_text_right(c, &FONT_TEXT, RIGHT, 188, s->sound ? s->sound : "?", INK);
-    beat_line(c, s, 207);
+    canvas_text(c, &FONT_TEXT, LEFT, 184, "Sound", MUTED);
+    canvas_text_right(c, &FONT_TEXT, RIGHT, 184, s->sound ? s->sound : "?", INK);
+    beat_line(c, s, 203);
     loop(c, s->loop, s->loop_layers);
 }
 
@@ -217,23 +217,52 @@ static void groove_screen(canvas_t *c, const ui_state_t *s)
         int cx = LEFT + gap / 2 + b * gap;
         uint16_t color = b == now_beat ? (b == 0 ? UI_RED : ACCENT) : LINE;
         float r = b == now_beat ? 11.0f : 8.0f;
-        canvas_ellipse(c, (float)cx, 72.0f, r, r, color, 0, CANVAS_H);
+        canvas_ellipse(c, (float)cx, 64.0f, r, r, color, 0, CANVAS_H);
     }
     /* The step playing: a column behind the rows. */
     int x0 = LEFT + G_LABEL_W;
     int pitch = (RIGHT - x0) / s->g_steps;
-    canvas_fill(c, x0 + s->g_step * pitch - 1, 102, pitch, 98, RGB(36, 42, 74));
-    step_row(c, s, 110, s->g_lane_name[0] ? s->g_lane_name[0] : "", s->g_lane[0], ACCENT);
-    step_row(c, s, 140, s->g_lane_name[1] ? s->g_lane_name[1] : "", s->g_lane[1], RGB(120, 160, 255));
-    you_row(c, s, 175);
-    canvas_fill(c, x0 + s->g_step * pitch + pitch / 2 - 5, 202, 9, 4, INK); /* the pointer */
-    timing_meter(c, s, 230);
+    canvas_fill(c, x0 + s->g_step * pitch - 1, 88, pitch, 96, RGB(36, 42, 74));
+    step_row(c, s, 96, s->g_lane_name[0] ? s->g_lane_name[0] : "", s->g_lane[0], ACCENT);
+    step_row(c, s, 126, s->g_lane_name[1] ? s->g_lane_name[1] : "", s->g_lane[1], RGB(120, 160, 255));
+    you_row(c, s, 160);
+    canvas_fill(c, x0 + s->g_step * pitch + pitch / 2 - 5, 186, 9, 4, INK); /* the pointer */
+    timing_meter(c, s, 208); /* its ms ends above the chicks' row */
+}
+
+int ui_fx_x(int kind)
+{
+    /* Two groups of 4 like the chicks' two rows, a wider gap between them. */
+    const int gap = 3;
+    const int group_gap = 12;
+    const int x0 = (CANVAS_W - (8 * UI_FX_W + 6 * gap + group_gap)) / 2;
+    return x0 + kind * (UI_FX_W + gap) + (kind >= 4 ? group_gap - gap : 0);
+}
+
+/* The chicks' effects: a box per effect with its initial, lit while on. */
+static void fx_row(canvas_t *c, uint8_t on)
+{
+    static const char LETTERS[] = "EHOARTSW"; /* fx.h's fx_kind_t order */
+    for (int k = 0; k < 8; k++) {
+        int x = ui_fx_x(k);
+        bool lit = on & (1u << k);
+        if (lit) {
+            canvas_fill(c, x, UI_FX_Y, UI_FX_W, UI_FX_H, UI_FX);
+        } else {
+            canvas_fill(c, x, UI_FX_Y, UI_FX_W, UI_FX_H, LINE);
+            canvas_fill(c, x + 1, UI_FX_Y + 1, UI_FX_W - 2, UI_FX_H - 2, UI_BG);
+        }
+        char letter[2] = {LETTERS[k], 0};
+        int w = font_text_width(&FONT_TEXT, letter);
+        canvas_text(c, &FONT_TEXT, x + (UI_FX_W - w) / 2, UI_FX_Y + 1, letter, lit ? UI_BG : MUTED);
+    }
 }
 
 void ui_render(canvas_t *c, const ui_state_t *s)
 {
     canvas_fill(c, 0, 0, CANVAS_W, CANVAS_H, UI_BG);
     header(c, s);
+    fx_row(c, s->fx);
     if (s->screen == UI_SCREEN_PLAY) {
         play_screen(c, s);
         return;

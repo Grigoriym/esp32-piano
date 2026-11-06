@@ -166,14 +166,33 @@ static void test_groove_marks_a_press_by_its_timing(void)
     s.g_off = 1u << 6;
     ui_render(&c, &s);
     const int x0 = 18 + 46, pitch = (CANVAS_W - 18 - x0) / 16;
-    TEST_ASSERT_EQUAL_HEX16(UI_GREEN, canvas_get(&c, x0 + 2 * pitch + (pitch - 2) / 2, 175 + 7));
-    TEST_ASSERT_NOT_EQUAL(UI_GREEN, canvas_get(&c, x0 + 6 * pitch + (pitch - 2) / 2, 175 + 7));
-    TEST_ASSERT_NOT_EQUAL(UI_BG, canvas_get(&c, x0 + 6 * pitch + (pitch - 2) / 2, 175 + 7));
+    TEST_ASSERT_EQUAL_HEX16(UI_GREEN, canvas_get(&c, x0 + 2 * pitch + (pitch - 2) / 2, 160 + 7));
+    TEST_ASSERT_NOT_EQUAL(UI_GREEN, canvas_get(&c, x0 + 6 * pitch + (pitch - 2) / 2, 160 + 7));
+    TEST_ASSERT_NOT_EQUAL(UI_BG, canvas_get(&c, x0 + 6 * pitch + (pitch - 2) / 2, 160 + 7));
+}
+
+static void test_chicks_light_on_every_screen(void)
+{
+    for (int scr = 0; scr < UI_SCREEN_COUNT; scr++) {
+        s.screen = (ui_screen_t)scr;
+        s.fx = 0;
+        ui_render(&c, &s);
+        for (int k = 0; k < 8; k++)
+            TEST_ASSERT_EQUAL_HEX16(UI_BG, canvas_get(&c, ui_fx_x(k) + 2, UI_FX_Y + 2));
+        s.fx = (1u << 1) | (1u << 6); /* Hold, Stutter */
+        ui_render(&c, &s);
+        for (int k = 0; k < 8; k++) {
+            uint16_t want = k == 1 || k == 6 ? UI_FX : UI_BG;
+            TEST_ASSERT_EQUAL_HEX16(want, canvas_get(&c, ui_fx_x(k) + 2, UI_FX_Y + 2));
+        }
+    }
+    TEST_ASSERT_TRUE(ui_fx_x(0) >= 18 && ui_fx_x(7) + UI_FX_W <= CANVAS_W - 18);
 }
 
 int main(void)
 {
     UNITY_BEGIN();
+    RUN_TEST(test_chicks_light_on_every_screen);
     RUN_TEST(test_volume_bar_follows_the_volume);
     RUN_TEST(test_percent_from_midi_volume);
     RUN_TEST(test_green_dot_only_while_the_pc_answers);

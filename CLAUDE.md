@@ -147,6 +147,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   metronome's tempo. Bend range 12 (RPN, `fx_setup`, at boot and link-up). `send_midi` copies every CC and program on
   channel 1 to channels 11-13. Rendered first: bend RPN and CC64 work; CC93 chorus and CC10 pan did nothing on the saw
   lead. The looper records the plain keys. Not yet tried by the user.
+  Every screen's bottom row shows them by initial, `E H O A  R T S W` in the chicks' order (top row, bottom row),
+  lit cyan while on (Rise/Tape while running, Stutter while held; `ui_state_t.fx`, 2026-11-06, the user's ask).
   `leds.c` (pure) + `strip.c` (RMT, WS2812 on TX2, channels capped at 24/255 on 3V3):
   LEDs 1-4 the layers in cyan/magenta/yellow/orange (the newest brighter, recording blinks
   red), 5-8 the beat's count (all turned 2 along the strip, `LEDS_TURN`: the strip lies in a circle, the user

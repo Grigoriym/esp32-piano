@@ -24,6 +24,11 @@
  *           held back               a press kept back as a possible ghost
  *   Sound / Beat / Loop             one line each
  *
+ * Every screen ends with the 8 chicks' effects, by initial, lit while on, in the
+ * chicks' order (top row, then bottom row):
+ *
+ *   [E][H][O][A]  [R][T][S][W]      Echo Hold Octave Arp, Rise Tape Stutter Wide
+ *
  * One more turn: the Groove screen, the beat's bar as 16 (or 12) steps
  *
  *        ●   ○   ○   ○              the beats, the one playing lit
@@ -62,6 +67,8 @@ typedef struct {
     bool metro_on;   /* clicking */
     int metro_bpm;   /* its tempo, on or off (the beat's while it plays, else pot 6's); 0: none */
     int metro_flash; /* its dot: 0 dark, 1 a click, 2 a beat 1 (metronome.h) */
+    uint8_t
+        fx; /* the chicks' effects on: bit per fx_kind_t (fx.h), Echo Hold Octave Arp, Rise Tape Stutter Wide */
     ui_loop_t loop;
     int loop_layers; /* the one being added included */
     ui_screen_t screen;
@@ -91,10 +98,17 @@ typedef struct {
 #define UI_STRIP_Y 118
 #define UI_STRIP_H 40
 
+/* The chicks' row, for the tests. */
+#define UI_FX_Y 252
+#define UI_FX_H 20
+#define UI_FX_W 20
+int ui_fx_x(int kind); /* the left edge of effect kind's box */
+
 /* Colours, for the tests. */
 #define UI_BG    RGB(16, 20, 40)
 #define UI_GREEN RGB(95, 209, 138)
 #define UI_RED   RGB(255, 90, 95)
+#define UI_FX    RGB(90, 200, 255)
 
 void ui_render(canvas_t *c, const ui_state_t *s);
 

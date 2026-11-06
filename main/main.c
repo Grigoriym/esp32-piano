@@ -363,6 +363,9 @@ static void show(const matrix_t *m)
     s.metro_bpm = beat ? beat->bpm : metro.bpm > 0 ? metro.bpm : 120;
     s.metro_flash = metro_flash(&metro, esp_timer_get_time());
     s.screen = screen_shown;
+    for (size_t k = 0; k < FX_COUNT; k++) {
+        if (fx.on[k]) s.fx |= (uint8_t)(1u << k);
+    }
     if (rhythm.on) {
         const rhythm_style_t *st = rhythm_style(rhythm.style);
         int64_t t = esp_timer_get_time();
