@@ -138,6 +138,13 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   its volume (the user's picks); a new tempo carries on from the last click. While the
   beat plays it follows the beat's grid. The header of every screen shows `Click N bpm` with a dot flashing on each
   click, red on beat 1 (`metro_flash`, the click's own time, not the send's); it takes DEMO's place there. More pots would need an analog chip (ADS1115 / a 4067 mux; none in Homebox): an MCP23017 is digital only.
+  `fx.c` (pure, 2026-11-06, the user's ask): the 8 chicks are effects on the live keys (they were drums): T1 Echo
+  (3 repeats, dotted 8th, 70% each, channel 11), T2 Hold (CC64), T3 Octave, T4 Arp (held keys up, 16ths), B1 Rise
+  (1 bar: bend +1 octave, filter opens), B2 Tape (half a bar: keys and loop bend -1 octave, keys go dark, then stop),
+  B3 Stutter (held: retrigger on 16ths), B4 Wide (two copies +-12 cents on channels 12-13). Grid: the beat's, else the
+  metronome's tempo. Bend range 12 (RPN, `fx_setup`, at boot and link-up). `send_midi` copies every CC and program on
+  channel 1 to channels 11-13. Rendered first: bend RPN and CC64 work; CC93 chorus and CC10 pan did nothing on the saw
+  lead. The looper records the plain keys. Not yet tried by the user.
   `leds.c` (pure) + `strip.c` (RMT, WS2812 on TX2, channels capped at 24/255 on 3V3):
   LEDs 1-4 the layers in cyan/magenta/yellow/orange (the newest brighter, recording blinks
   red), 5-8 the beat's count (all turned 2 along the strip, `LEDS_TURN`: the strip lies in a circle, the user
