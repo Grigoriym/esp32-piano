@@ -254,6 +254,13 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   meow's centre pitch (it glides, as a meow does). A low note plays slower and longer
   (F3 ~3 s, C6 ~0.5 s). The beat on SELECT is unchanged. FluidSynth refuses an SF2
   whose INFO strings have an odd length.
+- `docs/live.html` + `tools/live_server.py` (2026-11-06, the user's ask): what the PC plays, live, at
+  http://127.0.0.1:21929/ (started by `pc_synth.sh`, so it's up while the service runs). The server runs `aseqdump`
+  on the "Chicco Piano" port and streams each message to the page (Server-Sent Events); the page draws a scrolling
+  piano roll: keys white, loop layers in the LED strip's colours, chick copies faint, drum lanes, the metronome's bar
+  lines, tempo and bar:beat from its clicks (else from the kicks). Sounds sent before the server started are unknown
+  (no name on the chip). Tested from a recorded stream in headless Firefox (call `resize()` and `draw()` before the
+  screenshot, or it catches an empty frame); not yet seen by the user.
 - `docs/how-scan-works.html`: animated explainer of the row-by-row scan and the ghost (local page).
 - `docs/wiring.html`: **the wiring doc**, every DevKit pin and what goes on it
   (local page, open in a browser; not published). Update it with every

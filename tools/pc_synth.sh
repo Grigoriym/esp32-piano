@@ -41,7 +41,10 @@ fluidsynth -a pipewire -m alsa_seq -g 1.0 -is \
 SYNTH=$!
 build-host/piano_bridge chicco-piano.local "$CABLE" &
 BRIDGE=$!
-trap 'kill $SYNTH $BRIDGE 2>/dev/null' EXIT
+# docs/live.html, what plays, at http://127.0.0.1:21929/ (not watched: the sound doesn't need it).
+python3 tools/live_server.py >/dev/null 2>&1 &
+LIVE=$!
+trap 'kill $SYNTH $BRIDGE $LIVE 2>/dev/null' EXIT
 
 client() { aconnect -l | sed -nE "s/^client ([0-9]+): '$1.*/\1/p" | head -1; }
 

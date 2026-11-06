@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chicco Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* What the toy plays, live: served by tools/live_server.py (http://127.0.0.1:21929/),
+ * which reads the "Chicco Piano" ALSA port. A stage is always dark, like the toy's screen. */
+:root {
+  --bg: #0d1022; --panel: #161a33; --stage: #10142a; --ink: #e8eaf6; --muted: #8f96bd; --line: #262c50; --grid: #1c2142;
+  --keys: #f2f3fa; --demo: #5fd18a; --l1: #3fd7f0; --l2: #ff5fd2; --l3: #ffd23f; --l4: #ff9a3c;
+  --fx: #9aa6ff; --click: #ff5a5f; --drum: #c9cde6;
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.5 var(--font-body); display: flex; flex-direction: column; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 14px 20px; border-bottom: 1px solid var(--line); }
+h1 { font: 600 1.5rem var(--font-display); margin: 0; }
+.status { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 600; }
+.status i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); display: inline-block; }
+.status.live i { background: var(--demo); box-shadow: 0 0 10px var(--demo); }
+.status.wait i { background: var(--l4); }
+.big { display: flex; gap: 20px; margin-left: auto; align-items: baseline; }
+.big > div:not(.beats) { display: flex; flex-direction: column; align-items: flex-end; }
+.big b { font: 700 1.6rem var(--font-mono); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.big span { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.beats { display: flex; gap: 6px; align-items: center; }
+.beats i { width: 14px; height: 14px; border-radius: 50%; background: var(--line); display: inline-block; transition: background .08s; }
+.beats i.on { background: var(--l3); }
+.beats i.on.one { background: var(--click); }
+#legend { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 20px; }
+.chip { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px 4px 8px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-size: .9rem; transition: opacity .3s; }
+.chip i { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
+.chip small { color: var(--muted); }
+.chip.idle { opacity: .35; }
+#wrap { flex: 1; min-height: 320px; margin: 0 20px 20px; position: relative; border-radius: 12px; background: var(--stage); border: 1px solid var(--line); overflow: hidden; }
+/* Absolute: the canvas's pixel size must not change the layout (it grew the page and cut the drums off). */
+canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#now { padding: 0 20px 16px; color: var(--muted); font: 500 .9rem var(--font-mono); min-height: 1.5em; }
+@media (max-width: 600px) { header { padding: 12px 16px; } #legend, #now { padding-left: 16px; padding-right: 16px; } #wrap { margin: 0 16px 16px; } .big { margin-left: 0; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Chicco Live</h1>
+  <span id="status" class="status"><i></i><span>connecting…</span></span>
+  <div class="big">
+    <div class="beats" id="beats"></div>
+    <div><b id="bpm">–</b><span>bpm</span></div>
+    <div><b id="bar">–</b><span>bar</span></div>
+  </div>
+</header>
+<div id="legend"></div>
+<div id="wrap"><canvas id="roll"></canvas></div>
+<div id="now"></div>
+<script>
+'use strict';
+let WINDOW_S = 8;         /* seconds of history on screen: 4 on a narrow screen */
+const NOW_AT = 0.86;      /* the "now" line, as a fraction of the width */
+const DRUM_CH = 10, METRO_CH = 9;
+
+/* Channels as the firmware uses them (main/keymap.h, fx.h, metronome.h); layer colours = the LED strip's. */
+const CHANNELS = {
+  1: { name: 'Keys', color: '--keys' },
+  2: { name: 'DEMO', color: '--demo' },
+  3: { name: 'Layer 1', color: '--l1' },
+  4: { name: 'Layer 2', color: '--l2' },
+  5: { name: 'Layer 3', color: '--l3' },
+  6: { name: 'Layer 4', color: '--l4' },
+  11: { name: 'Echo', color: '--fx', copy: true },
+  12: { name: 'Wide', color: '--fx', copy: true },
+  13: { name: 'Wide', color: '--fx', copy: true },
+};
+/* Programs the toy sends (main/keymap.c STYLE_PROGRAM), else the GM family. */
+const PROGRAMS = { 0: 'Piano', 4: 'Electric piano', 12: 'Marimba', 21: 'Accordion', 38: 'Growl bass', 81: 'Saw lead',
+  88: 'Siamese cat', 19: 'Cat', 115: 'Woodblock' };
+const GM_FAMILY = ['Piano', 'Chromatic', 'Organ', 'Guitar', 'Bass', 'Strings', 'Ensemble', 'Brass', 'Reed', 'Pipe',
+  'Synth lead', 'Synth pad', 'Synth FX', 'Ethnic', 'Percussive', 'Sound FX'];
+const DRUMS = { 35: 'kick', 36: 'kick', 37: 'rim', 38: 'snare', 39: 'clap', 40: 'snare', 41: 'tom', 43: 'tom', 45: 'tom',
+  42: 'hat', 44: 'hat', 46: 'open hat', 47: 'tom', 48: 'tom', 49: 'crash', 51: 'ride', 56: 'cowbell', 57: 'crash',
+  67: 'bell', 68: 'bell', 70: 'shake', 75: 'clave', 76: 'block', 77: 'block' };
+const DRUM_ORDER = ['kick', 'snare', 'clap', 'rim', 'tom', 'hat', 'open hat', 'ride', 'crash', 'bell', 'shake', 'cowbell', 'clave', 'block', 'drum'];
+const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const noteName = n => NAMES[n % 12] + (Math.floor(n / 12) - 1);
+
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const canvas = document.getElementById('roll');
+const ctx = canvas.getContext('2d');
+
+/* Times: the server's clock (seconds), mapped to ours by the first message of the stream. */
+let offset = null;
+const nowS = () => performance.now() / 1000;
+const local = t => (offset === null ? nowS() : t + offset);
+
+const notes = [];          /* {ch, note, vel, t0, t1 (null while held)} */
+const hits = [];           /* drum hits {name, vel, t} */
+const clicks = [];         /* metronome {t, one} */
+const sounding = new Map(); /* "ch:note" -> note object */
+const program = {};        /* ch -> program */
+const lastSeen = {};       /* ch -> time */
+let beatInBar = -1, barCount = 0, beatsPerBar = 4;
+
+function prune(t) {
+  const keep = t - WINDOW_S - 1;
+  while (notes.length && notes[0].t1 !== null && notes[0].t1 < keep && notes[0].t0 < keep) notes.shift();
+  for (let i = notes.length - 1; i >= 0; i--) if (notes[i].t1 !== null && notes[i].t1 < keep) notes.splice(i, 1);
+  while (hits.length && hits[0].t < keep) hits.shift();
+  while (clicks.length && clicks[0].t < keep - 10) clicks.shift();
+}
+
+function onEvent(ev) {
+  if (offset === null && ev.now !== undefined) offset = nowS() - ev.now;
+  if (offset === null) offset = nowS() - ev.t;
+  const t = local(ev.t);
+  if (ev.type === 'source') {
+    if (ev.programs) { Object.assign(program, ev.programs); renderLegend(); }
+    setStatus(ev.up ? 'wait' : 'down');
+    return;
+  }
+  lastSeen[ev.ch] = t;
+  if (ev.type === 'prog') { program[ev.ch] = ev.program; renderLegend(); return; }
+  if (ev.type === 'on') {
+    setStatus('live');
+    if (ev.ch === DRUM_CH) { hits.push({ name: DRUMS[ev.note] || 'drum', vel: ev.vel, t }); return; }
+    if (ev.ch === METRO_CH) { onClick(t, ev.note === 84); return; }
+    const key = ev.ch + ':' + ev.note;
+    if (sounding.has(key)) sounding.get(key).t1 = t;
+    const n = { ch: ev.ch, note: ev.note, vel: ev.vel, t0: t, t1: null };
+    notes.push(n);
+    sounding.set(key, n);
+    renderLegend();
+  } else if (ev.type === 'off') {
+    const key = ev.ch + ':' + ev.note;
+    const n = sounding.get(key);
+    if (n) { n.t1 = t; sounding.delete(key); }
+  } else if (ev.type === 'cc' && (ev.cc === 123 || ev.cc === 120)) { /* all notes off */
+    for (const [key, n] of sounding) if (n.ch === ev.ch) { n.t1 = t; sounding.delete(key); }
+  }
+}
+
+/* The metronome's clicks: beat 1 is note 84, the others 77 (main/metronome.c). */
+function onClick(t, one) {
+  if (one) {
+    if (beatInBar >= 0) beatsPerBar = Math.max(2, Math.min(8, beatInBar + 1));
+    beatInBar = 0; barCount++;
+  } else if (beatInBar >= 0) beatInBar++;
+  clicks.push({ t, one });
+  if (clicks.length >= 3) {
+    const a = clicks[clicks.length - 1].t, b = clicks[clicks.length - 3].t;
+    if (a - b < 4) document.getElementById('bpm').textContent = Math.round(120 / (a - b));
+  }
+  document.getElementById('bar').textContent = barCount ? barCount + '.' + (beatInBar + 1) : '–';
+  const beats = document.getElementById('beats');
+  if (beats.children.length !== beatsPerBar) beats.innerHTML = '<i></i>'.repeat(beatsPerBar);
+  [...beats.children].forEach((el, i) => { el.className = i === beatInBar ? (i === 0 ? 'on one' : 'on') : ''; });
+}
+
+/* No metronome: the tempo from the kicks (four on the floor or not, the shortest steady gap). */
+function kickTempo() {
+  const now = nowS();
+  if (clicks.length && now - clicks[clicks.length - 1].t < 3) return;
+  const kicks = hits.filter(h => h.name === 'kick' && now - h.t < 6).map(h => h.t);
+  if (kicks.length < 3) { if (!clicks.length || now - clicks[clicks.length - 1].t > 3) document.getElementById('bpm').textContent = '–'; return; }
+  const gaps = kicks.slice(1).map((k, i) => k - kicks[i]).filter(g => g > 0.25).sort((a, b) => a - b);
+  if (gaps.length) document.getElementById('bpm').textContent = Math.round(60 / gaps[0]);
+}
+
+let statusNow = '';
+function setStatus(s) {
+  if (s === statusNow) return;
+  statusNow = s;
+  const el = document.getElementById('status');
+  el.className = 'status ' + s;
+  el.lastElementChild.textContent = { live: 'playing', wait: 'waiting for the toy', down: 'no PC synth (start Chicco Piano)', off: 'live server not running' }[s];
+}
+
+function progName(ch) {
+  const p = program[ch];
+  if (p === undefined) return '';
+  return PROGRAMS[p] || GM_FAMILY[p >> 3];
+}
+
+function renderLegend() {
+  const t = nowS();
+  const chips = [];
+  for (const ch of Object.keys(CHANNELS).map(Number)) {
+    if (lastSeen[ch] === undefined) continue;
+    const c = CHANNELS[ch];
+    if (c.copy && ch === 13) continue;
+    const idle = t - lastSeen[ch] > 4 ? ' idle' : '';
+    chips.push(`<span class="chip${idle}"><i style="background:var(${c.color})"></i>${c.name} <small>${c.copy ? 'chick' : progName(ch)}</small></span>`);
+  }
+  if (lastSeen[DRUM_CH] !== undefined) chips.push(`<span class="chip${t - lastSeen[DRUM_CH] > 4 ? ' idle' : ''}"><i style="background:var(--drum)"></i>Beat <small>${program[DRUM_CH] === 30 ? 'EDM kit' : program[DRUM_CH] === undefined ? '' : 'kit ' + program[DRUM_CH]}</small></span>`);
+  if (lastSeen[METRO_CH] !== undefined) chips.push(`<span class="chip${t - lastSeen[METRO_CH] > 4 ? ' idle' : ''}"><i style="background:var(--click)"></i>Metronome</span>`);
+  const html = chips.join('');
+  const legend = document.getElementById('legend');
+  if (legend.innerHTML !== html) legend.innerHTML = html;
+}
+
+/* The pitch range follows what was played in the window, eased so it doesn't jump. */
+let lo = 45, hi = 81;
+function range(t) {
+  let min = Infinity, max = -Infinity;
+  for (const n of notes) if ((n.t1 === null || n.t1 > t - WINDOW_S)) { min = Math.min(min, n.note); max = Math.max(max, n.note); }
+  if (min === Infinity) return;
+  let want0 = min - 3, want1 = max + 3;
+  if (want1 - want0 < 24) { const mid = (want0 + want1) / 2; want0 = mid - 12; want1 = mid + 12; }
+  lo += (want0 - lo) * 0.08; hi += (want1 - hi) * 0.08;
+}
+
+function resize() {
+  const r = { width: canvas.clientWidth, height: canvas.clientHeight };
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  WINDOW_S = r.width < 600 ? 4 : 8;
+}
+new ResizeObserver(resize).observe(canvas);
+
+function roundRect(x, y, w, h, r) {
+  r = Math.min(r, h / 2, w / 2);
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h);
+  ctx.fill();
+}
+
+function draw() {
+  const t = nowS();
+  prune(t);
+  range(t);
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  const gutter = 44;
+  const nowX = gutter + (W - gutter - 16) * NOW_AT;
+  const pxPerS = (nowX - gutter) / WINDOW_S;
+  const x = tt => nowX - (t - tt) * pxPerS;
+
+  const drumNames = DRUM_ORDER.filter(d => hits.some(h => h.name === d));
+  const laneH = 18;
+  const drumH = drumNames.length ? drumNames.length * laneH + 20 : 0;
+  const top = 12, bottom = H - drumH - 12;
+  const rowH = (bottom - top) / (hi - lo);
+  const y = n => bottom - (n - lo) * rowH;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.font = '500 11px ' + css('--font-mono');
+  ctx.textBaseline = 'middle';
+
+  /* Pitch rows: a line on every C, the black-key rows a little darker. */
+  for (let n = Math.ceil(lo); n <= Math.floor(hi); n++) {
+    const yy = y(n);
+    if ([1, 3, 6, 8, 10].includes(n % 12)) { ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(gutter, yy - rowH / 2, W - gutter, rowH); }
+    if (n % 12 === 0 || n % 12 === 9) {
+      ctx.fillStyle = n % 12 === 0 ? css('--grid') : 'rgba(255,255,255,.03)';
+      ctx.fillRect(gutter, yy, W - gutter, 1);
+      ctx.fillStyle = css('--muted');
+      ctx.fillText(noteName(n), 6, yy);
+    }
+  }
+
+  /* The metronome's beats as vertical lines, bar lines brighter. */
+  for (const c of clicks) {
+    const xx = x(c.t);
+    if (xx < gutter) continue;
+    ctx.fillStyle = c.one ? 'rgba(255,90,95,.45)' : 'rgba(255,255,255,.08)';
+    ctx.fillRect(xx, top, c.one ? 2 : 1, H - top - 8);
+  }
+
+  /* Notes: copies (the chicks' echo and wide) first and faint, then the rest. */
+  const sorted = notes.slice().sort((a, b) => (CHANNELS[b.ch]?.copy ? 1 : 0) - (CHANNELS[a.ch]?.copy ? 1 : 0));
+  for (const n of sorted) {
+    const x0 = Math.max(gutter, x(n.t0)), x1 = n.t1 === null ? nowX : x(n.t1);
+    if (x1 < gutter) continue;
+    const c = CHANNELS[n.ch] || { color: '--keys' };
+    const held = n.t1 === null;
+    ctx.globalAlpha = (c.copy ? 0.35 : 0.55 + 0.45 * n.vel / 127);
+    ctx.fillStyle = css(c.color);
+    if (held && !c.copy) { ctx.shadowColor = css(c.color); ctx.shadowBlur = 14; }
+    roundRect(x0, y(n.note) - Math.max(3, rowH * 0.42), Math.max(3, x1 - x0), Math.max(6, rowH * 0.84), 4);
+    ctx.shadowBlur = 0;
+  }
+  ctx.globalAlpha = 1;
+
+  /* Drum lanes along the bottom. */
+  if (drumNames.length) {
+    const d0 = H - drumH;
+    ctx.fillStyle = css('--line');
+    ctx.fillRect(gutter, d0 - 2, W - gutter, 1);
+    drumNames.forEach((name, i) => {
+      const yy = d0 + 10 + i * laneH + laneH / 2;
+      ctx.fillStyle = css('--muted');
+      ctx.fillText(name.length > 5 ? name.slice(0, 5) : name, 6, yy);
+    });
+    for (const h of hits) {
+      const i = drumNames.indexOf(h.name);
+      if (i < 0) continue;
+      const xx = x(h.t);
+      if (xx < gutter) continue;
+      const yy = d0 + 10 + i * laneH + laneH / 2;
+      const age = t - h.t;
+      ctx.globalAlpha = 0.4 + 0.6 * h.vel / 127;
+      ctx.fillStyle = h.name === 'kick' ? css('--l4') : h.name === 'snare' || h.name === 'clap' ? css('--l2') : css('--drum');
+      const r = 3 + 3 * h.vel / 127 + (age < 0.12 ? (0.12 - age) * 40 : 0);
+      ctx.beginPath(); ctx.arc(xx, yy, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /* The now line. */
+  ctx.fillStyle = 'rgba(255,255,255,.35)';
+  ctx.fillRect(nowX, 6, 2, H - 12);
+
+  /* What sounds now, as note names per channel. */
+  const byCh = {};
+  for (const n of sounding.values()) if (!CHANNELS[n.ch]?.copy) (byCh[n.ch] = byCh[n.ch] || []).push(n.note);
+  const text = Object.keys(byCh).sort((a, b) => a - b).map(ch => `${CHANNELS[ch]?.name || 'ch ' + ch}: ${byCh[ch].sort((a, b) => a - b).map(noteName).join(' ')}`).join('   ');
+  const nowEl = document.getElementById('now');
+  if (nowEl.textContent !== text) nowEl.textContent = text;
+
+  kickTempo();
+  requestAnimationFrame(draw);
+}
+
+setInterval(renderLegend, 1000);
+requestAnimationFrame(draw);
+
+/* The stream; EventSource reconnects by itself, the clock offset is taken again. */
+function connect() {
+  const es = new EventSource('/events');
+  es.onmessage = e => onEvent(JSON.parse(e.data));
+  es.onopen = () => { offset = null; };
+  es.onerror = () => setStatus('off');
+}
+connect();
+</script>
+</body>
