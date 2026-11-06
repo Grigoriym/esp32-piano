@@ -72,6 +72,18 @@ static void test_turning_is_followed(void)
     TEST_ASSERT_EQUAL(50, m.moved_us[MIXER_BEAT]);
 }
 
+static void test_a_pot_left_alone_holds_against_a_one_level_hop(void)
+{
+    turn(MIXER_METRO, 74, 10);
+    TEST_ASSERT_EQUAL(74, m.pot[MIXER_METRO]);
+    turn(MIXER_METRO, 75, 10 + MIXER_SETTLE_US); /* left alone, then a hop: held */
+    TEST_ASSERT_EQUAL(74, m.pot[MIXER_METRO]);
+    turn(MIXER_METRO, 76, 20 + MIXER_SETTLE_US); /* turned: it moves */
+    TEST_ASSERT_EQUAL(76, m.pot[MIXER_METRO]);
+    turn(MIXER_METRO, 75, 30 + MIXER_SETTLE_US); /* and follows every level while turned */
+    TEST_ASSERT_EQUAL(75, m.pot[MIXER_METRO]);
+}
+
 static void test_a_one_level_hop_is_not_a_turn(void)
 {
     turn(MIXER_KEYS, 100, 10);
@@ -245,6 +257,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_starts_full);
+    RUN_TEST(test_a_pot_left_alone_holds_against_a_one_level_hop);
     RUN_TEST(test_a_one_level_hop_is_not_a_turn);
     RUN_TEST(test_first_reading_sets_the_level_at_once);
     RUN_TEST(test_ends_are_reachable);

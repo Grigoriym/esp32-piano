@@ -57,6 +57,10 @@ bool mixer_feed(mixer_t *m, mixer_pot_t pot, int raw, int64_t now_us)
     if (d < 0) d = -d;
     bool end = level == 0 || level == MIXER_LEVEL;
     if (!fresh && !end && d < MIXER_RAW / MIXER_LEVEL / 2 + HYSTERESIS) return false;
+    int step = level - m->pot[pot];
+    bool settled = now_us - m->changed_us[pot] >= MIXER_SETTLE_US;
+    if (!fresh && !end && settled && step < MIXER_WAKE && step > -MIXER_WAKE) return false;
+    m->changed_us[pot] = now_us;
     m->pot[pot] = (uint8_t)level;
     /* A turn (shows the LED bar): MIXER_TURN levels from the last one, or an end.
      * A key press or a WiFi send can tip a resting pot a level (2026-11-05). */

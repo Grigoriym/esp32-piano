@@ -36,6 +36,11 @@
 #define MIXER_RAW   4095 /* the ADC's full scale */
 #define MIXER_LEVEL 127
 #define MIXER_TURN  3 /* levels a pot must move to count as turned (the LED bar): one-level hops are noise */
+/* A pot left alone this long holds its level against a one-level hop: it needs MIXER_WAKE levels to
+ * move again, then follows every level while turned. Pot 6 at 130 bpm flipped to 131 and back by
+ * itself, and when other pots were turned (2026-11-06): one level is ~26 mV, the hysteresis held ~20. */
+#define MIXER_SETTLE_US 500000
+#define MIXER_WAKE      2
 #define MIXER_FILTER_CENTS \
     (-4800) /* the cutoff at pot 4's 0; further down FluidR3's saw lead turns bright again (rendered) */
 #define MIXER_REVERB_SEND 1000 /* 100%: FluidSynth clamps the sum to 0-100% */
@@ -46,9 +51,10 @@ typedef enum { MIXER_BEAT, MIXER_CLICK, MIXER_KEYS, MIXER_FILTER, MIXER_REVERB, 
 typedef struct {
     int32_t filt[MIXER_POTS]; /* smoothed reading, x16 */
     bool primed[MIXER_POTS];
-    uint8_t pot[MIXER_POTS];      /* where each pot is, 0-127 */
-    int64_t moved_us[MIXER_POTS]; /* when it was last turned; 0: not since boot */
-    uint8_t rest[MIXER_POTS];     /* level at the last turn: moved_us needs MIXER_TURN from it */
+    uint8_t pot[MIXER_POTS];        /* where each pot is, 0-127 */
+    int64_t moved_us[MIXER_POTS];   /* when it was last turned; 0: not since boot */
+    int64_t changed_us[MIXER_POTS]; /* when its level last changed */
+    uint8_t rest[MIXER_POTS];       /* level at the last turn: moved_us needs MIXER_TURN from it */
     uint8_t beat, click, keys, filter, reverb, metro;
     uint8_t layer_filter[LOOPER_LAYERS], layer_reverb[LOOPER_LAYERS]; /* frozen when added */
     uint8_t layer_keys[LOOPER_LAYERS];                                /* pot 3's fader, frozen the same way */
