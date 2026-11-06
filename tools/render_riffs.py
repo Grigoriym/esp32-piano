@@ -114,7 +114,7 @@ def render(piece, layers, beat, keys, pads, path):
                 step, rest = tok.split(":")
                 ks, length = rest.split("/")
                 for k in map(int, ks.split("+")):
-                    note = root + 12 * ((k - 1) // 7) + MINOR[(k - 1) % 7]
+                    note = root + 12 * ((k - 1) // 7 + layer.get("octave", 0)) + MINOR[(k - 1) % 7]
                     on = int(step) + p * bar_steps
                     ev.append((on, 2, bytes([0x90, note, kvel])))
                     ev.append((on + int(length), 1, bytes([0x80, note, 0])))

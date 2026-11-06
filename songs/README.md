@@ -15,3 +15,7 @@ in front, so they're what the song was played with, not read from it.
 - `2026-11-03-first-song`: the first song, made in EDM mode: piece #1 of
   `docs/riffs.html` stacked in the looper, 4 bars at 124 bpm. Sounds assumed: saw
   lead (81) on every key and loop channel, the EDM kit (drum program 30).
+- `2026-11-06-cosmic-bass`: the user's bass line for #6 Cosmic, one loop layer (channel 3)
+  under the metronome at 130 bpm (channel 9), keys at octave −1 (notes 21/24/28 = keys 1/3/5
+  an octave down). 2 bars, 3693 ms a pass. Written out as the Cosmic `Bass` layer in
+  `docs/riffs.html`. No mp3: the sound wasn't captured.
