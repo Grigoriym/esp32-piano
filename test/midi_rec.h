@@ -6,7 +6,7 @@
 typedef struct {
     uint8_t msg[3];
     size_t len;
-    char what[40];
+    char what[64];
 } midi_rec_entry_t;
 
 typedef struct {

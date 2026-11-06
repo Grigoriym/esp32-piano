@@ -194,13 +194,17 @@ static void test_a_layer_keeps_the_effects_it_was_recorded_with(void)
     midi_rec_t r = {0};
     m.filter = 40;
     m.reverb = 127;
+    m.keys = 30; /* pot 3, the live keys' fader */
     mixer_freeze_layer(&m, 1, midi_rec, &r);
-    TEST_ASSERT_EQUAL(8, r.n); /* filter then reverb, on the layer's own channel */
+    TEST_ASSERT_EQUAL(9, r.n); /* the fader, filter, reverb, on the layer's own channel */
     TEST_ASSERT_EQUAL_HEX8(0xb0 | (LOOP_CH + 1), r.e[0].msg[0]);
-    TEST_ASSERT_EQUAL(8, r.e[1].msg[2]);
-    TEST_ASSERT_EQUAL(16, r.e[5].msg[2]);
-    TEST_ASSERT_EQUAL(8192 + MIXER_REVERB_SEND, r.e[7].msg[2] << 7 | r.e[6].msg[2]);
-    TEST_ASSERT_EQUAL_STRING("layer 2 keeps filter 40, reverb 127", r.e[7].what);
+    TEST_ASSERT_EQUAL(11, r.e[0].msg[1]);
+    TEST_ASSERT_EQUAL(30, r.e[0].msg[2]);
+    TEST_ASSERT_EQUAL_HEX8(0xb0 | (LOOP_CH + 1), r.e[1].msg[0]);
+    TEST_ASSERT_EQUAL(8, r.e[2].msg[2]);
+    TEST_ASSERT_EQUAL(16, r.e[6].msg[2]);
+    TEST_ASSERT_EQUAL(8192 + MIXER_REVERB_SEND, r.e[8].msg[2] << 7 | r.e[7].msg[2]);
+    TEST_ASSERT_EQUAL_STRING("layer 2 keeps keys 30, filter 40, reverb 127", r.e[8].what);
 
     /* The pots move on: the live channels change, the layer doesn't. */
     memset(&r, 0, sizeof(r));
@@ -210,8 +214,10 @@ static void test_a_layer_keeps_the_effects_it_was_recorded_with(void)
     TEST_ASSERT_EQUAL(40, m.layer_filter[1]);
 
     memset(&r, 0, sizeof(r));
+    turn(MIXER_KEYS, 127, 1);
     mixer_send_layer_fx(&m, 1, midi_rec, &r); /* again, after a reconnect */
-    TEST_ASSERT_EQUAL_STRING("layer 2 keeps filter 40, reverb 127", r.e[7].what);
+    TEST_ASSERT_EQUAL(30, r.e[0].msg[2]);
+    TEST_ASSERT_EQUAL_STRING("layer 2 keeps keys 30, filter 40, reverb 127", r.e[8].what);
 }
 
 static void test_keys_pot_is_cc11_on_the_keys_channel(void)

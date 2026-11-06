@@ -12,7 +12,7 @@ void mixer_init(mixer_t *m)
 {
     memset(m, 0, sizeof(*m));
     m->beat = m->click = m->keys = m->filter = m->metro = MIXER_LEVEL;
-    for (size_t i = 0; i < LOOPER_LAYERS; i++) m->layer_filter[i] = MIXER_LEVEL;
+    for (size_t i = 0; i < LOOPER_LAYERS; i++) m->layer_filter[i] = m->layer_keys[i] = MIXER_LEVEL;
     for (size_t i = 0; i < MIXER_POTS; i++) m->pot[i] = m->rest[i] = MIXER_LEVEL;
     m->pot[MIXER_REVERB] = m->rest[MIXER_REVERB] = 0;
 }
@@ -145,10 +145,14 @@ void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *c
 void mixer_send_layer_fx(const mixer_t *m, size_t layer, midi_send_fn send, void *ctx)
 {
     if (layer >= LOOPER_LAYERS) return;
-    char what[48];
-    snprintf(what, sizeof(what), "layer %u keeps filter %u, reverb %u", (unsigned)layer + 1,
-             (unsigned)m->layer_filter[layer], (unsigned)m->layer_reverb[layer]);
+    char what[64];
+    snprintf(what, sizeof(what), "layer %u keeps keys %u, filter %u, reverb %u", (unsigned)layer + 1,
+             (unsigned)m->layer_keys[layer], (unsigned)m->layer_filter[layer],
+             (unsigned)m->layer_reverb[layer]);
     uint8_t ch = (uint8_t)(LOOP_CH + layer);
+    /* Pot 3's fader as it was (CC11 on the keys' channel isn't in the recording). */
+    uint8_t cc[3] = {(uint8_t)(0xb0 | ch), 11, m->layer_keys[layer]};
+    send(cc, 3, NULL, ctx);
     send_nrpn(ch, GEN_FILTER, filter_offset(m->layer_filter[layer]), NULL, send, ctx);
     send_nrpn(ch, GEN_REVERB, reverb_offset(m->layer_reverb[layer]), what, send, ctx);
 }
@@ -158,5 +162,6 @@ void mixer_freeze_layer(mixer_t *m, size_t layer, midi_send_fn send, void *ctx)
     if (layer >= LOOPER_LAYERS) return;
     m->layer_filter[layer] = m->filter;
     m->layer_reverb[layer] = m->reverb;
+    m->layer_keys[layer] = m->keys;
     mixer_send_layer_fx(m, layer, send, ctx);
 }

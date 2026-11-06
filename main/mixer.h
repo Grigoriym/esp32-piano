@@ -11,7 +11,7 @@
  * VOLUME +/- stays the master volume on top.
  *
  * Pot 4 is a filter (127 open, 0 dark), pot 5 the reverb (0 dry), on the live
- * keys and DEMO. A loop layer keeps the filter and reverb it was recorded with
+ * keys and DEMO. A loop layer keeps pot 3's fader, the filter and the reverb it was recorded with
  * (frozen onto its channel when it's added; the user: "we shouldn't touch the
  * recordings", 2026-11-06). The drums stay as they are. FluidSynth 2.3
  * ignores CC74 (no default modulator, rendered 2026-11-06), so the filter is
@@ -51,6 +51,7 @@ typedef struct {
     uint8_t rest[MIXER_POTS];     /* level at the last turn: moved_us needs MIXER_TURN from it */
     uint8_t beat, click, keys, filter, reverb, metro;
     uint8_t layer_filter[LOOPER_LAYERS], layer_reverb[LOOPER_LAYERS]; /* frozen when added */
+    uint8_t layer_keys[LOOPER_LAYERS];                                /* pot 3's fader, frozen the same way */
 } mixer_t;
 
 void mixer_init(mixer_t *m);
@@ -68,8 +69,9 @@ size_t mixer_apply(const uint8_t *msg, size_t len, uint8_t level, uint8_t *out);
 /* Sends pot 2's, 3's, 4's or 5's setting to the live channels (what: for the log, once). */
 void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx);
 
-/* A loop layer just added: it keeps the filter and reverb as they are now. */
+/* A loop layer just added: it keeps pot 3's fader, the filter and the reverb as they are now
+ * (the fader: the user heard a layer recorded quiet come back at full, 2026-11-06). */
 void mixer_freeze_layer(mixer_t *m, size_t layer, midi_send_fn send, void *ctx);
 
-/* A layer's frozen filter and reverb again (the PC link came up). */
+/* A layer's frozen fader, filter and reverb again (the PC link came up). */
 void mixer_send_layer_fx(const mixer_t *m, size_t layer, midi_send_fn send, void *ctx);
