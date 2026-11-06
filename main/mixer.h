@@ -5,7 +5,8 @@
  * the note-on velocities of its part (0-127, 127 = as played). Pot 3 is the live
  * keys' fader: CC11 (expression) on the keys' channel, so a held note follows it
  * too (2026-11-06, the user's ask; it also works on ROCK's growl, which ignores
- * velocity). VOLUME +/- stays the master volume on top.
+ * velocity). Pot 6 is the metronome's fader the same way (CC11 on METRO_CH).
+ * VOLUME +/- stays the master volume on top.
  *
  * Pot 4 is a filter (127 open, 0 dark), pot 5 the reverb (0 dry), on the live
  * keys and DEMO. A loop layer keeps the filter and reverb it was recorded with
@@ -29,10 +30,11 @@
 #include <stdint.h>
 
 #include "keymap.h"
+#include "metronome.h"
 #include "looper.h"
 #include "midi_out.h"
 
-#define MIXER_POTS  5
+#define MIXER_POTS  6
 #define MIXER_RAW   4095 /* the ADC's full scale */
 #define MIXER_LEVEL 127
 #define MIXER_TURN  3 /* levels a pot must move to count as turned (the LED bar): one-level hops are noise */
@@ -41,7 +43,7 @@
 #define MIXER_REVERB_SEND 1000 /* 100%: FluidSynth clamps the sum to 0-100% */
 #define MIXER_FX_LIVE     2    /* the pots' channels: 1 and 2 (0-1), the keys and DEMO */
 
-typedef enum { MIXER_BEAT, MIXER_LAYER, MIXER_KEYS, MIXER_FILTER, MIXER_REVERB } mixer_pot_t;
+typedef enum { MIXER_BEAT, MIXER_LAYER, MIXER_KEYS, MIXER_FILTER, MIXER_REVERB, MIXER_METRO } mixer_pot_t;
 
 typedef struct {
     int32_t filt[MIXER_POTS]; /* smoothed reading, x16 */
@@ -49,7 +51,7 @@ typedef struct {
     uint8_t pot[MIXER_POTS];      /* where each pot is, 0-127 */
     int64_t moved_us[MIXER_POTS]; /* when it was last turned; 0: not since boot */
     uint8_t rest[MIXER_POTS];     /* level at the last turn: moved_us needs MIXER_TURN from it */
-    uint8_t beat, keys, filter, reverb;
+    uint8_t beat, keys, filter, reverb, metro;
     uint8_t layer[LOOPER_LAYERS];
     uint8_t layer_filter[LOOPER_LAYERS], layer_reverb[LOOPER_LAYERS]; /* frozen when added */
     int target;                                                       /* the layer pot 2 sets; -1: none */
@@ -72,7 +74,7 @@ uint8_t mixer_scale(uint8_t velocity, uint8_t level);
  * the length to send: 0 for a note on at level 0, which is left out. */
 size_t mixer_apply(const uint8_t *msg, size_t len, uint8_t level, uint8_t *out);
 
-/* Sends pot 3's, 4's or 5's setting to the live channels (what: for the log, once). */
+/* Sends pot 3's, 4's, 5's or 6's setting to the live channels (what: for the log, once). */
 void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx);
 
 /* A loop layer just added: it keeps the filter and reverb as they are now. */

@@ -199,9 +199,19 @@ static void test_march_is_edm_mode_too(void)
     assert_msg(2, 0x90, 33, EDM_VELOCITY);
 }
 
+static void test_frog_is_the_metronome_and_sends_nothing(void)
+{
+    TEST_ASSERT_EQUAL(KEYMAP_METRO, keymap_event(&k, 7, 1, true, midi_rec, &rec));
+    TEST_ASSERT_EQUAL(KEYMAP_NONE, keymap_event(&k, 7, 1, false, midi_rec, &rec));
+    TEST_ASSERT_EQUAL(0, rec.n);
+    TEST_ASSERT_EQUAL(KEYMAP_SELECT, keymap_event(&k, 7, 4, true, midi_rec, &rec));
+    TEST_ASSERT_EQUAL(KEYMAP_RECORD, keymap_event(&k, 5, 5, true, midi_rec, &rec));
+}
+
 int main(void)
 {
     UNITY_BEGIN();
+    RUN_TEST(test_frog_is_the_metronome_and_sends_nothing);
     RUN_TEST(test_names);
     RUN_TEST(test_key_1_is_F3_and_key_32_is_C6);
     RUN_TEST(test_note_off_matches_the_note_on_after_an_octave_change);

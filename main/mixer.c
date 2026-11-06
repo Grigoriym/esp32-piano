@@ -1,5 +1,6 @@
 #include "mixer.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -10,7 +11,7 @@
 void mixer_init(mixer_t *m)
 {
     memset(m, 0, sizeof(*m));
-    m->beat = m->keys = m->filter = MIXER_LEVEL;
+    m->beat = m->keys = m->filter = m->metro = MIXER_LEVEL;
     for (size_t i = 0; i < LOOPER_LAYERS; i++) m->layer[i] = m->layer_filter[i] = MIXER_LEVEL;
     for (size_t i = 0; i < MIXER_POTS; i++) m->pot[i] = m->rest[i] = MIXER_LEVEL;
     m->pot[MIXER_REVERB] = m->rest[MIXER_REVERB] = 0;
@@ -33,6 +34,7 @@ static void apply(mixer_t *m, mixer_pot_t pot, uint8_t old)
         case MIXER_KEYS: m->keys = v; break;
         case MIXER_FILTER: m->filter = v; break;
         case MIXER_REVERB: m->reverb = v; break;
+        case MIXER_METRO: m->metro = v; break;
         case MIXER_LAYER:
             if (m->target < 0) break;
             if (!m->attached) {
@@ -154,9 +156,11 @@ void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *c
         offset = reverb_offset(m->reverb);
         snprintf(what, sizeof(what), "reverb %u (send %+d.%d%%)", (unsigned)m->reverb, offset / 10,
                  (offset < 0 ? -offset : offset) % 10);
-    } else if (pot == MIXER_KEYS) {
-        snprintf(what, sizeof(what), "keys %u", (unsigned)m->keys);
-        uint8_t cc[3] = {0xb0 | KEY_CH, 11, m->keys};
+    } else if (pot == MIXER_KEYS || pot == MIXER_METRO) {
+        bool keys = pot == MIXER_KEYS;
+        uint8_t level = keys ? m->keys : m->metro;
+        snprintf(what, sizeof(what), "%s %u", keys ? "keys" : "metronome", (unsigned)level);
+        uint8_t cc[3] = {(uint8_t)(0xb0 | (keys ? KEY_CH : METRO_CH)), 11, level};
         send(cc, 3, what, ctx);
         return;
     } else {

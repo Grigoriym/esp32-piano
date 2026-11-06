@@ -15,7 +15,8 @@
  * The pure parts, host-tested (tools/test.sh): matrix.c (debounce, ghosts),
  * keymap.c (names, what each key and button plays), demo.c (DEMO button),
  * looper.c (RECORD / REPLAY), rhythm.c (SELECT: drum beats), mixer.c (the five
- * pots: beat, newest layer, live keys, filter, reverb), leds.c (the LED strip).
+ * pots: beat, newest layer, live keys, filter, reverb, metronome), metronome.c
+ * (FROG), leds.c (the LED strip).
  * MIDI goes out as UDP over WiFi to tools/piano_bridge.c (main/midi_link.h).
  *
  * Output on serial (115200):
@@ -24,7 +25,7 @@
  *   GHOST? <names>  the pressed set contains a rectangle; one of them may be fake
  *   MIDI  <what>   what was sent (or "(not connected)")
  *   KNOB  CW / CCW / PRESS
- *   POT   beat|layer|keys|filter|reverb <level>   a pot turned (0-127)
+ *   POT   beat|layer|keys|filter|reverb|metro <level>   a pot turned (0-127)
  * Changes are reported after DEBOUNCE equal scans in a row.
  *
  * The line-pair finder that mapped the grid is in git history (233c8c3).
@@ -48,6 +49,7 @@
 #include "leds.h"
 #include "looper.h"
 #include "matrix.h"
+#include "metronome.h"
 #include "midi_link.h"
 #include "mixer.h"
 #include "rhythm.h"
@@ -81,15 +83,16 @@
 #define FX_PERIOD_US    30000 /* the filter and reverb are sent at most this often */
 #define LEDS_PERIOD_US  20000 /* the strip is redrawn this often (when it changed) */
 
-/* The pots' wipers on ADC1 (ADC2 doesn't work with WiFi on). VN (ADC1 channel 3) is still free. */
+/* The pots' wipers on ADC1 (ADC2 doesn't work with WiFi on): every ADC1 pin a DevKit has. */
 static const adc_channel_t POT_CH[MIXER_POTS] = {
     [MIXER_BEAT] = ADC_CHANNEL_4,   /* D32 */
     [MIXER_LAYER] = ADC_CHANNEL_5,  /* D33 */
     [MIXER_KEYS] = ADC_CHANNEL_6,   /* D34 */
     [MIXER_FILTER] = ADC_CHANNEL_7, /* D35 */
     [MIXER_REVERB] = ADC_CHANNEL_0, /* VP (GPIO36) */
+    [MIXER_METRO] = ADC_CHANNEL_3,  /* VN (GPIO39) */
 };
-static const char *const POT_NAME[MIXER_POTS] = {"beat", "layer", "keys", "filter", "reverb"};
+static const char *const POT_NAME[MIXER_POTS] = {"beat", "layer", "keys", "filter", "reverb", "metro"};
 
 static keymap_t keymap;
 static demo_t demo;
@@ -97,6 +100,7 @@ static looper_t looper;
 static rhythm_t rhythm;
 static groove_t groove;
 static mixer_t mixer;
+static metro_t metro;
 static adc_oneshot_unit_handle_t adc;
 
 static i2c_master_dev_handle_t mcp;
@@ -249,14 +253,14 @@ static void pots_read(int64_t now)
         if (!n) continue;
         if (mixer_feed(&mixer, (mixer_pot_t)i, sum / n, now)) {
             printf("POT   %s %u\n", POT_NAME[i], (unsigned)mixer.pot[i]);
-            if (i == MIXER_KEYS || i == MIXER_FILTER || i == MIXER_REVERB) fx_due[i] = true;
+            if (i >= MIXER_KEYS) fx_due[i] = true;
         }
     }
     /* A PC that just said HELLO (the bridge or FluidSynth restarted) gets the effects again. */
     static bool was_connected;
     bool connected = midi_link_connected();
     if (connected && !was_connected) {
-        fx_due[MIXER_KEYS] = fx_due[MIXER_FILTER] = fx_due[MIXER_REVERB] = true;
+        for (size_t i = MIXER_KEYS; i < MIXER_POTS; i++) fx_due[i] = true;
         for (size_t l = 0; l < looper.n_layers; l++) mixer_send_layer_fx(&mixer, l, send_midi, NULL);
     }
     was_connected = connected;
@@ -264,7 +268,7 @@ static void pots_read(int64_t now)
      * messages a step, too many for the cable at every reading. */
     static int64_t fx_sent;
     if (now - fx_sent < FX_PERIOD_US) return;
-    for (size_t i = MIXER_KEYS; i <= MIXER_REVERB; i++) {
+    for (size_t i = MIXER_KEYS; i < MIXER_POTS; i++) {
         if (!fx_due[i]) continue;
         fx_due[i] = false;
         fx_sent = now;
@@ -305,6 +309,7 @@ static void leds_update(int64_t now)
     if (s.pot == MIXER_KEYS) s.level = mixer.keys;
     if (s.pot == MIXER_FILTER) s.level = mixer.filter;
     if (s.pot == MIXER_REVERB) s.level = mixer.reverb;
+    if (s.pot == MIXER_METRO) s.level = mixer.metro;
     if (s.pot == MIXER_LAYER) {
         s.level = mixer.target >= 0 ? mixer.layer[mixer.target] : mixer.pot[MIXER_LAYER];
         s.following = mixer.target < 0 || mixer.attached;
@@ -382,6 +387,7 @@ static void on_cell(size_t r, size_t c, bool down, void *ctx)
         case KEYMAP_REPLAY: looper_replay(&looper, now, send_at, &at); break;
         case KEYMAP_SELECT: rhythm_toggle(&rhythm, keymap.style, now, send_at, &at); break;
         case KEYMAP_STYLE: rhythm_select(&rhythm, keymap.style); break;
+        case KEYMAP_METRO: metro_toggle(&metro, at, send_at, &metro.due_us); break;
         case KEYMAP_RESET:
             if (demo.on) demo_toggle(&demo, now, send_at, &at);
             if (rhythm.on) rhythm_toggle(&rhythm, keymap.style, now, send_at, &at);
@@ -459,6 +465,14 @@ void app_main(void)
         demo_tick(&demo, ahead, send_at, &ahead);
         looper_tick(&looper, ahead, send_at, &looper.due_us);
         rhythm_tick(&rhythm, ahead, send_beat, &beat_due);
+        /* The metronome: on the beat's grid while it plays, else its own at the style's tempo. */
+        {
+            const rhythm_style_t *st = rhythm_style(rhythm.on ? rhythm.style : keymap.style);
+            int64_t step = rhythm_step_us(st);
+            int64_t origin = rhythm.on ? rhythm.next_us - (int64_t)rhythm.step * step : metro.origin_us;
+            metro_tick(&metro, ahead, origin, step * st->steps_per_beat, st->steps / st->steps_per_beat,
+                       send_at, &metro.due_us);
+        }
         if (t >= next_pots) {
             next_pots = t + POT_PERIOD_US;
             pots_read(t);

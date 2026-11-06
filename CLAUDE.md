@@ -129,6 +129,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   own send, so CC91 0 wasn't dry. `pc_synth.sh` sets the room: room-size 1.0, damp 0, level 1, width 1 (the user's
   pick C of three rendered rooms, 2026-11-06). LED bar: filter
   blue, reverb violet. VN (ADC1 ch 3) is the last free ADC1 pin. An unwired ADC pin floats: wire before flashing.
+  `metronome.c` (pure, 2026-11-06, the user's ask): FROG (was a low tom) toggles a woodblock click (program 115, beat 1
+  note 84, others 77) on its own channel 9 (`METRO_CH` 8), sent 150 ms ahead like the beat; on the beat's grid while it
+  plays, else its own from the press at the style's tempo; never recorded. Pot 6 on VN (the last ADC1 pin) is its
+  fader (CC11). More pots would need an analog chip (ADS1115 / a 4067 mux; none in Homebox): an MCP23017 is digital only.
   `leds.c` (pure) + `strip.c` (RMT, WS2812 on TX2, channels capped at 24/255 on 3V3):
   LEDs 1-4 the layers in cyan/magenta/yellow/orange (pot 2's brighter, recording blinks
   red), 5-8 the beat's count (all turned 2 along the strip, `LEDS_TURN`: the strip lies in a circle, the user

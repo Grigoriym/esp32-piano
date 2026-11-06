@@ -40,7 +40,7 @@ const char *keymap_program_name(uint8_t program)
 /* General MIDI drum notes for the animals and chicks, AB6/AB7 x EF0-EF7; 0 = none. */
 static const uint8_t DRUM_NOTE[2][N_COLS] = {
     /* AB6 chicks */ {75, 38, 51, 49, 39, 42, 54, 56},
-    /* AB7 */ {36, 45, 48, 46, 0, 0, 0, 0}, /* dog, frog, red bird, blue bird */
+    /* AB7 */ {36, 0, 48, 46, 0, 0, 0, 0}, /* dog, (frog: the metronome), red bird, blue bird */
 };
 
 void keymap_init(keymap_t *k)
@@ -126,6 +126,12 @@ static void style_button(keymap_t *k, size_t c, midi_send_fn send, void *ctx)
     send(kit_msg, 2, what, ctx);
 }
 
+/* Buttons the caller handles, AB5 and AB7 x EF0-EF7. */
+static const keymap_action_t ACTION[2][N_COLS] = {
+    /* AB5 */ {[5] = KEYMAP_RECORD, [6] = KEYMAP_REPLAY},
+    /* AB7 */ {[1] = KEYMAP_METRO, [4] = KEYMAP_SELECT, [5] = KEYMAP_DEMO}, /* FROG was a low tom */
+};
+
 keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_send_fn send, void *ctx)
 {
     char what[32];
@@ -158,14 +164,8 @@ keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_se
     } else if (r == 5 && c == 4) {
         reset(k, send, ctx);
         return KEYMAP_RESET;
-    } else if (r == 5 && c == 5) {
-        return KEYMAP_RECORD;
-    } else if (r == 5 && c == 6) {
-        return KEYMAP_REPLAY;
-    } else if (r == 7 && c == 4) {
-        return KEYMAP_SELECT;
-    } else if (r == 7 && c == 5) {
-        return KEYMAP_DEMO;
+    } else if (r == 5 || r == 7) {
+        return ACTION[r == 5 ? 0 : 1][c];
     }
     return KEYMAP_NONE;
 }

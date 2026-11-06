@@ -54,6 +54,7 @@ typedef enum {
     KEYMAP_REPLAY, /* REPLAY pressed */
     KEYMAP_SELECT, /* SELECT pressed */
     KEYMAP_STYLE,  /* a style button pressed (its program change is already sent) */
+    KEYMAP_METRO,  /* FROG pressed: the metronome (metronome.h) */
 } keymap_action_t;
 
 void keymap_init(keymap_t *k);
