@@ -19,3 +19,8 @@ in front, so they're what the song was played with, not read from it.
   under the metronome at 130 bpm (channel 9), keys at octave −1 (notes 21/24/28 = keys 1/3/5
   an octave down). 2 bars, 3693 ms a pass. Written out as the Cosmic `Bass` layer in
   `docs/riffs.html`. No mp3: the sound wasn't captured.
+- `2026-11-06-song-1`: "Song #1", three loop layers (channels 3-5) over SLOW ROCK's TECHNO beat at
+  130 bpm with the metronome clicking (channel 9). 2 bars, 3693 ms a pass, ~10 passes captured
+  while it played. Sounds from the toy's log, not assumed: saw lead (81) on all three layers
+  (layer 3 kept the keys fader at 89), filter open, reverb send +100% (the pots at 127), EDM kit
+  (30); the metronome's woodblock (115), dry. Rendered with `pc_synth.sh`'s reverb room, gain 0.3.
