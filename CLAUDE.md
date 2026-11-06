@@ -96,7 +96,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   rectangles; a press that may be a ghost is held back), `keymap.c` (names
   and what every key and button plays), `demo.c` (DEMO: Megalovania intro,
   channel 2, 100 bpm, velocity 70), `looper.c` (RECORD/REPLAY/knob press: a looper
-  that starts at the first note; with the beat on (`looper_set_grid`, from main
+  that starts at the first note; with the beat on, or else the metronome clicking (2026-11-06: a loop to
+  the metronome alone was 3709 ms against its 3692 ms 2 bars and drifted) (`looper_set_grid`, from main
   every scan) it starts on that note's bar line, its length is first note to
   RECORD rounded to whole bars (from the bar line, a bass begun on step 6 made a
   5-bar loop with an empty bar, 2026-11-03), notes past the end before the first
@@ -136,7 +137,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   note 84, others 77) on its own channel 9 (`METRO_CH` 8), sent 150 ms ahead like the beat, dry (CC91 0 + reverb-send
   NRPN -100%, no filter: the user); never recorded. Pot 6 on VN (the last ADC1 pin) is its tempo, 60-180 bpm, pot 2
   its volume (the user's picks); a new tempo carries on from the last click. While the
-  beat plays it follows the beat's grid. The header of every screen shows `Click N bpm` with a dot flashing on each
+  beat plays it follows the beat's grid. FROG on during a playing loop starts it on the loop's bar line (`metro_align`);
+  a tempo change keeps the bar count. The header of every screen shows `Click N bpm` (greyed while off) with a dot flashing on each
   click, red on beat 1 (`metro_flash`, the click's own time, not the send's); it takes DEMO's place there. More pots would need an analog chip (ADS1115 / a 4067 mux; none in Homebox): an MCP23017 is digital only.
   `fx.c` (pure, 2026-11-06, the user's ask): the 8 chicks are effects on the live keys (they were drums): T1 Echo
   (3 repeats, dotted 8th, 70% each, channel 11), T2 Hold (CC64), T3 Octave, T4 Arp (held keys up, 16ths), B1 Rise
@@ -220,11 +222,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `076f9c7`): pieces to play over the EDM beat, layers (bass, chords, hook) shown bar by
   bar as key numbers, each playable in the browser (WebAudio saw + the beat). The user
   tries one and proposes changes. Pieces are the `PIECES` data at the top of its
-  script (layers of keys as `notes`, of chick pads as `pads` with `PADS` below; a
+  script (layers of keys as `notes`, `octave: -1` for a layer played an octave down, of drum pads as `pads` with
+  `PADS` below (no piece uses pads since the chicks became effects); a
   piece's `plan` is its song plan). The page opens on a list of the songs; each song
   is its own view (`#<slug>`, e.g. `#2-night-drive`). 2026-11-03: #1 First Drop (bass,
   chords, arpeggio, hook; the clap roll was dropped at the user's ask, pad layers still
-  work) #5 Riddim Drop (2026-11-05, rewritten for the growl "E": ROCK/DUBSTEP, a Riddim stutter on key 1 with a hole on the snare, an Answer in that hole, a high Screech, a snare-pad Build that stops dead; the user likes "heaviest dubstep drops" and Skrillex; page synth has a `growl` voice for pieces with `sound: 'growl'`; `render_riffs.py` takes each piece's program from its button) and #4 Bunker (2026-11-05, replaced #4 Sunset, which is in git at `e514df5`; SLOW ROCK/TECHNO, the user wanted something heavier, Berlin style, "let's experiment": key 1 rumbling after every kick, then "aggressive": a 16th-note sequence around key 8, a stab on every offbeat, built by layers and pots) and #3 Warehouse (2026-11-05, SLOW ROCK/TECHNO 130 bpm, Am Am Dm Em: a bass rolling on the 16ths after each kick, offbeat stabs, a one-bar hook moved up on bars 3-4) and #6 Cosmic (2026-11-06, SLOW ROCK/TECHNO: the user's keys 5 3 1 found with the filter pot, one Melody layer, a first sketch to grow) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
+  work) #5 Riddim Drop (2026-11-05, rewritten for the growl "E": ROCK/DUBSTEP, a Riddim stutter on key 1 with a hole on the snare, an Answer in that hole, a high Screech, a build-up with Rise (chick B1; was a snare-pad Build); the user likes "heaviest dubstep drops" and Skrillex; page synth has a `growl` voice for pieces with `sound: 'growl'`; `render_riffs.py` takes each piece's program from its button) and #4 Bunker (2026-11-05, replaced #4 Sunset, which is in git at `e514df5`; SLOW ROCK/TECHNO, the user wanted something heavier, Berlin style, "let's experiment": key 1 rumbling after every kick, then "aggressive": a 16th-note sequence around key 8, a stab on every offbeat, built by layers and pots) and #3 Warehouse (2026-11-05, SLOW ROCK/TECHNO 130 bpm, Am Am Dm Em: a bass rolling on the 16ths after each kick, offbeat stabs, a one-bar hook moved up on bars 3-4) and #6 Cosmic (2026-11-06, SLOW ROCK/TECHNO: the user's keys 5 3 1 found with the filter pot; layers Melody (the user's rhythm: 5 a bar, 3 and 1 half a bar), Echo and Taps (picked from an audition, `build-host/audition/cosmic/`), Pulse and Bass (the user's own, read off MIDI captures; the bass one octave down, `songs/2026-11-06-cosmic-bass.mid`)) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
   its `button` and `beat` (#1 DISCO/EDM, #2 MARCH/BREAKS); the page synth's `BEATS`
   copies main/rhythm.c's patterns (change both), the clips read rhythm.c. After changing a chord or `matrix_diodes`: `tools/check_riff_chords.py`
   (some key sets are held back and would never sound). Its Listen buttons play
@@ -284,6 +287,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - **This PC runs ufw, which drops UDP that isn't a reply.** The toy must
   answer from the port the HELLO went to (21928); sending from a second socket
   (another source port) made every packet vanish with no error on either side.
+- **What the user played: capture it, don't guess it.** 2026-11-06 a riff given as key names got a guessed
+  rhythm, wrong ("mine is different"); `arecordmidi` while the user played, then `tools/midi_dump.py`, read it
+  right first time (notes against the metronome's beat-1 clicks, 16ths from its tempo). Same for saving a loop:
+  capture a few passes of it playing.
 - **Key tests: serial for what the grid reads, the PC side for what plays.**
   The user checks by ear: start the service before asking for presses
   (2026-10-25: a serial capture ran while the user waited for sound, and caught
@@ -380,7 +387,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   received`, `Serial data stream stopped`); each retry ended in `Done`. Cause unknown,
   the cable or USB connection not checked. Read the `Done`, it isn't a given here.
   2026-11-06 it failed twice in a row (`Serial data stream stopped`, then `The chip stopped responding`);
-  `idf.py -p /dev/ttyUSB0 -b 115200 flash` worked first time.
+  `idf.py -p /dev/ttyUSB0 -b 115200 flash` worked first time. Later that day 2 of 6 flashes at 115200 failed too
+  (`FAILED: CMakeFiles/flash.util`, once mid-write with the board still booting the new hash); a second
+  `flash` ended in `Done` each time.
 - esptool prints `Detected crystal freq 15.44 MHz ... Unsupported crystal`
   on this DevKit; flashing and boot work regardless.
 - FluidSynth fed `noteon` commands on stdin stayed silent; a small `.mid`
@@ -476,6 +485,17 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
+**State 2026-11-06 (late, end of session):** new and flashed, not yet tried by the user: the chicks are 8 effects
+(`fx.c`; the user checks them next), a loop layer keeps pot 3's fader, a pot left alone needs 2 levels to move (the
+tempo flipped 130/131), the header shows the tempo while the metronome is off. Tried and fine: a loop recorded to the
+metronome alone stays on it (captured: 3693 ms a pass at 130). The pots are named by the user's sections now (Volume:
+beat, keys; Effects: filter, reverb; Metronome: tempo, volume). **Next: the 8x8 LED matrix** (Homebox: single colour,
+common anode, Freenove; the kit drives it with 2x 74HC595 + 8x 220R, one column at a time, its tutorial chapter 16).
+Plan told the user: the two 74HC595s on D25/D26/D27 (free since the amp went), so it stays off the keys' I2C bus; a
+visualizer of what's played (ideas: falling notes by pitch, beat pulse, layers as bars). First an `esp32-hw-checks`
+test; the matrix's pinout and where the resistors sit come from the kit's chapter 16, not from a photo. A spare
+MCP23017 (I2C, would share the scan's bus) and a MAX7219 (not owned) were the alternatives.
+
 **State 2026-11-06 (end of session):** 6 pots, all flashed and wired: 1 beat, 2 metronome volume, 3 live keys
 (CC11, held notes follow), 4 filter, 5 reverb (huge room, the user's pick C), 6 metronome tempo. Filter and reverb
 touch only live playing; a loop layer keeps what it was recorded with (the user). FROG = metronome, shown in every
@@ -484,8 +504,7 @@ Not yet confirmed by the user: the header dot after that fix. The user
 ordered 5 ADS1115 boards (16-bit, 4 channels, I2C; listing photos match the usual breakout, chip marking unread) for
 more pots: when they arrive, a Homebox entry (user's OK) and an `esp32-hw-checks` test first, then on the piano's
 I2C (D21/D22, beside the MCP23017 at 0x20). VDD on 3V3, not 5 V (its 10k SCL/SDA pull-ups go to VDD). Up to 4
-boards by ADDR (0x48-0x4B). #6 Cosmic's rhythm is wrong (the user will fix it); its pad and sparkle layers were
-suggested, not added.
+boards by ADDR (0x48-0x4B). #6 Cosmic's rhythm: fixed later that day (the user's own).
 
 **State 2026-11-05 (end of session):** two new EDM buttons: SLOW ROCK = techno (130), ROCK =
 dubstep (140 half-time, the growl bass "E" picked by ear from 7 rendered variants). Riffs page:
