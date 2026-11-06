@@ -24,3 +24,6 @@ in front, so they're what the song was played with, not read from it.
   while it played. Sounds from the toy's log, not assumed: saw lead (81) on all three layers
   (layer 3 kept the keys fader at 89), filter open, reverb send +100% (the pots at 127), EDM kit
   (30); the metronome's woodblock (115), dry. Rendered with `pc_synth.sh`'s reverb room, gain 0.3.
+- `2026-11-06-song-1-layer-4`: Song #1 again after a fourth layer (channel 6: keys 19/20/22, keys fader
+  105, filter 69). Captured raw (no sounds in front). The beat and metronome here sit 86 ms after the
+  loop's start (a DISCO/SLOW ROCK switch moved them); layer 4 was played to the beat.

@@ -331,7 +331,7 @@ const PIECES = [
   {
     name: '#7 Song #1',
     button: 'SLOW ROCK', beat: 'TECHNO',
-    about: 'Your own song (2026-11-06): three loop layers you stacked over the techno beat with the metronome on, saved from what the toy played (songs/2026-11-06-song-1.mid, ten passes, every pass the same). A two-bar loop: the Cosmic bass at the bottom, an offbeat pulse in the middle, a long high A on top. Every layer is the saw lead; Effects: filter all the way right (open) and reverb all the way up.',
+    about: 'Your own song (2026-11-06): four loop layers you stacked over the techno beat with the metronome on, saved from what the toy played (songs/2026-11-06-song-1.mid, ten passes, every pass the same). A two-bar loop: the Cosmic bass at the bottom, an offbeat pulse in the middle, a long high A on top, and a darker riff walking between 20 and 19 (layer 4, filter half closed). Every layer is the saw lead; Effects: filter all the way right (open) and reverb all the way up.',
     bpm: 130,
     bars: 4,
     chords: ['Am', 'Am', 'Am', 'Am'],
@@ -351,12 +351,18 @@ const PIECES = [
         tip: 'Layer 3, played softer (Volume: keys at about two thirds while you record it; the layer keeps it): key 22 held from the red click for a bar and a half, then 24 for a beat, 22 short on beat 4.',
         notes: '0:22/24 24:24/4 28:22/2 32:22/24 56:24/4 60:22/2',
       },
+      {
+        name: 'Riff', color: 'arp', hand: 'right hand: 19, 20 and 22 under three fingers',
+        tip: 'Layer 4, added later (2026-11-06), with Effects: filter half closed (the middle) and Volume: keys at about four fifths; the layer keeps both. Short presses walking between 20 and 19. Bar 1: 22 on the red click, 20, then 19 on the "+" of beat 2 and of beat 3, 20 on beat 4, 19 right after. Bar 2: 20 on the "+" of beat 1, 19 on the "+" of beat 2, then 20, 19, 20, 19 on every 8th to the end of the bar.',
+        notes: '0:22/2 2:20/2 6:19/2 10:19/1 12:20/2 14:19/1 18:20/2 22:19/1 24:20/2 26:19/2 28:20/2 30:19/1 32:22/2 34:20/2 38:19/2 42:19/1 44:20/2 46:19/1 50:20/2 54:19/1 56:20/2 58:19/2 60:20/2 62:19/1',
+      },
     ],
     plan: [
       ['Start', 'SLOW ROCK, Effects: filter all the way right, reverb all the way up. FROG for the metronome, then SELECT: the techno beat.'],
       ['Bass', 'TEMPO − once. RECORD, play the Bass from a red click for 2 bars, RECORD again on the next red click.'],
       ['Pulse', 'TEMPO + once. RECORD while it plays, play the Pulse for 2 bars, RECORD.'],
-      ['High A', 'Volume: keys down to about two thirds. RECORD, the High A for 2 bars, RECORD. Volume: keys back up.'],
+      ['High A', 'Volume: keys down to about two thirds. RECORD, the High A for 2 bars, RECORD.'],
+      ['Riff', 'Volume: keys up to about four fifths, Effects: filter to the middle. RECORD, the Riff for 2 bars, RECORD. Filter back up for playing on top.'],
     ],
   },
 ];
