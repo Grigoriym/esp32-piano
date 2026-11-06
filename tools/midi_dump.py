@@ -6,8 +6,8 @@ To see what the user plays (2026-11-06: a riff, a bass line read off a loop):
     timeout -s INT 40 arecordmidi -p 128:0 -b 60 -t 1000 out.mid
     python3 tools/midi_dump.py out.mid
 Channels: 1 live keys, 3-6 loop layers, 9 metronome (note 84 = beat 1, 77 the others),
-10 drums, 11-13 the chicks' copies. Key = note - 32 at octave 0 in EDM mode is NOT
-linear (A minor): map notes back with keymap_key_note's table.
+10 drums, 11-13 the chicks' copies. In EDM mode keys play A minor, so a note is not a
+fixed offset from its key: map it back with keymap_key_note (key 1 = A1 = 33 at octave 0).
 """
 import struct,sys
 def events(path):
