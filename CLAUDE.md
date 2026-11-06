@@ -104,8 +104,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   note's place wrap to the start, a late RECORD's next-pass notes are dropped; RECORD while playing adds a layer (up to 4, keys on
   channels 3-6 each with its instrument, drums on 10), the knob's press undoes
   one (2026-11-03); RESET erases it), `rhythm.c` (SELECT: a drum
-  beat per style button, one bar of `x`/`X`/`.` steps per drum, switches at the
-  bar line, velocity 70, not recorded by the looper). They send through
+  beat per style button, one bar of `x`/`X`/`.` steps per drum; while it plays a style button changes only the
+  keys' sound, not the beat or its kit (the user, 2026-11-06: it used to switch at the beat's bar line and moved the
+  beat off a playing loop); velocity 70, not recorded by the looper). They send through
   `midi_out.h`'s callback. The line-pair finder that mapped the grid is in git (`233c8c3`).
 - `main/encoder.c` + `encoder_decode.c` (KY-040, from mukklet, without its press
   gestures): `main.c` turns knob events into the screen shown and logs `KNOB ...`.
@@ -703,8 +704,8 @@ Open items:
   explains slow keys like it. Closed unless they come back.
 - FluidSynth renders #1 at `pc_synth.sh`'s gain 1.0 ~9 dB over full scale; whether the
   live output clips too isn't checked (`render_riffs.py` uses 0.3).
-- **A style switch while a loop plays moves the beat off the loop** (seen 2026-11-06 in a capture, not reported by the
-  user): DISCO (124) then SLOW ROCK (130) during Song #1, each switching at the beat's own bar line, left the beat and
+- **Fixed 2026-11-06 (a style button no longer touches a playing beat): a style switch while a loop plays moved the
+  beat off the loop** (seen in a capture, the user noticed it too): DISCO (124) then SLOW ROCK (130) during Song #1, each switching at the beat's own bar line, left the beat and
   the metronome 86 ms (3/4 of a 16th) after the loop's start; a layer recorded then (layer 4) is on the beat, the older
   three are early. Fix idea: while a loop plays, a new beat starts on the loop's bar lines.
 - No way to save a loop on the toy: a song is captured on the PC (`songs/README.md`)

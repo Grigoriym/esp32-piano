@@ -130,7 +130,7 @@ void rhythm_toggle(rhythm_t *r, size_t style, int64_t now_us, midi_send_fn send,
     stop_hits(r, send, ctx);
     r->on = !r->on;
     if (r->on) {
-        r->style = r->next_style = style;
+        r->style = style;
         r->step = 0;
         r->next_us = now_us;
         log_style("start", style, send, ctx);
@@ -139,19 +139,10 @@ void rhythm_toggle(rhythm_t *r, size_t style, int64_t now_us, midi_send_fn send,
     }
 }
 
-void rhythm_select(rhythm_t *r, size_t style)
-{
-    r->next_style = style;
-}
-
 void rhythm_tick(rhythm_t *r, int64_t now_us, midi_send_fn send, void *ctx)
 {
     if (!r->on || now_us < r->next_us) return;
     stop_hits(r, send, ctx);
-    if (r->step == 0 && r->style != r->next_style) {
-        r->style = r->next_style;
-        log_style("now", r->style, send, ctx);
-    }
     const rhythm_style_t *s = &STYLES[r->style];
     for (size_t i = 0; i < RHYTHM_LANES; i++) {
         if (!s->lane[i].note) continue;

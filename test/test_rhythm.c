@@ -81,22 +81,6 @@ static void test_dubstep_starts_with_kick_and_hat_then_hat_an_eighth_later(void)
     TEST_ASSERT_EQUAL(1, count_on(5, 42));
 }
 
-static void test_a_style_change_waits_for_the_bar_line(void)
-{
-    int64_t step = rhythm_step_us(rhythm_style(DUBSTEP));
-    rhythm_toggle(&r, DUBSTEP, 0, midi_rec, &rec);
-    run(0, 4 * step);
-    rhythm_select(&r, EDM);
-    run(4 * step + 1000, 16 * step - 1000);
-    TEST_ASSERT_EQUAL(DUBSTEP, r.style);
-    rec.n = 0;
-    run(16 * step, 16 * step);
-    TEST_ASSERT_EQUAL(EDM, r.style);
-    TEST_ASSERT_EQUAL(1, count_on(0, 36));
-    TEST_ASSERT_EQUAL(0, count_on(0, 42)); /* EDM: hats only between the beats */
-    TEST_ASSERT_EQUAL(16 * step + rhythm_step_us(rhythm_style(EDM)), r.next_us);
-}
-
 typedef struct {
     int open[128];
 } count_t;
@@ -153,7 +137,6 @@ int main(void)
     RUN_TEST(test_every_pattern_is_one_bar_of_hits);
     RUN_TEST(test_edm_buttons_have_edm_beats);
     RUN_TEST(test_dubstep_starts_with_kick_and_hat_then_hat_an_eighth_later);
-    RUN_TEST(test_a_style_change_waits_for_the_bar_line);
     RUN_TEST(test_every_style_stops_every_hit);
     RUN_TEST(test_silent_once_stopped);
     RUN_TEST(test_edm_beat_is_loud);

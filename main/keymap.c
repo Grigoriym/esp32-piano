@@ -115,7 +115,12 @@ uint8_t keymap_key_note(const keymap_t *k, size_t key)
     return (uint8_t)(BASE_NOTE + 12 * k->octave + (int)key);
 }
 
-/* A style button: the keys' instrument, and the drum kit (EDM_KIT in EDM mode). */
+uint8_t keymap_kit(size_t style)
+{
+    return keymap_is_edm(style) ? EDM_KIT : 0;
+}
+
+/* A style button: the keys' instrument, and the drum kit (EDM_KIT in EDM mode) unless a beat plays. */
 static void style_button(keymap_t *k, size_t c, midi_send_fn send, void *ctx)
 {
     char what[32];
@@ -124,7 +129,8 @@ static void style_button(keymap_t *k, size_t c, midi_send_fn send, void *ctx)
     k->style = c;
     uint8_t msg[2] = {0xc0 | KEY_CH, k->program};
     send(msg, 2, what, ctx);
-    uint8_t kit = keymap_is_edm(c) ? EDM_KIT : 0;
+    if (k->beat_on) return; /* the playing beat keeps its sound */
+    uint8_t kit = keymap_kit(c);
     snprintf(what, sizeof(what), "drum kit %u", kit);
     uint8_t kit_msg[2] = {0xc0 | DRUM_CH, kit};
     send(kit_msg, 2, what, ctx);

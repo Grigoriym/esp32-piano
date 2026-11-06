@@ -172,6 +172,17 @@ static void test_edm_mode_switches_the_drum_kit(void)
     TEST_ASSERT_EQUAL(0, rec.e[rec.n - 1].msg[1]);
 }
 
+static void test_a_style_button_leaves_a_playing_beats_kit_alone(void)
+{
+    k.beat_on = true;
+    keymap_event(&k, 4, 7, true, midi_rec, &rec); /* BLUES */
+    TEST_ASSERT_EQUAL(1, rec.n);                  /* the keys' program only */
+    assert_msg(0, 0xc0, 4, 0);
+    TEST_ASSERT_EQUAL(53, keymap_key_note(&k, 0)); /* the keys still follow the style */
+    TEST_ASSERT_EQUAL(0, keymap_kit(7));
+    TEST_ASSERT_EQUAL(EDM_KIT, keymap_kit(EDM_STYLE));
+}
+
 static void test_edm_mode_ends_with_another_style_or_reset(void)
 {
     keymap_event(&k, 4, EDM_STYLE, true, midi_rec, &rec);
@@ -223,6 +234,7 @@ int main(void)
     RUN_TEST(test_program_names);
     RUN_TEST(test_edm_keys_play_a_minor);
     RUN_TEST(test_edm_mode_switches_the_drum_kit);
+    RUN_TEST(test_a_style_button_leaves_a_playing_beats_kit_alone);
     RUN_TEST(test_edm_mode_ends_with_another_style_or_reset);
     RUN_TEST(test_edm_octave_buttons_still_shift);
     RUN_TEST(test_march_is_edm_mode_too);

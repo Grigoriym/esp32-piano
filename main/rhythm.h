@@ -32,11 +32,10 @@ typedef struct {
 
 typedef struct {
     bool on;
-    size_t style;      /* the beat playing, RHYTHM_STYLES order (style buttons EF0-EF7) */
-    size_t next_style; /* takes over at the next bar line */
-    size_t step;       /* next step, 0..steps-1 */
-    int64_t next_us;   /* when it starts */
-    uint8_t sounding;  /* bit per lane: hit not stopped yet */
+    size_t style;     /* the beat playing, RHYTHM_STYLES order (style buttons EF0-EF7) */
+    size_t step;      /* next step, 0..steps-1 */
+    int64_t next_us;  /* when it starts */
+    uint8_t sounding; /* bit per lane: hit not stopped yet */
 } rhythm_t;
 
 const rhythm_style_t *rhythm_style(size_t style);
@@ -52,9 +51,6 @@ int64_t rhythm_step_us(const rhythm_style_t *s);
 
 /* Starts style's beat, or stops the beat when it's playing. */
 void rhythm_toggle(rhythm_t *r, size_t style, int64_t now_us, midi_send_fn send, void *ctx);
-
-/* A style button: the beat switches at the next bar line (if it plays). */
-void rhythm_select(rhythm_t *r, size_t style);
 
 /* Call often (every scan): sends what is due by now_us. */
 void rhythm_tick(rhythm_t *r, int64_t now_us, midi_send_fn send, void *ctx);

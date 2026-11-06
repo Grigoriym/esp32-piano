@@ -16,7 +16,9 @@
  * 2026-11-06; they played drums before), VOLUME+/- send
  * CC7, RESET sends all notes off and restores the defaults. DEMO is left to
  * the caller (KEYMAP_DEMO), and so are RECORD and REPLAY (looper.h) and
- * SELECT (rhythm.h: the drum beat of the last style button, k->style).
+ * SELECT (rhythm.h: the drum beat of the last style button, k->style). A style button
+ * changes only the keys' sound while a beat plays (the user, 2026-11-06: switching the
+ * beat too moved it off a playing loop); SELECT off and on starts the new one.
  *
  * EDM mode (DISCO, MARCH, SLOW ROCK or ROCK, until another style button or RESET): the keys play only
  * the notes of A natural minor, 7 keys an octave, so no key sounds wrong, and
@@ -47,6 +49,7 @@ typedef struct {
     uint8_t key_note[4 * N_COLS]; /* note sent for each held key, so its note off matches */
     size_t fx;                    /* KEYMAP_FX: the effect, fx.h's order = chick 1-8 */
     bool fx_down;
+    bool beat_on; /* set by the caller: while the beat plays, a style button leaves its drum kit alone */
 } keymap_t;
 
 typedef enum {
@@ -71,6 +74,9 @@ const char *keymap_program_name(uint8_t program);
 
 /* DISCO and MARCH: the keys in A minor, softer, the EDM drum kit. */
 bool keymap_is_edm(size_t style);
+
+/* The drum kit a style's beat plays: EDM_KIT in EDM mode, else 0. */
+uint8_t keymap_kit(size_t style);
 
 /* The note key (0..31) plays right now, octave included. */
 uint8_t keymap_key_note(const keymap_t *k, size_t key);

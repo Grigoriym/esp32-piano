@@ -407,12 +407,19 @@ static void on_cell(size_t r, size_t c, bool down, void *ctx)
     /* What the sequencers send from here (their note offs on a stop) goes after
      * what they already sent ahead, so it can't arrive before a note on. */
     int64_t at = now + MIDI_LINK_LEAD_US;
+    keymap.beat_on = rhythm.on;
     switch (keymap_event(&keymap, r, c, down, send_key, NULL)) {
         case KEYMAP_DEMO: demo_toggle(&demo, now, send_at, &at); break;
         case KEYMAP_RECORD: looper_record(&looper, now, send_at, &at); break;
         case KEYMAP_REPLAY: looper_replay(&looper, now, send_at, &at); break;
-        case KEYMAP_SELECT: rhythm_toggle(&rhythm, keymap.style, now, send_at, &at); break;
-        case KEYMAP_STYLE: rhythm_select(&rhythm, keymap.style); break;
+        case KEYMAP_SELECT:
+            if (!rhythm.on) { /* the last style's kit: a style button doesn't send it while a beat plays */
+                uint8_t kit[2] = {0xc0 | DRUM_CH, keymap_kit(keymap.style)};
+                send_midi(kit, 2, "drum kit", NULL);
+            }
+            rhythm_toggle(&rhythm, keymap.style, now, send_at, &at);
+            break;
+        case KEYMAP_STYLE: break; /* the keys' sound only: a playing beat stays as it is */
         case KEYMAP_METRO:
             metro_toggle(&metro, at, send_at, &metro.due_us);
             /* On a playing loop: its bars from the loop's start, not from the press. */
