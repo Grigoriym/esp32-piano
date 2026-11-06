@@ -117,7 +117,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   or an end, `MIXER_TURN`: a key press tipped pot 3 a level and lit the bar white, 2026-11-05) scale note-on velocities: pot 1 the beat, pot 2 the newest
   loop layer (a new layer takes the pot's level; after an undo the older layer keeps its
   level until the pot crosses it), pot 3 the live keys; level 0 drops the note on. The
-  looper records unscaled. VOLUME +/- stays the master (CC7). Serial: `POT   beat|layer|keys N`.
+  looper records unscaled. VOLUME +/- stays the master (CC7). Serial: `POT   beat|layer|keys|filter|reverb N`.
+  Pots 4-5 (2026-11-06, code only, not wired yet): filter on D35, reverb on VP, on channels 1-6 (not the drums),
+  sent at most every 30 ms and again when the PC link comes up. FluidSynth 2.3.4 ignores CC74 (rendered: no change),
+  so the filter is the SF2 NRPN (99=120, 98=8 initialFilterFc, LSB 38 before MSB 6), 0 to -4800 cents; it
+  survives a program change; past ~-5000 FluidR3's saw lead gets brighter again. Reverb is CC91. LED bar: filter
+  blue, reverb violet. VN (ADC1 ch 3) is the last free ADC1 pin. An unwired ADC pin floats: wire before flashing.
   `leds.c` (pure) + `strip.c` (RMT, WS2812 on TX2, channels capped at 24/255 on 3V3):
   LEDs 1-4 the layers in cyan/magenta/yellow/orange (pot 2's brighter, recording blinks
   red), 5-8 the beat's count (all turned 2 along the strip, `LEDS_TURN`: the strip lies in a circle, the user

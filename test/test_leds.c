@@ -163,6 +163,18 @@ static void test_the_layer_bar_is_in_the_layers_colour_and_blinks_until_picked_u
     TEST_ASSERT_EQUAL(8, count_lit());
 }
 
+static void test_filter_bar_is_blue_reverb_violet(void)
+{
+    s.level = 127;
+    s.pot = 3;
+    leds_draw(&s, out);
+    TEST_ASSERT_TRUE(!AT(0)[0] && AT(0)[2] > AT(0)[1]);
+    s.pot = 4;
+    leds_draw(&s, out);
+    TEST_ASSERT_TRUE(AT(0)[0] && !AT(0)[1] && AT(0)[2] > AT(0)[0]);
+    TEST_ASSERT_EQUAL(8, count_lit());
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -176,5 +188,6 @@ int main(void)
     RUN_TEST(test_armed_blinks_led_1);
     RUN_TEST(test_a_pot_turned_shows_a_bar);
     RUN_TEST(test_the_layer_bar_is_in_the_layers_colour_and_blinks_until_picked_up);
+    RUN_TEST(test_filter_bar_is_blue_reverb_violet);
     return UNITY_END();
 }

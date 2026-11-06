@@ -14,8 +14,8 @@
  *
  * The pure parts, host-tested (tools/test.sh): matrix.c (debounce, ghosts),
  * keymap.c (names, what each key and button plays), demo.c (DEMO button),
- * looper.c (RECORD / REPLAY), rhythm.c (SELECT: drum beats), mixer.c (the three
- * pots: beat, newest layer, live keys), leds.c (the LED strip).
+ * looper.c (RECORD / REPLAY), rhythm.c (SELECT: drum beats), mixer.c (the five
+ * pots: beat, newest layer, live keys, filter, reverb), leds.c (the LED strip).
  * MIDI goes out as UDP over WiFi to tools/piano_bridge.c (main/midi_link.h).
  *
  * Output on serial (115200):
@@ -24,7 +24,7 @@
  *   GHOST? <names>  the pressed set contains a rectangle; one of them may be fake
  *   MIDI  <what>   what was sent (or "(not connected)")
  *   KNOB  CW / CCW / PRESS
- *   POT   beat|layer|keys <level>   a pot turned (0-127)
+ *   POT   beat|layer|keys|filter|reverb <level>   a pot turned (0-127)
  * Changes are reported after DEBOUNCE equal scans in a row.
  *
  * The line-pair finder that mapped the grid is in git history (233c8c3).
@@ -78,15 +78,18 @@
 #define SCAN_STALL_US   20000 /* a scan pass this late is logged */
 #define POT_PERIOD_US   10000 /* the pots are read this often */
 #define POT_READS       8     /* averaged per pot per read (~10 us each) */
+#define FX_PERIOD_US    30000 /* the filter and reverb are sent at most this often */
 #define LEDS_PERIOD_US  20000 /* the strip is redrawn this often (when it changed) */
 
-/* The pots' wipers on ADC1 (ADC2 doesn't work with WiFi on): D32, D33, D34. */
+/* The pots' wipers on ADC1 (ADC2 doesn't work with WiFi on). VN (ADC1 channel 3) is still free. */
 static const adc_channel_t POT_CH[MIXER_POTS] = {
-    [MIXER_BEAT] = ADC_CHANNEL_4,  /* D32 */
-    [MIXER_LAYER] = ADC_CHANNEL_5, /* D33 */
-    [MIXER_KEYS] = ADC_CHANNEL_6,  /* D34 */
+    [MIXER_BEAT] = ADC_CHANNEL_4,   /* D32 */
+    [MIXER_LAYER] = ADC_CHANNEL_5,  /* D33 */
+    [MIXER_KEYS] = ADC_CHANNEL_6,   /* D34 */
+    [MIXER_FILTER] = ADC_CHANNEL_7, /* D35 */
+    [MIXER_REVERB] = ADC_CHANNEL_0, /* VP (GPIO36) */
 };
-static const char *const POT_NAME[MIXER_POTS] = {"beat", "layer", "keys"};
+static const char *const POT_NAME[MIXER_POTS] = {"beat", "layer", "keys", "filter", "reverb"};
 
 static keymap_t keymap;
 static demo_t demo;
@@ -235,6 +238,7 @@ static void pots_init(void)
 
 static void pots_read(int64_t now)
 {
+    static bool fx_due[MIXER_POTS];
     if (!adc) return;
     for (size_t i = 0; i < MIXER_POTS; i++) {
         /* The mean of POT_READS readings: one oneshot read is noisy. */
@@ -250,7 +254,23 @@ static void pots_read(int64_t now)
         if (!n) continue;
         if (mixer_feed(&mixer, (mixer_pot_t)i, sum / n, now)) {
             printf("POT   %s %u\n", POT_NAME[i], (unsigned)mixer.pot[i]);
+            if (i == MIXER_FILTER || i == MIXER_REVERB) fx_due[i] = true;
         }
+    }
+    /* A PC that just said HELLO (the bridge or FluidSynth restarted) gets the effects again. */
+    static bool was_connected;
+    bool connected = midi_link_connected();
+    if (connected && !was_connected) fx_due[MIXER_FILTER] = fx_due[MIXER_REVERB] = true;
+    was_connected = connected;
+    /* A turn sends the latest setting at most every FX_PERIOD_US: the filter is 24
+     * messages a step, too many for the cable at every reading. */
+    static int64_t fx_sent;
+    if (now - fx_sent < FX_PERIOD_US) return;
+    for (size_t i = MIXER_FILTER; i <= MIXER_REVERB; i++) {
+        if (!fx_due[i]) continue;
+        fx_due[i] = false;
+        fx_sent = now;
+        mixer_send_fx(&mixer, (mixer_pot_t)i, send_midi, NULL);
     }
 }
 
@@ -285,6 +305,8 @@ static void leds_update(int64_t now)
     }
     if (s.pot == MIXER_BEAT) s.level = mixer.beat;
     if (s.pot == MIXER_KEYS) s.level = mixer.keys;
+    if (s.pot == MIXER_FILTER) s.level = mixer.filter;
+    if (s.pot == MIXER_REVERB) s.level = mixer.reverb;
     if (s.pot == MIXER_LAYER) {
         s.level = mixer.target >= 0 ? mixer.layer[mixer.target] : mixer.pot[MIXER_LAYER];
         s.following = mixer.target < 0 || mixer.attached;

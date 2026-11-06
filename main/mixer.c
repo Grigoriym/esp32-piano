@@ -1,5 +1,6 @@
 #include "mixer.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #define DEAD       100 /* the ESP32's ADC reads ~0 for the last bit of travel at each end */
@@ -9,9 +10,10 @@
 void mixer_init(mixer_t *m)
 {
     memset(m, 0, sizeof(*m));
-    m->beat = m->keys = MIXER_LEVEL;
+    m->beat = m->keys = m->filter = MIXER_LEVEL;
     for (size_t i = 0; i < LOOPER_LAYERS; i++) m->layer[i] = MIXER_LEVEL;
     for (size_t i = 0; i < MIXER_POTS; i++) m->pot[i] = m->rest[i] = MIXER_LEVEL;
+    m->pot[MIXER_REVERB] = m->rest[MIXER_REVERB] = 0;
     m->target = -1;
 }
 
@@ -29,6 +31,8 @@ static void apply(mixer_t *m, mixer_pot_t pot, uint8_t old)
     switch (pot) {
         case MIXER_BEAT: m->beat = v; break;
         case MIXER_KEYS: m->keys = v; break;
+        case MIXER_FILTER: m->filter = v; break;
+        case MIXER_REVERB: m->reverb = v; break;
         case MIXER_LAYER:
             if (m->target < 0) break;
             if (!m->attached) {
@@ -108,4 +112,30 @@ size_t mixer_apply(const uint8_t *msg, size_t len, uint8_t level, uint8_t *out)
         out[2] = mixer_scale(msg[2], level);
     }
     return len;
+}
+
+void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx)
+{
+    char what[32];
+    if (pot == MIXER_REVERB) {
+        snprintf(what, sizeof(what), "reverb %u", (unsigned)m->reverb);
+        for (uint8_t ch = 0; ch < MIXER_FX_CH; ch++) {
+            uint8_t cc[3] = {(uint8_t)(0xb0 | ch), 91, m->reverb};
+            send(cc, 3, ch == 0 ? what : NULL, ctx);
+        }
+        return;
+    }
+    if (pot != MIXER_FILTER) return;
+    /* SF2 NRPN: 99 = 120, 98 = the generator (8, initialFilterFc), then a 14-bit
+     * data entry centred on 8192 in steps of 2 cents. FluidSynth applies it on the
+     * MSB (6) with the LSB (38) it already has, so the LSB goes first. */
+    int cents = (MIXER_LEVEL - m->filter) * MIXER_FILTER_CENTS / MIXER_LEVEL;
+    int v = 8192 + cents / 2;
+    snprintf(what, sizeof(what), "filter %u (%d cents)", (unsigned)m->filter, cents);
+    for (uint8_t ch = 0; ch < MIXER_FX_CH; ch++) {
+        uint8_t st = (uint8_t)(0xb0 | ch);
+        const uint8_t msgs[4][3] = {
+            {st, 99, 120}, {st, 98, 8}, {st, 38, (uint8_t)(v & 0x7f)}, {st, 6, (uint8_t)(v >> 7)}};
+        for (int i = 0; i < 4; i++) send(msgs[i], 3, ch == 0 && i == 3 ? what : NULL, ctx);
+    }
 }

@@ -13,7 +13,8 @@
  * is stopped.
  * LEDs 5-8: the beat's count in the bar, green, beat 1 brighter.
  * A pot just turned (LEDS_POT_SHOW_US): all 8 show its level as a bar in its
- * colour (beat green, a layer its own, keys white); blinking while pot 2 has
+ * colour (beat green, a layer its own, keys white,
+ * filter blue, reverb violet); blinking while pot 2 has
  * yet to pick its layer up.
  */
 #pragma once
@@ -35,7 +36,7 @@ typedef struct {
     bool armed;          /* RECORD pressed, waiting for the first note */
     bool loop_playing;
     int target;     /* the layer pot 2 sets; -1: none */
-    int pot;        /* the pot shown as a bar (0 beat, 1 layer, 2 keys); -1: none */
+    int pot;        /* the pot shown as a bar (0 beat, 1 layer, 2 keys, 3 filter, 4 reverb); -1: none */
     int level;      /* its part's level, 0-127 */
     bool following; /* false: pot 2 hasn't picked its layer up yet */
 } leds_state_t;

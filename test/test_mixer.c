@@ -1,3 +1,6 @@
+#include <stdio.h>
+
+#include "midi_rec.h"
 #include "mixer.h"
 #include "unity.h"
 
@@ -156,6 +159,72 @@ static void test_apply(void)
     TEST_ASSERT_EQUAL(2, mixer_apply(pc, 2, 0, out));
 }
 
+static void test_effects_start_open_and_dry(void)
+{
+    TEST_ASSERT_EQUAL(127, m.filter);
+    TEST_ASSERT_EQUAL(0, m.reverb);
+}
+
+static void test_effect_pots_set_their_levels(void)
+{
+    turn(MIXER_FILTER, 30, 1);
+    turn(MIXER_REVERB, 90, 1);
+    TEST_ASSERT_EQUAL(30, m.filter);
+    TEST_ASSERT_EQUAL(90, m.reverb);
+    TEST_ASSERT_EQUAL(127, m.beat); /* the others untouched */
+    TEST_ASSERT_EQUAL(127, m.keys);
+}
+
+static void test_reverb_is_cc91_on_six_channels(void)
+{
+    midi_rec_t r = {0};
+    m.reverb = 77;
+    mixer_send_fx(&m, MIXER_REVERB, midi_rec, &r);
+    TEST_ASSERT_EQUAL(MIXER_FX_CH, r.n);
+    for (size_t i = 0; i < r.n; i++) {
+        TEST_ASSERT_EQUAL_HEX8(0xb0 | i, r.e[i].msg[0]);
+        TEST_ASSERT_EQUAL(91, r.e[i].msg[1]);
+        TEST_ASSERT_EQUAL(77, r.e[i].msg[2]);
+    }
+    TEST_ASSERT_EQUAL_STRING("reverb 77", r.e[0].what);
+    TEST_ASSERT_EQUAL_STRING("", r.e[1].what); /* logged once */
+}
+
+/* The 14-bit NRPN value sent on a channel: LSB (38) first, then MSB (6). */
+static int filter_value(const midi_rec_t *r, uint8_t ch)
+{
+    const midi_rec_entry_t *e = &r->e[ch * 4];
+    TEST_ASSERT_EQUAL_HEX8(0xb0 | ch, e[0].msg[0]);
+    TEST_ASSERT_EQUAL(99, e[0].msg[1]);
+    TEST_ASSERT_EQUAL(120, e[0].msg[2]);
+    TEST_ASSERT_EQUAL(98, e[1].msg[1]);
+    TEST_ASSERT_EQUAL(8, e[1].msg[2]); /* initialFilterFc */
+    TEST_ASSERT_EQUAL(38, e[2].msg[1]);
+    TEST_ASSERT_EQUAL(6, e[3].msg[1]);
+    return e[3].msg[2] << 7 | e[2].msg[2];
+}
+
+static void test_filter_is_an_nrpn_cutoff_offset(void)
+{
+    midi_rec_t r = {0};
+    mixer_send_fx(&m, MIXER_FILTER, midi_rec, &r); /* open: no offset */
+    TEST_ASSERT_EQUAL(4 * MIXER_FX_CH, r.n);
+    for (uint8_t ch = 0; ch < MIXER_FX_CH; ch++) TEST_ASSERT_EQUAL(8192, filter_value(&r, ch));
+    TEST_ASSERT_EQUAL_STRING("filter 127 (0 cents)", r.e[3].what);
+
+    memset(&r, 0, sizeof(r));
+    m.filter = 0; /* closed: MIXER_FILTER_CENTS, 2 cents a step */
+    mixer_send_fx(&m, MIXER_FILTER, midi_rec, &r);
+    TEST_ASSERT_EQUAL(8192 + MIXER_FILTER_CENTS / 2, filter_value(&r, 5));
+}
+
+static void test_other_pots_send_no_effects(void)
+{
+    midi_rec_t r = {0};
+    mixer_send_fx(&m, MIXER_BEAT, midi_rec, &r);
+    TEST_ASSERT_EQUAL(0, r.n);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -171,5 +240,10 @@ int main(void)
     RUN_TEST(test_erase_resets_the_layers);
     RUN_TEST(test_scale);
     RUN_TEST(test_apply);
+    RUN_TEST(test_effects_start_open_and_dry);
+    RUN_TEST(test_effect_pots_set_their_levels);
+    RUN_TEST(test_reverb_is_cc91_on_six_channels);
+    RUN_TEST(test_filter_is_an_nrpn_cutoff_offset);
+    RUN_TEST(test_other_pots_send_no_effects);
     return UNITY_END();
 }
