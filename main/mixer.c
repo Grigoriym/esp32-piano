@@ -118,6 +118,11 @@ static int reverb_offset(uint8_t level)
 #define GEN_FILTER 8
 #define GEN_REVERB 16
 
+void mixer_send_filter_to(uint8_t ch, uint8_t level, midi_send_fn send, void *ctx)
+{
+    send_nrpn(ch, GEN_FILTER, filter_offset(level), NULL, send, ctx);
+}
+
 void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx)
 {
     char what[40];

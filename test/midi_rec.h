@@ -1,6 +1,7 @@
 #pragma once
 /* Test helper: records what a module sends through midi_send_fn. */
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 typedef struct {
@@ -10,7 +11,7 @@ typedef struct {
 } midi_rec_entry_t;
 
 typedef struct {
-    midi_rec_entry_t e[64];
+    midi_rec_entry_t e[1024];
     size_t n;
 } midi_rec_t;
 

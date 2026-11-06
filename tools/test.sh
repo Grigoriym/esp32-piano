@@ -20,6 +20,7 @@ extra_sources() {
         test_canvas) echo main/font.c main/font_data.c ;;
         test_ui) echo main/canvas.c main/font.c main/font_data.c main/chord.c ;;
         test_looper) echo main/mixer.c ;;
+        test_fx) echo main/mixer.c ;;
     esac
 }
 

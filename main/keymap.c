@@ -37,9 +37,12 @@ const char *keymap_program_name(uint8_t program)
     return "?";
 }
 
-/* General MIDI drum notes for the animals and chicks, AB6/AB7 x EF0-EF7; 0 = none. */
+/* The chicks' effects (fx.h's order: T1-T4, then B1-B4) by column: they played drums until 2026-11-06. */
+static const uint8_t CHICK_FX[N_COLS] = {7, 4, 2, 1, 5, 0, 6, 3}; /* B4 B1 T3 T2 B2 T1 B3 T4 */
+
+/* General MIDI drum notes for the animals, AB7 x EF0-EF7 (AB6: the chicks, no drums); 0 = none. */
 static const uint8_t DRUM_NOTE[2][N_COLS] = {
-    /* AB6 chicks */ {75, 38, 51, 49, 39, 42, 54, 56},
+    /* AB6 chicks */ {0},
     /* AB7 */ {36, 0, 48, 46, 0, 0, 0, 0}, /* dog, (frog: the metronome), red bird, blue bird */
 };
 
@@ -142,6 +145,11 @@ keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_se
         uint8_t velocity = keymap_is_edm(k->style) ? EDM_VELOCITY : VELOCITY;
         midi3(send, ctx, (down ? 0x90 : 0x80) | KEY_CH, k->key_note[key], down ? velocity : 0, what);
         return KEYMAP_NONE;
+    }
+    if (r == 6) {
+        k->fx = CHICK_FX[c];
+        k->fx_down = down;
+        return KEYMAP_FX;
     }
     if (r >= 6 && DRUM_NOTE[r - 6][c]) {
         uint8_t note = DRUM_NOTE[r - 6][c];

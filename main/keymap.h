@@ -12,7 +12,8 @@
  *
  * Keys (rows AB0-AB3, key = row * 8 + col + 1) play notes on channel 1, key 1
  * = F3, TEMPO+/- shift them by an octave. The 8 style buttons pick an
- * instrument, the animals and chicks play drums on channel 10, VOLUME+/- send
+ * instrument, the animals play drums on channel 10, the chicks are effects (fx.h, since
+ * 2026-11-06; they played drums before), VOLUME+/- send
  * CC7, RESET sends all notes off and restores the defaults. DEMO is left to
  * the caller (KEYMAP_DEMO), and so are RECORD and REPLAY (looper.h) and
  * SELECT (rhythm.h: the drum beat of the last style button, k->style).
@@ -44,6 +45,8 @@ typedef struct {
     uint8_t program;              /* the keys' instrument */
     size_t style;                 /* last style button, EF0-EF7 */
     uint8_t key_note[4 * N_COLS]; /* note sent for each held key, so its note off matches */
+    size_t fx;                    /* KEYMAP_FX: which chick, 0-3 T1-T4, 4-7 B1-B4 */
+    bool fx_down;
 } keymap_t;
 
 typedef enum {
@@ -55,6 +58,7 @@ typedef enum {
     KEYMAP_SELECT, /* SELECT pressed */
     KEYMAP_STYLE,  /* a style button pressed (its program change is already sent) */
     KEYMAP_METRO,  /* FROG pressed: the metronome (metronome.h) */
+    KEYMAP_FX,     /* a chick pressed or let go: effect k->fx (fx.h's order, T1-T4 then B1-B4), k->fx_down */
 } keymap_action_t;
 
 void keymap_init(keymap_t *k);

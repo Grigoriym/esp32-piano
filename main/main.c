@@ -38,6 +38,7 @@
 #include "demo.h"
 #include "driver/i2c_master.h"
 #include "encoder.h"
+#include "fx.h"
 #include "esp_adc/adc_oneshot.h"
 #include "esp_rom_sys.h"
 #include "esp_system.h"
@@ -101,6 +102,7 @@ static rhythm_t rhythm;
 static groove_t groove;
 static mixer_t mixer;
 static metro_t metro;
+static fx_t fx;
 static adc_oneshot_unit_handle_t adc;
 
 static i2c_master_dev_handle_t mcp;
@@ -192,6 +194,14 @@ static void report(const grid_t old_g, const grid_t new_g)
 static void send_midi(const uint8_t *msg, size_t len, const char *what, void *ctx)
 {
     if (len) midi_link_send(msg, len);
+    /* The chicks' channels follow the keys' sound, volume, fader, filter, reverb and hold (fx.h). */
+    if (len >= 2 && (msg[0] & 0x0f) == KEY_CH && ((msg[0] & 0xf0) == 0xb0 || (msg[0] & 0xf0) == 0xc0)) {
+        static const uint8_t COPY[] = {FX_ECHO_CH, FX_WIDE_CH, FX_WIDE2_CH};
+        for (size_t i = 0; i < sizeof(COPY); i++) {
+            uint8_t m[3] = {(uint8_t)((msg[0] & 0xf0) | COPY[i]), msg[1], len > 2 ? msg[2] : 0};
+            midi_link_send(m, len);
+        }
+    }
     if (what) printf("MIDI  %s%s\n", what, midi_link_connected() ? "" : " (not connected)");
 }
 
@@ -218,8 +228,14 @@ static void send_beat(const uint8_t *msg, size_t len, const char *what, void *ct
  * recorded (pot 2 sets the layer's level). */
 static void send_key(const uint8_t *msg, size_t len, const char *what, void *ctx)
 {
-    send_midi(msg, len, what, ctx);
-    looper_capture(&looper, esp_timer_get_time(), msg, len, keymap.program);
+    int64_t now = esp_timer_get_time();
+    if (len == 3 && (msg[0] & 0x0f) == KEY_CH && ((msg[0] & 0xf0) == 0x90 || (msg[0] & 0xf0) == 0x80)) {
+        fx_key(&fx, msg, len, now, send_midi, NULL); /* through the chicks' effects; recorded plain */
+        if (what) send_midi(NULL, 0, what, ctx);
+    } else {
+        send_midi(msg, len, what, ctx);
+    }
+    looper_capture(&looper, now, msg, len, keymap.program);
 }
 
 static void pots_init(void)
@@ -263,6 +279,9 @@ static void pots_read(int64_t now)
     if (connected && !was_connected) {
         for (size_t i = 0; i < MIXER_POTS; i++) fx_due[i] = i != MIXER_BEAT && i != MIXER_METRO;
         if (metro.on) metro_setup(send_midi, NULL);
+        fx_setup(send_midi, NULL);
+        uint8_t program[2] = {0xc0 | KEY_CH, keymap.program}; /* copied to the chicks' channels */
+        send_midi(program, 2, NULL, NULL);
         for (size_t l = 0; l < looper.n_layers; l++) mixer_send_layer_fx(&mixer, l, send_midi, NULL);
     }
     was_connected = connected;
@@ -394,12 +413,26 @@ static void on_cell(size_t r, size_t c, bool down, void *ctx)
             if (metro.on && looper.state == LOOPER_PLAYING) metro_align(&metro, looper.start_us, at);
             if (metro.on) mixer_send_fx(&mixer, MIXER_CLICK, send_midi, NULL);
             break;
+        case KEYMAP_FX: fx_button(&fx, (fx_kind_t)keymap.fx, keymap.fx_down, now, send_midi, NULL); break;
         case KEYMAP_RESET:
+            fx_reset(&fx, send_midi, NULL);
             if (demo.on) demo_toggle(&demo, now, send_at, &at);
             if (rhythm.on) rhythm_toggle(&rhythm, keymap.style, now, send_at, &at);
             looper_clear(&looper, send_at, &at);
             break;
         case KEYMAP_NONE: break;
+    }
+}
+
+/* The chicks' effects: live, sent as it happens like the keys. */
+static void fx_run(int64_t now)
+{
+    fx.filter = mixer.filter;
+    fx_tick(&fx, now, send_midi, NULL);
+    if (fx.restore) { /* a Rise or Tape ended: the pots' filter again, and each layer's */
+        fx.restore = false;
+        mixer_send_fx(&mixer, MIXER_FILTER, send_midi, NULL);
+        for (size_t l = 0; l < looper.n_layers; l++) mixer_send_layer_fx(&mixer, l, send_midi, NULL);
     }
 }
 
@@ -421,6 +454,8 @@ void app_main(void)
     matrix_t matrix;
     matrix_init(&matrix);
     keymap_init(&keymap);
+    fx_init(&fx);
+    fx_setup(send_midi, NULL);
     looper_init(&looper);
     groove_init(&groove);
     grid_t now;
@@ -442,10 +477,13 @@ void app_main(void)
             int64_t origin = rhythm.next_us - (int64_t)rhythm.step * step;
             looper_set_grid(&looper, origin, (int64_t)beat->steps * step);
             groove_set_grid(&groove, origin, step, beat->steps);
+            fx_set_grid(&fx, origin, step);
         } else {
             /* No beat: the metronome's bars, if it clicks (the user heard a loop drift off it, 2026-11-06). */
             looper_set_grid(&looper, metro.origin_us, metro.on ? METRO_BEATS * metro_beat_us(&metro) : 0);
             groove_set_grid(&groove, 0, 0, 0);
+            fx_set_grid(&fx, metro.origin_us,
+                        metro_beat_us(&metro) / 4); /* the metronome's tempo, on or off */
         }
         if (matrix_feed(&matrix, now, prev)) {
             report(prev, matrix.stable);
@@ -470,6 +508,7 @@ void app_main(void)
         int64_t ahead = t + MIDI_LINK_LEAD_US;
         int64_t beat_due = rhythm.next_us;
         demo_tick(&demo, ahead, send_at, &ahead);
+        fx_run(t);
         looper_tick(&looper, ahead, send_at, &looper.due_us);
         rhythm_tick(&rhythm, ahead, send_beat, &beat_due);
         /* The metronome: on the beat's grid while it plays, else its own at pot 6's tempo. */

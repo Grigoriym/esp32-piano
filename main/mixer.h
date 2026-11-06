@@ -75,6 +75,9 @@ size_t mixer_apply(const uint8_t *msg, size_t len, uint8_t level, uint8_t *out);
 /* Sends pot 2's, 3's, 4's or 5's setting to the live channels (what: for the log, once). */
 void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx);
 
+/* The filter at level (0-127, as pot 4) on one channel: the chicks' Rise and Tape (fx.h). */
+void mixer_send_filter_to(uint8_t ch, uint8_t level, midi_send_fn send, void *ctx);
+
 /* A loop layer just added: it keeps pot 3's fader, the filter and the reverb as they are now
  * (the fader: the user heard a layer recorded quiet come back at full, 2026-11-06). */
 void mixer_freeze_layer(mixer_t *m, size_t layer, midi_send_fn send, void *ctx);
