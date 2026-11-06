@@ -30,9 +30,12 @@
 typedef struct {
     bool on;
     int64_t origin_us; /* its own grid's start (no beat) */
-    int64_t last_us;   /* the last click sent */
-    int64_t due_us;    /* when the message being sent should sound */
-    int bpm;           /* its own tempo (pot 6); 0: not read yet, 120 */
+    int64_t last_us;   /* the last click sent (it sounds then: sent ahead) */
+    bool last_bar;     /* it was a beat 1 */
+    int64_t prev_us;   /* the one before */
+    bool prev_bar;
+    int64_t due_us; /* when the message being sent should sound */
+    int bpm;        /* its own tempo (pot 6); 0: not read yet, 120 */
 } metro_t;
 
 /* Turns it on (its own grid starts at at_us) or off. */
@@ -50,6 +53,11 @@ void metro_set_bpm(metro_t *m, int bpm);
 
 /* One beat on its own grid. */
 int64_t metro_beat_us(const metro_t *m);
+
+#define METRO_FLASH_US 120000 /* the screen's dot lights this long a click */
+
+/* For the screen at now_us: 0 no click sounding, 1 a click, 2 a beat 1. */
+int metro_flash(const metro_t *m, int64_t now_us);
 
 /* Sends the clicks due by until_us on the grid: origin_us, beat_us apart,
  * beats_per_bar to a bar. ctx must point to m->due_us. */

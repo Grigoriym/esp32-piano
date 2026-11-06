@@ -83,8 +83,8 @@ static void test_every_state_draws_inside_the_screen(void)
                                  .octave = o,
                                  .beat = i ? "SLOW ROCK" : NULL,
                                  .beat_bpm = 116,
-                                 .metro_bpm =
-                                     o > 0 ? 180 : 0, /* the click: a dot beside a beat, its own text alone */
+                                 .metro_bpm = o > 0 ? 180 : 0, /* the header's click, with DEMO too */
+                                 .metro_flash = o > 1 ? 2 : o,
                                  .loop = (ui_loop_t)l};
                 ui_render(&c, &s);
             }

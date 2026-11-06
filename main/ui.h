@@ -58,7 +58,8 @@ typedef struct {
     int octave;        /* -2..2 */
     const char *beat;  /* the drum beat playing, NULL: off */
     int beat_bpm;
-    int metro_bpm; /* the metronome's tempo; 0: off */
+    int metro_bpm;   /* the metronome's tempo; 0: off */
+    int metro_flash; /* its dot: 0 dark, 1 a click, 2 a beat 1 (metronome.h) */
     ui_loop_t loop;
     int loop_layers; /* the one being added included */
     ui_screen_t screen;

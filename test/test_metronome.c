@@ -146,6 +146,18 @@ static void test_toggle_off(void)
     TEST_ASSERT_EQUAL(before, rec.n);
 }
 
+static void test_the_screen_dot_flashes_with_the_click_beat_1_apart(void)
+{
+    metro_toggle(&m, 0, send, &m.due_us);
+    TEST_ASSERT_EQUAL(0, metro_flash(&m, 0));      /* nothing sent yet */
+    run(0, 650000, 0, 500000, 4);                  /* clicks at 0 and 0.5 s sent */
+    TEST_ASSERT_EQUAL(2, metro_flash(&m, 50000));  /* beat 1, the one before the last */
+    TEST_ASSERT_EQUAL(0, metro_flash(&m, 300000)); /* between clicks */
+    TEST_ASSERT_EQUAL(1, metro_flash(&m, 510000)); /* beat 2 */
+    metro_toggle(&m, 700000, send, &m.due_us);
+    TEST_ASSERT_EQUAL(0, metro_flash(&m, 510000)); /* off */
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -157,5 +169,6 @@ int main(void)
     RUN_TEST(test_a_new_tempo_goes_on_from_the_last_click);
     RUN_TEST(test_follows_the_beat_grid_without_a_double_click);
     RUN_TEST(test_toggle_off);
+    RUN_TEST(test_the_screen_dot_flashes_with_the_click_beat_1_apart);
     return UNITY_END();
 }

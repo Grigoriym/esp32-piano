@@ -16,7 +16,7 @@ void metro_toggle(metro_t *m, int64_t at_us, midi_send_fn send, void *ctx)
         return;
     }
     m->origin_us = at_us;
-    m->last_us = INT64_MIN / 2;
+    m->last_us = m->prev_us = INT64_MIN / 2;
     m->due_us = at_us;
     metro_setup(send, ctx);
 }
@@ -80,6 +80,19 @@ void metro_tick(metro_t *m, int64_t until_us, int64_t origin_us, int64_t beat_us
         send(on, 3, NULL, ctx);
         m->due_us = t + METRO_CLICK_US;
         send(off, 3, NULL, ctx);
+        m->prev_us = m->last_us;
+        m->prev_bar = m->last_bar;
         m->last_us = t;
+        m->last_bar = bar;
     }
+}
+
+int metro_flash(const metro_t *m, int64_t now_us)
+{
+    if (!m->on) return 0;
+    /* The last click may still be ahead (sent MIDI_LINK_LEAD_US early): then the one before. */
+    bool last = now_us >= m->last_us;
+    int64_t t = last ? m->last_us : m->prev_us;
+    if (now_us < t || now_us - t >= METRO_FLASH_US) return 0;
+    return (last ? m->last_bar : m->prev_bar) ? 2 : 1;
 }
