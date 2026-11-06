@@ -458,6 +458,14 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
+**State 2026-11-06:** pots 4-6 (filter, reverb, metronome) and pot 3 as a CC11 fader; FROG = metronome (written,
+committed, not flashed: waits for pot 6 on VN, the user will say when it's wired; flashing wipes a loop). The user
+ordered 5 ADS1115 boards (16-bit, 4 channels, I2C; listing photos match the usual breakout, chip marking unread) for
+more pots: when they arrive, a Homebox entry (user's OK) and an `esp32-hw-checks` test first, then on the piano's
+I2C (D21/D22, beside the MCP23017 at 0x20). VDD on 3V3, not 5 V (its 10k SCL/SDA pull-ups go to VDD). Up to 4
+boards by ADDR (0x48-0x4B). #6 Cosmic's rhythm is wrong (the user will fix it); its pad and sparkle layers were
+suggested, not added.
+
 **State 2026-11-05 (end of session):** two new EDM buttons: SLOW ROCK = techno (130), ROCK =
 dubstep (140 half-time, the growl bass "E" picked by ear from 7 rendered variants). Riffs page:
 #3 Warehouse, #4 Bunker (Berlin, aggressive), #5 Riddim Drop; not yet played through by the user.
