@@ -357,6 +357,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - **Flashing failed once on each of the last 3 flashes, 2026-10-31** (`No serial data
   received`, `Serial data stream stopped`); each retry ended in `Done`. Cause unknown,
   the cable or USB connection not checked. Read the `Done`, it isn't a given here.
+  2026-11-06 it failed twice in a row (`Serial data stream stopped`, then `The chip stopped responding`);
+  `idf.py -p /dev/ttyUSB0 -b 115200 flash` worked first time.
 - esptool prints `Detected crystal freq 15.44 MHz ... Unsupported crystal`
   on this DevKit; flashing and boot work regardless.
 - FluidSynth fed `noteon` commands on stdin stayed silent; a small `.mid`
