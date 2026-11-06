@@ -113,7 +113,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   presses green within 30 ms of a step or orange, an early/late meter); main feeds it
   the beat grid and key presses.
   `mixer.c` (pure, 2026-11-04): the 3 pots (ADC1, read every 10 ms, smoothed, hysteresis
-  tested against +-20 counts; each read is the mean of 8; the LED bar only for a move of 3 levels
+  tested against +-20 counts; each read is the mean of 8; a pot left alone 0.5 s needs 2 levels to move again (`MIXER_WAKE`: the tempo flipped 130/131 by itself and when other pots turned, 2026-11-06); the LED bar only for a move of 3 levels
   or an end, `MIXER_TURN`: a key press tipped pot 3 a level and lit the bar white, 2026-11-05) scale note-on velocities: pot 1 the beat (level 0 drops the note on); pot 2 is the
   metronome's volume since 2026-11-06 (CC11 on its channel; before, the newest loop layer's level with a pick-up
   after an undo, the user: "too much, I can rerecord"; layers now play as recorded); pot 3 is the live keys' fader since 2026-11-06, CC11 on channel 1 (a held note follows it; velocity didn't move held notes and the growl ignores velocity). The
