@@ -124,7 +124,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   survives a program change; past ~-5000 FluidR3's saw lead gets brighter again. Reverb: the same NRPN on gen 16
   (reverbEffectsSend), -100% to +100% (0 dry, middle = the preset's own, 127 full). CC91 was inaudible (the user: "no
   diff"): FluidSynth's default room left the tail ~57 dB under the note, CC91 adds only 20%, and the saw lead has its
-  own send, so CC91 0 wasn't dry. LED bar: filter
+  own send, so CC91 0 wasn't dry. `pc_synth.sh` sets the room: room-size 1.0, damp 0, level 1, width 1 (the user's
+  pick C of three rendered rooms, 2026-11-06). LED bar: filter
   blue, reverb violet. VN (ADC1 ch 3) is the last free ADC1 pin. An unwired ADC pin floats: wire before flashing.
   `leds.c` (pure) + `strip.c` (RMT, WS2812 on TX2, channels capped at 24/255 on 3V3):
   LEDs 1-4 the layers in cyan/magenta/yellow/orange (pot 2's brighter, recording blinks
