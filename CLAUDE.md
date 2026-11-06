@@ -79,7 +79,7 @@ milestones.
 
 ## Build
 ESP-IDF project at the repo root, `sdkconfig.defaults` from `../esp32-hw-checks`
-(4 MB flash, large single app partition) plus a 1000 Hz tick (the key scan runs
+(4 MB flash, large single app partition) plus a 1000 Hz tick (the key scan aims to run
 every 2 ms). First build in a fresh checkout: `cp main/wifi_secrets.h.example
 main/wifi_secrets.h` (fill in, gitignored; same network as mukklet), then
 `. ~/esp/esp-idf/export.sh && idf.py set-target esp32 && idf.py build`. Flash
@@ -309,7 +309,13 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - **What the user played: capture it, don't guess it.** 2026-11-06 a riff given as key names got a guessed
   rhythm, wrong ("mine is different"); `arecordmidi` while the user played, then `tools/midi_dump.py`, read it
   right first time (notes against the metronome's beat-1 clicks, 16ths from its tempo). Same for saving a loop:
-  capture a few passes of it playing.
+  capture a few passes of it playing. **"Save my song" means a riffs-page piece** (the user, 2026-11-06: a `.mid` in
+  `songs/` alone isn't something to reproduce from). What the capture lacks is in `build-host/toy-serial.log`: each
+  layer's sound (`MIDI  program N`), its fader/filter/reverb (`layer N keeps keys K, filter F, reverb R`), and which key
+  made each note (`DOWN  key k` followed by `MIDI  note on n`; in EDM mode the note alone doesn't give the key or the
+  octave). Line a layer up against the pass start (layer 1's first note) and check it against the beat-1 clicks too:
+  2026-11-06 they differed by 86 ms (a style switch had moved the beat). **Flashing erases the loop on the toy**
+  (RAM only): capture it first if the user may want it.
 - **Key tests: serial for what the grid reads, the PC side for what plays.**
   The user checks by ear: start the service before asking for presses
   (2026-10-25: a serial capture ran while the user waited for sound, and caught
@@ -399,7 +405,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - **Testing the pages from here:** the Chrome extension needs Brave open and refuses
   `file://` (serve `docs/` on 127.0.0.1); `brave-browser --headless` hangs here even on
   about:blank; `firefox --headless --screenshot` worked until 2026-11-05, when it hung twice
-  (also with its own `--profile`; the user's Firefox may have been open). A copy of the page with a
+  (also with its own `--profile`; the user's Firefox may have been open); on 2026-11-06 it worked again with
+  `--profile <scratchpad dir> --no-remote` (~10 s a shot). It shoots right after load: for a canvas page, feed it data
+  and call its resize and draw synchronously first, or it catches an empty frame. `docs/live.html` was checked that
+  way with a recorded event stream replayed into a copy of the page. A copy of the page with a
   test script appended can POST its results to a small local server. Cheap check that always
   works: extract the `<script>` and `node --check` it.
 - **Flashing failed once on each of the last 3 flashes, 2026-10-31** (`No serial data
@@ -504,6 +513,15 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
+**State 2026-11-06 (night, end of session):** flashed, not yet tried by the user: the looper's multiply (a layer
+recorded over several passes grows the loop; the user's ask, to have a part and then a pass of silence), a style
+button while the beat plays changes only the keys (the user noticed the loop break when DISCO/SLOW ROCK moved the
+beat), the Debug screen, the chicks' row on every screen and the chicks numbered the user's way (1-4 top row from the
+left; Echo was on chick 8). New: `docs/live.html` (live piano roll, started with the service; not yet seen by the user
+in a browser), riffs #7 Song #1 (four layers, read off captures and the log). Ideas offered, not taken up: WiFi off
+while the cable works (the chip runs warm, mostly the radio with power save off), SELECT starting the beat on a
+playing loop's bar line (Open items), finding the slow key scan (Open items).
+
 **State 2026-11-06 (late, end of session):** new and flashed, not yet tried by the user: the chicks are 8 effects
 (`fx.c`; the user checks them next), a loop layer keeps pot 3's fader, a pot left alone needs 2 levels to move (the
 tempo flipped 130/131), the header shows the tempo while the metronome is off. Tried and fine: a loop recorded to the
@@ -664,7 +682,12 @@ Future improvements:
   key board, what's on the domes' underside.
 
 Open items:
-- Which way the knob turns isn't checked: with three screens (Status, Play, Groove)
+- **The key scan runs every ~7 ms, not 2** (Debug screen / `STATS`, 2026-11-06, the toy idle): a pass's work is
+  ~5.3 ms (worst 7.7) and core 0 ~60% busy, so debounce is ~21 ms, not ~6. Not the I2C clock (already 400 kHz).
+  Not looked into: time each part of the pass (the 8 MCP23017 row writes + reads, the pots' 8-sample ADC reads,
+  `show()`, the sequencers) with `esp_timer_get_time()` around each, printed in the STATS line. The user hasn't
+  noticed lag.
+- Which way the knob turns isn't checked: with four screens (Status, Play, Groove, Debug)
   it now matters. Pressing it undoes a loop layer (2026-11-03).
 - SELECT starts the beat at the press, not on a playing loop's bar line: stop the beat
   under a loop recorded with it and start it again, and they drift apart (seen in the

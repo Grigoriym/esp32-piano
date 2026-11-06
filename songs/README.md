@@ -9,7 +9,9 @@ How a song is captured, while its loop plays (service running):
     timeout -s INT 40 arecordmidi -p 128:0 -b 60 -t 1000 out.mid
 
 The capture doesn't hold the sounds: the toy sends them when a loop starts or a
-style button is pressed, before the capture. A track with program changes is put
+style button is pressed, before the capture. They are in the toy's log
+(`build-host/toy-serial.log`: `MIDI  program N`, `layer N keeps keys K, filter F, reverb R`)
+since 2026-11-06; before that they were assumed. A track with program changes is put
 in front, so they're what the song was played with, not read from it.
 
 - `2026-11-03-first-song`: the first song, made in EDM mode: piece #1 of
