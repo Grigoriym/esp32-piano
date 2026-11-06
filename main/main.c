@@ -260,7 +260,10 @@ static void pots_read(int64_t now)
     /* A PC that just said HELLO (the bridge or FluidSynth restarted) gets the effects again. */
     static bool was_connected;
     bool connected = midi_link_connected();
-    if (connected && !was_connected) fx_due[MIXER_FILTER] = fx_due[MIXER_REVERB] = true;
+    if (connected && !was_connected) {
+        fx_due[MIXER_FILTER] = fx_due[MIXER_REVERB] = true;
+        for (size_t l = 0; l < looper.n_layers; l++) mixer_send_layer_fx(&mixer, l, send_midi, NULL);
+    }
     was_connected = connected;
     /* A turn sends the latest setting at most every FX_PERIOD_US: the filter is 24
      * messages a step, too many for the cable at every reading. */
@@ -465,6 +468,10 @@ void app_main(void)
             next_pots = t + POT_PERIOD_US;
             pots_read(t);
         }
+        /* A layer just added keeps the filter and reverb it was played with. */
+        static size_t frozen;
+        if (looper.n_layers < frozen) frozen = looper.n_layers; /* undone or erased */
+        for (; frozen < looper.n_layers; frozen++) mixer_freeze_layer(&mixer, frozen, send_midi, NULL);
         mixer_set_layers(&mixer, looper_layers(&looper));
         memcpy(looper.gain, mixer.layer, sizeof(looper.gain));
         if (t >= next_leds) {

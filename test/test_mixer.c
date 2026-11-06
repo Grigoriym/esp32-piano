@@ -194,29 +194,29 @@ static void test_reverb_is_an_nrpn_send_from_dry_to_full(void)
 {
     midi_rec_t r = {0};
     mixer_send_fx(&m, MIXER_REVERB, midi_rec, &r); /* 0: dry */
-    TEST_ASSERT_EQUAL(4 * MIXER_FX_CH, r.n);
-    for (uint8_t ch = 0; ch < MIXER_FX_CH; ch++)
+    TEST_ASSERT_EQUAL(4 * MIXER_FX_LIVE, r.n);
+    for (uint8_t ch = 0; ch < MIXER_FX_LIVE; ch++)
         TEST_ASSERT_EQUAL(8192 - MIXER_REVERB_SEND, nrpn_value(&r, ch, 16));
     TEST_ASSERT_EQUAL_STRING("reverb 0 (send -100.0%)", r.e[3].what);
     TEST_ASSERT_EQUAL_STRING("", r.e[7].what); /* logged once */
     memset(&r, 0, sizeof(r));
     m.reverb = 127;
     mixer_send_fx(&m, MIXER_REVERB, midi_rec, &r);
-    TEST_ASSERT_EQUAL(8192 + MIXER_REVERB_SEND, nrpn_value(&r, 2, 16));
+    TEST_ASSERT_EQUAL(8192 + MIXER_REVERB_SEND, nrpn_value(&r, 1, 16));
 }
 
 static void test_filter_is_an_nrpn_cutoff_offset(void)
 {
     midi_rec_t r = {0};
     mixer_send_fx(&m, MIXER_FILTER, midi_rec, &r); /* open: no offset */
-    TEST_ASSERT_EQUAL(4 * MIXER_FX_CH, r.n);
-    for (uint8_t ch = 0; ch < MIXER_FX_CH; ch++) TEST_ASSERT_EQUAL(8192, filter_value(&r, ch));
+    TEST_ASSERT_EQUAL(4 * MIXER_FX_LIVE, r.n);
+    for (uint8_t ch = 0; ch < MIXER_FX_LIVE; ch++) TEST_ASSERT_EQUAL(8192, filter_value(&r, ch));
     TEST_ASSERT_EQUAL_STRING("filter 127 (0 cents)", r.e[3].what);
 
     memset(&r, 0, sizeof(r));
     m.filter = 0; /* closed: MIXER_FILTER_CENTS, 2 cents a step */
     mixer_send_fx(&m, MIXER_FILTER, midi_rec, &r);
-    TEST_ASSERT_EQUAL(8192 + MIXER_FILTER_CENTS / 2, filter_value(&r, 5));
+    TEST_ASSERT_EQUAL(8192 + MIXER_FILTER_CENTS / 2, filter_value(&r, 1));
 }
 
 static void test_other_pots_send_no_effects(void)
@@ -224,6 +224,31 @@ static void test_other_pots_send_no_effects(void)
     midi_rec_t r = {0};
     mixer_send_fx(&m, MIXER_BEAT, midi_rec, &r);
     TEST_ASSERT_EQUAL(0, r.n);
+}
+
+static void test_a_layer_keeps_the_effects_it_was_recorded_with(void)
+{
+    midi_rec_t r = {0};
+    m.filter = 40;
+    m.reverb = 127;
+    mixer_freeze_layer(&m, 1, midi_rec, &r);
+    TEST_ASSERT_EQUAL(8, r.n); /* filter then reverb, on the layer's own channel */
+    TEST_ASSERT_EQUAL_HEX8(0xb0 | (LOOP_CH + 1), r.e[0].msg[0]);
+    TEST_ASSERT_EQUAL(8, r.e[1].msg[2]);
+    TEST_ASSERT_EQUAL(16, r.e[5].msg[2]);
+    TEST_ASSERT_EQUAL(8192 + MIXER_REVERB_SEND, r.e[7].msg[2] << 7 | r.e[6].msg[2]);
+    TEST_ASSERT_EQUAL_STRING("layer 2 keeps filter 40, reverb 127", r.e[7].what);
+
+    /* The pots move on: the live channels change, the layer doesn't. */
+    memset(&r, 0, sizeof(r));
+    turn(MIXER_FILTER, 120, 1);
+    mixer_send_fx(&m, MIXER_FILTER, midi_rec, &r);
+    for (size_t i = 0; i < r.n; i++) TEST_ASSERT_TRUE((r.e[i].msg[0] & 0x0f) < MIXER_FX_LIVE);
+    TEST_ASSERT_EQUAL(40, m.layer_filter[1]);
+
+    memset(&r, 0, sizeof(r));
+    mixer_send_layer_fx(&m, 1, midi_rec, &r); /* again, after a reconnect */
+    TEST_ASSERT_EQUAL_STRING("layer 2 keeps filter 40, reverb 127", r.e[7].what);
 }
 
 int main(void)
@@ -246,5 +271,6 @@ int main(void)
     RUN_TEST(test_reverb_is_an_nrpn_send_from_dry_to_full);
     RUN_TEST(test_filter_is_an_nrpn_cutoff_offset);
     RUN_TEST(test_other_pots_send_no_effects);
+    RUN_TEST(test_a_layer_keeps_the_effects_it_was_recorded_with);
     return UNITY_END();
 }

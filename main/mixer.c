@@ -11,7 +11,7 @@ void mixer_init(mixer_t *m)
 {
     memset(m, 0, sizeof(*m));
     m->beat = m->keys = m->filter = MIXER_LEVEL;
-    for (size_t i = 0; i < LOOPER_LAYERS; i++) m->layer[i] = MIXER_LEVEL;
+    for (size_t i = 0; i < LOOPER_LAYERS; i++) m->layer[i] = m->layer_filter[i] = MIXER_LEVEL;
     for (size_t i = 0; i < MIXER_POTS; i++) m->pot[i] = m->rest[i] = MIXER_LEVEL;
     m->pot[MIXER_REVERB] = m->rest[MIXER_REVERB] = 0;
     m->target = -1;
@@ -127,24 +127,55 @@ static void send_nrpn(uint8_t ch, uint8_t gen, int offset, const char *what, mid
     for (int i = 0; i < 4; i++) send(msgs[i], 3, i == 3 ? what : NULL, ctx);
 }
 
+static int filter_offset(uint8_t level)
+{
+    return (MIXER_LEVEL - level) * MIXER_FILTER_CENTS / MIXER_LEVEL / 2; /* initialFilterFc: 2 cents a step */
+}
+
+static int reverb_offset(uint8_t level)
+{
+    return (2 * level - MIXER_LEVEL) * MIXER_REVERB_SEND / MIXER_LEVEL; /* reverbEffectsSend: 0.1% a step */
+}
+
+#define GEN_FILTER 8
+#define GEN_REVERB 16
+
 void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx)
 {
     char what[40];
     uint8_t gen;
     int offset;
     if (pot == MIXER_FILTER) {
-        /* initialFilterFc moves 2 cents a step. */
-        int cents = (MIXER_LEVEL - m->filter) * MIXER_FILTER_CENTS / MIXER_LEVEL;
-        gen = 8;
-        offset = cents / 2;
-        snprintf(what, sizeof(what), "filter %u (%d cents)", (unsigned)m->filter, cents);
+        gen = GEN_FILTER;
+        offset = filter_offset(m->filter);
+        snprintf(what, sizeof(what), "filter %u (%d cents)", (unsigned)m->filter, offset * 2);
     } else if (pot == MIXER_REVERB) {
-        gen = 16; /* reverbEffectsSend, 0.1% a step */
-        offset = (2 * m->reverb - MIXER_LEVEL) * MIXER_REVERB_SEND / MIXER_LEVEL;
+        gen = GEN_REVERB;
+        offset = reverb_offset(m->reverb);
         snprintf(what, sizeof(what), "reverb %u (send %+d.%d%%)", (unsigned)m->reverb, offset / 10,
                  (offset < 0 ? -offset : offset) % 10);
     } else {
         return;
     }
-    for (uint8_t ch = 0; ch < MIXER_FX_CH; ch++) send_nrpn(ch, gen, offset, ch == 0 ? what : NULL, send, ctx);
+    for (uint8_t ch = 0; ch < MIXER_FX_LIVE; ch++)
+        send_nrpn(ch, gen, offset, ch == 0 ? what : NULL, send, ctx);
+}
+
+void mixer_send_layer_fx(const mixer_t *m, size_t layer, midi_send_fn send, void *ctx)
+{
+    if (layer >= LOOPER_LAYERS) return;
+    char what[48];
+    snprintf(what, sizeof(what), "layer %u keeps filter %u, reverb %u", (unsigned)layer + 1,
+             (unsigned)m->layer_filter[layer], (unsigned)m->layer_reverb[layer]);
+    uint8_t ch = (uint8_t)(LOOP_CH + layer);
+    send_nrpn(ch, GEN_FILTER, filter_offset(m->layer_filter[layer]), NULL, send, ctx);
+    send_nrpn(ch, GEN_REVERB, reverb_offset(m->layer_reverb[layer]), what, send, ctx);
+}
+
+void mixer_freeze_layer(mixer_t *m, size_t layer, midi_send_fn send, void *ctx)
+{
+    if (layer >= LOOPER_LAYERS) return;
+    m->layer_filter[layer] = m->filter;
+    m->layer_reverb[layer] = m->reverb;
+    mixer_send_layer_fx(m, layer, send, ctx);
 }

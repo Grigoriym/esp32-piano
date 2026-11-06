@@ -118,7 +118,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   loop layer (a new layer takes the pot's level; after an undo the older layer keeps its
   level until the pot crosses it), pot 3 the live keys; level 0 drops the note on. The
   looper records unscaled. VOLUME +/- stays the master (CC7). Serial: `POT   beat|layer|keys|filter|reverb N`.
-  Pots 4-5 (2026-11-06, code only, not wired yet): filter on D35, reverb on VP, on channels 1-6 (not the drums),
+  Pots 4-5 (2026-11-06, wired and flashed): filter on D35, reverb on VP, on the live channels 1-2 (keys, DEMO); a loop
+  layer keeps the filter and reverb it was recorded with (`mixer_freeze_layer` when `n_layers` grows, onto its own
+  channel; the user: "we shouldn't touch the recordings"). Not the drums,
   sent at most every 30 ms and again when the PC link comes up. FluidSynth 2.3.4 ignores CC74 (rendered: no change),
   so the filter is the SF2 NRPN (99=120, 98=8 initialFilterFc, LSB 38 before MSB 6), 0 to -4800 cents; it
   survives a program change; past ~-5000 FluidR3's saw lead gets brighter again. Reverb: the same NRPN on gen 16
