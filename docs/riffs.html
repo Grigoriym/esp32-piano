@@ -328,6 +328,37 @@ const PIECES = [
       ['Sweep', 'Turn Effects: filter slowly to the right over 8 bars while the loop plays, then back down.'],
     ],
   },
+  {
+    name: '#7 Song #1',
+    button: 'SLOW ROCK', beat: 'TECHNO',
+    about: 'Your own song (2026-11-06): three loop layers you stacked over the techno beat with the metronome on, saved from what the toy played (songs/2026-11-06-song-1.mid, ten passes, every pass the same). A two-bar loop: the Cosmic bass at the bottom, an offbeat pulse in the middle, a long high A on top. Every layer is the saw lead; Effects: filter all the way right (open) and reverb all the way up.',
+    bpm: 130,
+    bars: 4,
+    chords: ['Am', 'Am', 'Am', 'Am'],
+    layers: [
+      {
+        name: 'Bass', color: 'bass', hand: 'left hand, octave down (TEMPO − once)', octave: -1,
+        tip: 'Layer 1, recorded first: the same figure as #6 Cosmic\'s Bass. Keys 1, 3, 5 an octave down. Bar 1: 1 (held), 3 short, 1, then 5 held over the bar line. Bar 2: 3, 1 short, 3, 1. It starts on the metronome\'s red click.',
+        notes: '0:1/6 6:3/2 8:1/4 12:5/6 18:3/4 22:1/2 24:3/4 28:1/4 32:1/6 38:3/2 40:1/4 44:5/6 50:3/4 54:1/2 56:3/4 60:1/4',
+      },
+      {
+        name: 'Pulse', color: 'chords', hand: 'right hand, octave back up (TEMPO + once)',
+        tip: 'Layer 2: short presses. Bar 1: key 12 on the red click, 12 again on the "+" of beat 2, 12 on the "+" of beat 3, then 10 on beat 4. Bar 2: 12 on the "+" of beat 1, 12 on the "+" of beat 2, then 8 on beat 3, and rest to the end of the bar.',
+        notes: '0:12/2 6:12/2 10:12/2 12:10/2 18:12/2 22:12/2 24:8/2 32:12/2 38:12/2 42:12/2 44:10/2 50:12/2 54:12/2 56:8/2',
+      },
+      {
+        name: 'High A', color: 'hook', hand: 'right hand',
+        tip: 'Layer 3, played softer (Volume: keys at about two thirds while you record it; the layer keeps it): key 22 held from the red click for a bar and a half, then 24 for a beat, 22 short on beat 4.',
+        notes: '0:22/24 24:24/4 28:22/2 32:22/24 56:24/4 60:22/2',
+      },
+    ],
+    plan: [
+      ['Start', 'SLOW ROCK, Effects: filter all the way right, reverb all the way up. FROG for the metronome, then SELECT: the techno beat.'],
+      ['Bass', 'TEMPO − once. RECORD, play the Bass from a red click for 2 bars, RECORD again on the next red click.'],
+      ['Pulse', 'TEMPO + once. RECORD while it plays, play the Pulse for 2 bars, RECORD.'],
+      ['High A', 'Volume: keys down to about two thirds. RECORD, the High A for 2 bars, RECORD. Volume: keys back up.'],
+    ],
+  },
 ];
 
 /* Drum pads a layer can use: name -> General MIDI drum note, and where it is. The chicks were these until
