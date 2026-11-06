@@ -50,6 +50,7 @@ typedef enum {
     UI_SCREEN_COUNT,
 } ui_screen_t;
 
+/* Every field here is compared in screen.c's same(): add a new one there too. */
 typedef struct {
     bool pc;           /* the PC bridge answers */
     bool demo;         /* DEMO plays */

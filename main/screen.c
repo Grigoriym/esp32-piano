@@ -18,7 +18,9 @@ static void draw(canvas_t *c, void *ctx)
 }
 
 /* Field by field: memcmp would also compare the padding. The names are
- * pointers to keymap's constant strings, so the same name is the same pointer. */
+ * pointers to keymap's constant strings, so the same name is the same pointer.
+ * A new ui_state_t field goes here too, or it shows only when something else
+ * changes (2026-11-06: the metronome's header waited for a key press). */
 static bool same(const ui_state_t *a, const ui_state_t *b)
 {
     return a->pc == b->pc && a->demo == b->demo && a->sound == b->sound && a->volume == b->volume
@@ -29,7 +31,8 @@ static bool same(const ui_state_t *a, const ui_state_t *b)
            && a->g_lane[0] == b->g_lane[0] && a->g_lane[1] == b->g_lane[1]
            && a->g_lane_name[0] == b->g_lane_name[0] && a->g_lane_name[1] == b->g_lane_name[1]
            && a->g_on_time == b->g_on_time && a->g_off == b->g_off && a->g_has_last == b->g_has_last
-           && a->g_last_ms == b->g_last_ms;
+           && a->g_last_ms == b->g_last_ms && a->metro_bpm == b->metro_bpm
+           && a->metro_flash == b->metro_flash;
 }
 
 static void screen_task(void *arg)
