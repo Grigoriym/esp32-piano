@@ -88,7 +88,7 @@ li input:checked + span { color: var(--muted); text-decoration: line-through; }
     <div class="box"><svg id="knob" viewBox="0 30 760 145" role="img" aria-label="The knob's pins and where each goes"></svg></div>
     <h2>Pots (6)</h2>
     <div class="box"><svg id="pot1" viewBox="0 30 760 145" role="img" aria-label="Pot 1, the beat: ends to the rails, wiper to D32"></svg></div>
-    <div class="box"><svg id="pot2" viewBox="0 30 760 145" role="img" aria-label="Pot 2, the newest loop layer: ends to the rails, wiper to D33"></svg></div>
+    <div class="box"><svg id="pot2" viewBox="0 30 760 145" role="img" aria-label="Pot 2, the metronome volume: ends to the rails, wiper to D33"></svg></div>
     <div class="box"><svg id="pot3" viewBox="0 30 760 145" role="img" aria-label="Pot 3, the live keys: ends to the rails, wiper to D34"></svg></div>
     <div class="box"><svg id="pot4" viewBox="0 30 760 145" role="img" aria-label="Pot 4, the filter: ends to the rails, wiper to D35"></svg></div>
     <div class="box"><svg id="pot5" viewBox="0 30 760 145" role="img" aria-label="Pot 5, the reverb: ends to the rails, wiper to VP"></svg></div>
@@ -206,11 +206,12 @@ header("knob", [["CLK", "D18", "knob"], ["DT", "D19", "knob"], ["SW", "D23", "kn
 
 // The pots, pins facing you, legs down: end, wiper, end. Left end to GND and right
 // end to 3V3 should make clockwise louder; if it's the other way, swap the two ends.
-[["pot1", "D32", "beat"], ["pot2", "D33", "the newest loop layer"], ["pot3", "D34", "the live keys"], ["pot4", "D35", "the filter"], ["pot5", "VP", "the reverb"], ["pot6", "VN", "the metronome"]].forEach(([id, pin, what]) =>
+[["pot1", "D32", "beat"], ["pot2", "D33", "the metronome"], ["pot3", "D34", "the live keys"], ["pot4", "D35", "the filter"], ["pot5", "VP", "the reverb"], ["pot6", "VN", "the metronome"]].forEach(([id, pin, what]) =>
   header(id, [["left end", "−rail", "gnd"], ["wiper", pin, "pot"], ["right end", "+rail", "power"]],
     [id === "pot4" ? "The filter: clockwise brighter, fully left dark (keys, DEMO and the loop, not the drums). Use a B10K."
      : id === "pot5" ? "The reverb: fully left dry, the middle the sound's own, clockwise more (keys, DEMO and the loop, not the drums). Use a B10K."
-     : id === "pot6" ? "The metronome's tempo, 60-180 bpm (FROG turns it on and off). Use a B10K. VN is the last free ADC1 pin."
+     : id === "pot6" ? "The metronome's tempo, 60-180 bpm (FROG turns it on and off; pot 2 its volume). Use a B10K. VN is the last free ADC1 pin."
+     : id === "pot2" ? "The metronome's volume, held clicks follow it (until 2026-11-06: the newest loop layer)."
      : id === "pot3" ? "The live keys' fader: held notes follow it too (not the loop or the beat)."
      : `Sets the loudness of ${what}.`, "Clockwise the wrong way? Swap the two ends.",
      ...(id === "pot2" ? ["1 µF from the wiper to the left end (GND), stripe on GND (test, 2026-11-04)."] : [])]));

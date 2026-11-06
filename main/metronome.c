@@ -25,11 +25,10 @@ void metro_setup(midi_send_fn send, void *ctx)
 {
     uint8_t program[2] = {0xc0 | METRO_CH, METRO_PROGRAM};
     send(program, 2, "metronome on", ctx);
-    /* Full expression, no reverb or chorus, and the SF2 reverb send NRPN at -100%
+    /* No reverb or chorus (its volume is pot 2's CC11, main/mixer.h), and the SF2 reverb send NRPN at -100%
      * (the preset's own send too; see mixer.c), LSB before MSB. */
     int v = 8192 - 1000;
     const uint8_t cc[][3] = {
-        {0xb0 | METRO_CH, 11, 127},
         {0xb0 | METRO_CH, 91, 0},
         {0xb0 | METRO_CH, 93, 0},
         {0xb0 | METRO_CH, 99, 120},

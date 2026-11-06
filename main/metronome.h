@@ -5,7 +5,7 @@
  * A woodblock on its own channel (METRO_CH), so the looper never records it and
  * the beat pot doesn't touch it; dry: no reverb, no filter (the user). The first
  * beat of a bar clicks higher. Pot 6 sets its tempo, METRO_MIN_BPM to
- * METRO_MAX_BPM (the user, 2026-11-06; its volume is fixed for now). While the
+ * METRO_MAX_BPM, pot 2 its volume (the user, 2026-11-06). While the
  * beat plays it follows the beat's grid instead, which main.c gives it every scan. Sent MIDI_LINK_LEAD_US ahead like the beat: ctx points to
  * due_us, set before each message.
  */
@@ -38,7 +38,7 @@ typedef struct {
 /* Turns it on (its own grid starts at at_us) or off. */
 void metro_toggle(metro_t *m, int64_t at_us, midi_send_fn send, void *ctx);
 
-/* Its channel set up: the woodblock, full expression, dry. Sent on, and again
+/* Its channel set up: the woodblock, dry. Sent on, and again
  * when the PC link comes up. */
 void metro_setup(midi_send_fn send, void *ctx);
 

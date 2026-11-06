@@ -31,7 +31,7 @@ static void test_starts_full(void)
 {
     TEST_ASSERT_EQUAL(127, m.beat);
     TEST_ASSERT_EQUAL(127, m.keys);
-    TEST_ASSERT_EQUAL(-1, m.target);
+    TEST_ASSERT_EQUAL(127, m.click);
 }
 
 static void test_first_reading_sets_the_level_at_once(void)
@@ -85,54 +85,17 @@ static void test_a_one_level_hop_is_not_a_turn(void)
     TEST_ASSERT_EQUAL(800, m.moved_us[MIXER_KEYS]);
 }
 
-static void test_a_new_layer_takes_the_pot(void)
+static void test_click_pot_is_cc11_on_the_metronome_channel(void)
 {
-    turn(MIXER_LAYER, 50, 10);
-    mixer_set_layers(&m, 1);
-    TEST_ASSERT_EQUAL(0, m.target);
-    TEST_ASSERT_EQUAL(50, m.layer[0]);
-    turn(MIXER_LAYER, 80, 20);
-    TEST_ASSERT_EQUAL(80, m.layer[0]);
-    mixer_set_layers(&m, 2);
-    TEST_ASSERT_EQUAL(80, m.layer[1]);
-    turn(MIXER_LAYER, 30, 30);
-    TEST_ASSERT_EQUAL(30, m.layer[1]);
-    TEST_ASSERT_EQUAL(80, m.layer[0]); /* the older one stays */
-}
-
-static void test_undo_picks_up_the_older_layer(void)
-{
-    turn(MIXER_LAYER, 80, 10);
-    mixer_set_layers(&m, 1);
-    mixer_set_layers(&m, 2);
-    turn(MIXER_LAYER, 30, 20); /* layer 2 at 30, layer 1 at 80 */
-    mixer_set_layers(&m, 1);   /* undo */
-    TEST_ASSERT_FALSE(m.attached);
-    turn(MIXER_LAYER, 50, 30); /* below 80: nothing changes */
-    TEST_ASSERT_EQUAL(80, m.layer[0]);
-    turn(MIXER_LAYER, 85, 40); /* crossed it: picked up */
-    TEST_ASSERT_TRUE(m.attached);
-    TEST_ASSERT_EQUAL(85, m.layer[0]);
-    turn(MIXER_LAYER, 60, 50);
-    TEST_ASSERT_EQUAL(60, m.layer[0]);
-}
-
-static void test_no_layer_no_effect(void)
-{
-    turn(MIXER_LAYER, 20, 10);
-    for (int i = 0; i < LOOPER_LAYERS; i++) TEST_ASSERT_EQUAL(127, m.layer[i]);
-}
-
-static void test_erase_resets_the_layers(void)
-{
-    turn(MIXER_LAYER, 20, 10);
-    mixer_set_layers(&m, 1);
-    mixer_set_layers(&m, 0);
-    TEST_ASSERT_EQUAL(-1, m.target);
-    TEST_ASSERT_EQUAL(127, m.layer[0]);
-    turn(MIXER_LAYER, 40, 20);
-    mixer_set_layers(&m, 1);
-    TEST_ASSERT_EQUAL(40, m.layer[0]);
+    midi_rec_t r = {0};
+    turn(MIXER_CLICK, 40, 10);
+    TEST_ASSERT_EQUAL(40, m.click);
+    mixer_send_fx(&m, MIXER_CLICK, midi_rec, &r);
+    TEST_ASSERT_EQUAL(1, r.n);
+    TEST_ASSERT_EQUAL_HEX8(0xb0 | METRO_CH, r.e[0].msg[0]);
+    TEST_ASSERT_EQUAL(11, r.e[0].msg[1]);
+    TEST_ASSERT_EQUAL(40, r.e[0].msg[2]);
+    TEST_ASSERT_EQUAL_STRING("metronome volume 40", r.e[0].what);
 }
 
 static void test_scale(void)
@@ -281,10 +244,7 @@ int main(void)
     RUN_TEST(test_ends_are_reachable);
     RUN_TEST(test_noise_does_not_flicker);
     RUN_TEST(test_turning_is_followed);
-    RUN_TEST(test_a_new_layer_takes_the_pot);
-    RUN_TEST(test_undo_picks_up_the_older_layer);
-    RUN_TEST(test_no_layer_no_effect);
-    RUN_TEST(test_erase_resets_the_layers);
+    RUN_TEST(test_click_pot_is_cc11_on_the_metronome_channel);
     RUN_TEST(test_scale);
     RUN_TEST(test_apply);
     RUN_TEST(test_effects_start_open_and_dry);

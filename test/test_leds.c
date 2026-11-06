@@ -6,7 +6,7 @@ static leds_t out;
 
 void setUp(void)
 {
-    s = (leds_state_t){.beat_step = -1, .recording_layer = -1, .target = -1, .pot = -1, .following = true};
+    s = (leds_state_t){.beat_step = -1, .recording_layer = -1, .target = -1, .pot = -1};
 }
 
 void tearDown(void)
@@ -146,21 +146,13 @@ static void test_a_pot_turned_shows_a_bar(void)
     TEST_ASSERT_EQUAL(0, count_lit());
 }
 
-static void test_the_layer_bar_is_in_the_layers_colour_and_blinks_until_picked_up(void)
+static void test_the_metronome_volume_bar_is_pink(void)
 {
     s.pot = 1;
-    s.target = 2; /* yellow */
     s.level = 127;
-    s.following = false;
-    s.now_us = 0;
-    leds_draw(&s, out);
-    TEST_ASSERT_TRUE(AT(0)[0] && AT(0)[1] && !AT(0)[2]);
-    s.now_us = 250000;
-    leds_draw(&s, out);
-    TEST_ASSERT_EQUAL(0, count_lit());
-    s.following = true;
     leds_draw(&s, out);
     TEST_ASSERT_EQUAL(8, count_lit());
+    TEST_ASSERT_TRUE(AT(0)[0] > AT(0)[2] && AT(0)[2] > AT(0)[1] && AT(0)[1]);
 }
 
 static void test_filter_bar_is_blue_reverb_violet(void)
@@ -187,7 +179,7 @@ int main(void)
     RUN_TEST(test_the_layer_being_recorded_blinks_red);
     RUN_TEST(test_armed_blinks_led_1);
     RUN_TEST(test_a_pot_turned_shows_a_bar);
-    RUN_TEST(test_the_layer_bar_is_in_the_layers_colour_and_blinks_until_picked_up);
+    RUN_TEST(test_the_metronome_volume_bar_is_pink);
     RUN_TEST(test_filter_bar_is_blue_reverb_violet);
     return UNITY_END();
 }

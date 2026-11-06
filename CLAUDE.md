@@ -114,9 +114,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   the beat grid and key presses.
   `mixer.c` (pure, 2026-11-04): the 3 pots (ADC1, read every 10 ms, smoothed, hysteresis
   tested against +-20 counts; each read is the mean of 8; the LED bar only for a move of 3 levels
-  or an end, `MIXER_TURN`: a key press tipped pot 3 a level and lit the bar white, 2026-11-05) scale note-on velocities: pot 1 the beat, pot 2 the newest
-  loop layer (a new layer takes the pot's level; after an undo the older layer keeps its
-  level until the pot crosses it), level 0 drops the note on; pot 3 is the live keys' fader since 2026-11-06, CC11 on channel 1 (a held note follows it; velocity didn't move held notes and the growl ignores velocity). The
+  or an end, `MIXER_TURN`: a key press tipped pot 3 a level and lit the bar white, 2026-11-05) scale note-on velocities: pot 1 the beat (level 0 drops the note on); pot 2 is the
+  metronome's volume since 2026-11-06 (CC11 on its channel; before, the newest loop layer's level with a pick-up
+  after an undo, the user: "too much, I can rerecord"; layers now play as recorded); pot 3 is the live keys' fader since 2026-11-06, CC11 on channel 1 (a held note follows it; velocity didn't move held notes and the growl ignores velocity). The
   looper records unscaled. VOLUME +/- stays the master (CC7). Serial: `POT   beat|layer|keys|filter|reverb N`.
   Pots 4-5 (2026-11-06, wired and flashed): filter on D35, reverb on VP, on the live channels 1-2 (keys, DEMO); a loop
   layer keeps the filter and reverb it was recorded with (`mixer_freeze_layer` when `n_layers` grows, onto its own
@@ -131,8 +131,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   blue, reverb violet. VN (ADC1 ch 3) is the last free ADC1 pin. An unwired ADC pin floats: wire before flashing.
   `metronome.c` (pure, 2026-11-06, the user's ask): FROG (was a low tom) toggles a woodblock click (program 115, beat 1
   note 84, others 77) on its own channel 9 (`METRO_CH` 8), sent 150 ms ahead like the beat, dry (CC91 0 + reverb-send
-  NRPN -100%, no filter: the user); never recorded. Pot 6 on VN (the last ADC1 pin) is its tempo, 60-180 bpm (the
-  user: tempo, not volume; volume fixed until an ADS1115 pot); a new tempo carries on from the last click. While the
+  NRPN -100%, no filter: the user); never recorded. Pot 6 on VN (the last ADC1 pin) is its tempo, 60-180 bpm, pot 2
+  its volume (the user's picks); a new tempo carries on from the last click. While the
   beat plays it follows the beat's grid. Status/Groove screen: `click N bpm`, or a dot before the beat's name. More pots would need an analog chip (ADS1115 / a 4067 mux; none in Homebox): an MCP23017 is digital only.
   `leds.c` (pure) + `strip.c` (RMT, WS2812 on TX2, channels capped at 24/255 on 3V3):
   LEDs 1-4 the layers in cyan/magenta/yellow/orange (pot 2's brighter, recording blinks

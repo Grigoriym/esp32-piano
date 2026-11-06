@@ -62,7 +62,7 @@ typedef struct {
     int64_t due_us;                      /* when what looper_tick sends right now should sound */
     uint8_t rec_held[2][16];             /* bit per note, keys and drums: held while recording */
     uint8_t sounding[16][16];            /* bit per channel and note: loop notes on */
-    uint8_t gain[LOOPER_LAYERS];         /* each layer's level, 0-127 (pot 2: main/mixer.h) */
+    uint8_t gain[LOOPER_LAYERS]; /* each layer's level, 0-127 (127: no pot sets it since 2026-11-06) */
 } looper_t;
 
 void looper_init(looper_t *l);

@@ -15,6 +15,7 @@ static const uint8_t RED[3] = {4, 0, 0};
 static const uint8_t BLUE[3] = {0, 1, 4};
 static const uint8_t VIOLET[3] = {2, 0, 4};
 static const uint8_t PINK[3] = {4, 1, 2};
+static const uint8_t WARM[3] = {4, 3, 1};
 
 static void set(leds_t out, int i, const uint8_t c[3], int bright)
 {
@@ -29,13 +30,8 @@ static bool blink(int64_t now_us, int64_t period_us)
 
 static void draw_bar(const leds_state_t *s, leds_t out)
 {
-    const uint8_t *c = s->pot == 0   ? GREEN
-                       : s->pot == 2 ? WHITE
-                       : s->pot == 3 ? BLUE
-                       : s->pot == 4 ? VIOLET
-                       : s->pot == 5 ? PINK
-                                     : LAYER[s->target >= 0 ? s->target % 4 : 0];
-    if (!s->following && !blink(s->now_us, 400000)) return;
+    static const uint8_t *const COLOR[] = {GREEN, PINK, WHITE, BLUE, VIOLET, WARM};
+    const uint8_t *c = COLOR[s->pot % 6];
     int lit = (s->level * LEDS_N + 63) / 127;
     if (s->level > 0 && lit == 0) lit = 1;
     for (int i = 0; i < lit; i++) set(out, i, c, MID);
