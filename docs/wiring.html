@@ -209,6 +209,7 @@ header("knob", [["CLK", "D18", "knob"], ["DT", "D19", "knob"], ["SW", "D23", "kn
   header(id, [["left end", "−rail", "gnd"], ["wiper", pin, "pot"], ["right end", "+rail", "power"]],
     [id === "pot4" ? "The filter: clockwise brighter, fully left dark (keys, DEMO and the loop, not the drums). Use a B10K."
      : id === "pot5" ? "The reverb: fully left dry, the middle the sound's own, clockwise more (keys, DEMO and the loop, not the drums). Use a B10K."
+     : id === "pot3" ? "The live keys' fader: held notes follow it too (not the loop or the beat)."
      : `Sets the loudness of ${what}.`, "Clockwise the wrong way? Swap the two ends.",
      ...(id === "pot2" ? ["1 µF from the wiper to the left end (GND), stripe on GND (test, 2026-11-04)."] : [])]));
 

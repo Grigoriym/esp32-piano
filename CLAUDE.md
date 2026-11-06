@@ -116,7 +116,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   tested against +-20 counts; each read is the mean of 8; the LED bar only for a move of 3 levels
   or an end, `MIXER_TURN`: a key press tipped pot 3 a level and lit the bar white, 2026-11-05) scale note-on velocities: pot 1 the beat, pot 2 the newest
   loop layer (a new layer takes the pot's level; after an undo the older layer keeps its
-  level until the pot crosses it), pot 3 the live keys; level 0 drops the note on. The
+  level until the pot crosses it), level 0 drops the note on; pot 3 is the live keys' fader since 2026-11-06, CC11 on channel 1 (a held note follows it; velocity didn't move held notes and the growl ignores velocity). The
   looper records unscaled. VOLUME +/- stays the master (CC7). Serial: `POT   beat|layer|keys|filter|reverb N`.
   Pots 4-5 (2026-11-06, wired and flashed): filter on D35, reverb on VP, on the live channels 1-2 (keys, DEMO); a loop
   layer keeps the filter and reverb it was recorded with (`mixer_freeze_layer` when `n_layers` grows, onto its own

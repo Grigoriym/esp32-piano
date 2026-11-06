@@ -154,6 +154,11 @@ void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *c
         offset = reverb_offset(m->reverb);
         snprintf(what, sizeof(what), "reverb %u (send %+d.%d%%)", (unsigned)m->reverb, offset / 10,
                  (offset < 0 ? -offset : offset) % 10);
+    } else if (pot == MIXER_KEYS) {
+        snprintf(what, sizeof(what), "keys %u", (unsigned)m->keys);
+        uint8_t cc[3] = {0xb0 | KEY_CH, 11, m->keys};
+        send(cc, 3, what, ctx);
+        return;
     } else {
         return;
     }

@@ -1,9 +1,11 @@
 /*
  * The pots: a small mixer and two effects. Pure (no ESP-IDF), host-tested.
  *
- * Pot 1 sets the beat's loudness, pot 2 the newest loop layer's, pot 3 the
- * live keys'. Each scales the note-on velocities of its part (0-127, 127 =
- * as played); VOLUME +/- stays the master volume on top.
+ * Pot 1 sets the beat's loudness, pot 2 the newest loop layer's: each scales
+ * the note-on velocities of its part (0-127, 127 = as played). Pot 3 is the live
+ * keys' fader: CC11 (expression) on the keys' channel, so a held note follows it
+ * too (2026-11-06, the user's ask; it also works on ROCK's growl, which ignores
+ * velocity). VOLUME +/- stays the master volume on top.
  *
  * Pot 4 is a filter (127 open, 0 dark), pot 5 the reverb (0 dry), on the live
  * keys and DEMO. A loop layer keeps the filter and reverb it was recorded with
@@ -70,7 +72,7 @@ uint8_t mixer_scale(uint8_t velocity, uint8_t level);
  * the length to send: 0 for a note on at level 0, which is left out. */
 size_t mixer_apply(const uint8_t *msg, size_t len, uint8_t level, uint8_t *out);
 
-/* Sends pot 4's or pot 5's setting to the live channels (what: for the log, once). */
+/* Sends pot 3's, 4's or 5's setting to the live channels (what: for the log, once). */
 void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx);
 
 /* A loop layer just added: it keeps the filter and reverb as they are now. */

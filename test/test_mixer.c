@@ -251,6 +251,18 @@ static void test_a_layer_keeps_the_effects_it_was_recorded_with(void)
     TEST_ASSERT_EQUAL_STRING("layer 2 keeps filter 40, reverb 127", r.e[7].what);
 }
 
+static void test_keys_pot_is_cc11_on_the_keys_channel(void)
+{
+    midi_rec_t r = {0};
+    m.keys = 50;
+    mixer_send_fx(&m, MIXER_KEYS, midi_rec, &r);
+    TEST_ASSERT_EQUAL(1, r.n);
+    TEST_ASSERT_EQUAL_HEX8(0xb0 | KEY_CH, r.e[0].msg[0]);
+    TEST_ASSERT_EQUAL(11, r.e[0].msg[1]);
+    TEST_ASSERT_EQUAL(50, r.e[0].msg[2]);
+    TEST_ASSERT_EQUAL_STRING("keys 50", r.e[0].what);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -271,6 +283,7 @@ int main(void)
     RUN_TEST(test_reverb_is_an_nrpn_send_from_dry_to_full);
     RUN_TEST(test_filter_is_an_nrpn_cutoff_offset);
     RUN_TEST(test_other_pots_send_no_effects);
+    RUN_TEST(test_keys_pot_is_cc11_on_the_keys_channel);
     RUN_TEST(test_a_layer_keeps_the_effects_it_was_recorded_with);
     return UNITY_END();
 }

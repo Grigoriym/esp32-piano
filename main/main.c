@@ -210,16 +210,11 @@ static void send_beat(const uint8_t *msg, size_t len, const char *what, void *ct
     send_at(out, mixer_apply(msg, len, mixer.beat, out), what, ctx);
 }
 
-/* What keymap sends: played at pot 3's level, recorded as played (pot 2 sets
- * the layer's level). */
+/* What keymap sends: played as is (pot 3 is CC11 on the keys' channel) and
+ * recorded (pot 2 sets the layer's level). */
 static void send_key(const uint8_t *msg, size_t len, const char *what, void *ctx)
 {
-    uint8_t out[3];
-    if (len == 0 || len > sizeof(out)) {
-        send_midi(msg, len, what, ctx);
-    } else {
-        send_midi(out, mixer_apply(msg, len, mixer.keys, out), what, ctx);
-    }
+    send_midi(msg, len, what, ctx);
     looper_capture(&looper, esp_timer_get_time(), msg, len, keymap.program);
 }
 
@@ -254,22 +249,22 @@ static void pots_read(int64_t now)
         if (!n) continue;
         if (mixer_feed(&mixer, (mixer_pot_t)i, sum / n, now)) {
             printf("POT   %s %u\n", POT_NAME[i], (unsigned)mixer.pot[i]);
-            if (i == MIXER_FILTER || i == MIXER_REVERB) fx_due[i] = true;
+            if (i == MIXER_KEYS || i == MIXER_FILTER || i == MIXER_REVERB) fx_due[i] = true;
         }
     }
     /* A PC that just said HELLO (the bridge or FluidSynth restarted) gets the effects again. */
     static bool was_connected;
     bool connected = midi_link_connected();
     if (connected && !was_connected) {
-        fx_due[MIXER_FILTER] = fx_due[MIXER_REVERB] = true;
+        fx_due[MIXER_KEYS] = fx_due[MIXER_FILTER] = fx_due[MIXER_REVERB] = true;
         for (size_t l = 0; l < looper.n_layers; l++) mixer_send_layer_fx(&mixer, l, send_midi, NULL);
     }
     was_connected = connected;
-    /* A turn sends the latest setting at most every FX_PERIOD_US: the filter is 24
+    /* A turn sends the latest setting at most every FX_PERIOD_US: the filter is 8
      * messages a step, too many for the cable at every reading. */
     static int64_t fx_sent;
     if (now - fx_sent < FX_PERIOD_US) return;
-    for (size_t i = MIXER_FILTER; i <= MIXER_REVERB; i++) {
+    for (size_t i = MIXER_KEYS; i <= MIXER_REVERB; i++) {
         if (!fx_due[i]) continue;
         fx_due[i] = false;
         fx_sent = now;
