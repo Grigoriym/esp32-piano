@@ -45,7 +45,7 @@ typedef struct {
     uint8_t program;              /* the keys' instrument */
     size_t style;                 /* last style button, EF0-EF7 */
     uint8_t key_note[4 * N_COLS]; /* note sent for each held key, so its note off matches */
-    size_t fx;                    /* KEYMAP_FX: which chick, 0-3 T1-T4, 4-7 B1-B4 */
+    size_t fx;                    /* KEYMAP_FX: the effect, fx.h's order = chick 1-8 */
     bool fx_down;
 } keymap_t;
 
@@ -58,12 +58,12 @@ typedef enum {
     KEYMAP_SELECT, /* SELECT pressed */
     KEYMAP_STYLE,  /* a style button pressed (its program change is already sent) */
     KEYMAP_METRO,  /* FROG pressed: the metronome (metronome.h) */
-    KEYMAP_FX,     /* a chick pressed or let go: effect k->fx (fx.h's order, T1-T4 then B1-B4), k->fx_down */
+    KEYMAP_FX,     /* a chick pressed or let go: effect k->fx (fx.h's order = chicks 1-8), k->fx_down */
 } keymap_action_t;
 
 void keymap_init(keymap_t *k);
 
-/* "key 14", "DEMO", "chick T1"; "?" for an unused crossing. */
+/* "key 14", "DEMO", "chick 8"; "?" for an unused crossing. */
 void keymap_name(size_t r, size_t c, char *buf, size_t len);
 
 /* "Piano", "Trumpet": the instrument a program number stands for; "?" if none. */

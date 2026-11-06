@@ -6,11 +6,12 @@ static const char *const BUTTONS[4][N_COLS] = {
     /* AB4 */ {"SLOW ROCK", "ROCK", "NEW AGE", "DISCO", "MARCH", "WALTZ", "SAMBA", "BLUES"},
     /* AB5 */ {"TEMPO+", "TEMPO-", "VOLUME+", "VOLUME-", "RESET", "RECORD", "REPLAY", NULL},
     /* AB6 */
-    {"chick B4", "chick B1", "chick T3", "chick T2", "chick B2", "chick T1", "chick B3", "chick T4"},
+    {"chick 1", "chick 4", "chick 6", "chick 7", "chick 3", "chick 8", "chick 2", "chick 5"},
     /* AB7 */ {"DOG", "FROG", "RED BIRD", "BLUE BIRD", "SELECT", "DEMO", NULL, NULL},
 };
-/* chick T1-T4: row next to the style buttons, from the BLUES end; B1-B4: row
- * next to the bottom edge, same direction. */
+/* Chicks as the user counts them (2026-11-06): two rows of four, 1-4 the top row
+ * from the left, 5-8 the bottom row from the left. Chick 8 is the one next to the
+ * style buttons at the BLUES end (the notes before called it T1, wrongly first). */
 
 /* General MIDI programs for the style buttons, AB4 EF0-EF7 order. */
 static const uint8_t STYLE_PROGRAM[N_COLS] = {
@@ -37,8 +38,8 @@ const char *keymap_program_name(uint8_t program)
     return "?";
 }
 
-/* The chicks' effects (fx.h's order: T1-T4, then B1-B4) by column: they played drums until 2026-11-06. */
-static const uint8_t CHICK_FX[N_COLS] = {7, 4, 2, 1, 5, 0, 6, 3}; /* B4 B1 T3 T2 B2 T1 B3 T4 */
+/* The chicks' effects by column: chick n plays fx.h's effect n-1. They played drums until 2026-11-06. */
+static const uint8_t CHICK_FX[N_COLS] = {0, 3, 5, 6, 2, 7, 1, 4}; /* chicks 1 4 6 7 3 8 2 5 */
 
 /* General MIDI drum notes for the animals, AB7 x EF0-EF7 (AB6: the chicks, no drums); 0 = none. */
 static const uint8_t DRUM_NOTE[2][N_COLS] = {

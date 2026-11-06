@@ -39,7 +39,7 @@ static void test_names(void)
     keymap_name(7, 5, b, sizeof(b));
     TEST_ASSERT_EQUAL_STRING("DEMO", b);
     keymap_name(6, 5, b, sizeof(b));
-    TEST_ASSERT_EQUAL_STRING("chick T1", b);
+    TEST_ASSERT_EQUAL_STRING("chick 8", b);
     keymap_name(7, 7, b, sizeof(b));
     TEST_ASSERT_EQUAL_STRING("?", b);
 }

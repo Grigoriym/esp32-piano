@@ -140,14 +140,16 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   beat plays it follows the beat's grid. FROG on during a playing loop starts it on the loop's bar line (`metro_align`);
   a tempo change keeps the bar count. The header of every screen shows `Click N bpm` (greyed while off) with a dot flashing on each
   click, red on beat 1 (`metro_flash`, the click's own time, not the send's); it takes DEMO's place there. More pots would need an analog chip (ADS1115 / a 4067 mux; none in Homebox): an MCP23017 is digital only.
-  `fx.c` (pure, 2026-11-06, the user's ask): the 8 chicks are effects on the live keys (they were drums): T1 Echo
-  (3 repeats, dotted 8th, 70% each, channel 11), T2 Hold (CC64), T3 Octave, T4 Arp (held keys up, 16ths), B1 Rise
-  (1 bar: bend +1 octave, filter opens), B2 Tape (half a bar: keys and loop bend -1 octave, keys go dark, then stop),
-  B3 Stutter (held: retrigger on 16ths), B4 Wide (two copies +-12 cents on channels 12-13). Grid: the beat's, else the
+  `fx.c` (pure, 2026-11-06, the user's ask): the 8 chicks are effects on the live keys (they were drums): chick 1 Echo
+  (3 repeats, dotted 8th, 70% each, channel 11), 2 Hold (CC64), 3 Octave, 4 Arp (held keys up, 16ths), 5 Rise
+  (1 bar: bend +1 octave, filter opens), 6 Tape (half a bar: keys and loop bend -1 octave, keys go dark, then stop),
+  7 Stutter (held: retrigger on 16ths), 8 Wide (two copies +-12 cents on channels 12-13). Grid: the beat's, else the
   metronome's tempo. Bend range 12 (RPN, `fx_setup`, at boot and link-up). `send_midi` copies every CC and program on
   channel 1 to channels 11-13. Rendered first: bend RPN and CC64 work; CC93 chorus and CC10 pan did nothing on the saw
   lead. The looper records the plain keys. Not yet tried by the user.
-  Every screen's bottom row shows them by initial, `E H O A  R T S W` in the chicks' order (top row, bottom row),
+  **Chick numbers are the user's** (2026-11-06): 1-4 the top row from the left, 5-8 the bottom row from the left;
+  chick 8 is next to the style buttons at the BLUES end (first written as "T1", backwards: Echo sat on chick 8).
+  Every screen's bottom row shows them by initial, `E H O A  R T S W` = chicks 1-8,
   lit cyan while on (Rise/Tape while running, Stutter while held; `ui_state_t.fx`, 2026-11-06, the user's ask).
   `leds.c` (pure) + `strip.c` (RMT, WS2812 on TX2, channels capped at 24/255 on 3V3):
   LEDs 1-4 the layers in cyan/magenta/yellow/orange (the newest brighter, recording blinks
@@ -229,7 +231,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   piece's `plan` is its song plan). The page opens on a list of the songs; each song
   is its own view (`#<slug>`, e.g. `#2-night-drive`). 2026-11-03: #1 First Drop (bass,
   chords, arpeggio, hook; the clap roll was dropped at the user's ask, pad layers still
-  work) #5 Riddim Drop (2026-11-05, rewritten for the growl "E": ROCK/DUBSTEP, a Riddim stutter on key 1 with a hole on the snare, an Answer in that hole, a high Screech, a build-up with Rise (chick B1; was a snare-pad Build); the user likes "heaviest dubstep drops" and Skrillex; page synth has a `growl` voice for pieces with `sound: 'growl'`; `render_riffs.py` takes each piece's program from its button) and #4 Bunker (2026-11-05, replaced #4 Sunset, which is in git at `e514df5`; SLOW ROCK/TECHNO, the user wanted something heavier, Berlin style, "let's experiment": key 1 rumbling after every kick, then "aggressive": a 16th-note sequence around key 8, a stab on every offbeat, built by layers and pots) and #3 Warehouse (2026-11-05, SLOW ROCK/TECHNO 130 bpm, Am Am Dm Em: a bass rolling on the 16ths after each kick, offbeat stabs, a one-bar hook moved up on bars 3-4) and #6 Cosmic (2026-11-06, SLOW ROCK/TECHNO: the user's keys 5 3 1 found with the filter pot; layers Melody (the user's rhythm: 5 a bar, 3 and 1 half a bar), Echo and Taps (picked from an audition, `build-host/audition/cosmic/`), Pulse and Bass (the user's own, read off MIDI captures; the bass one octave down, `songs/2026-11-06-cosmic-bass.mid`)) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
+  work) #5 Riddim Drop (2026-11-05, rewritten for the growl "E": ROCK/DUBSTEP, a Riddim stutter on key 1 with a hole on the snare, an Answer in that hole, a high Screech, a build-up with Rise (chick 5; was a snare-pad Build); the user likes "heaviest dubstep drops" and Skrillex; page synth has a `growl` voice for pieces with `sound: 'growl'`; `render_riffs.py` takes each piece's program from its button) and #4 Bunker (2026-11-05, replaced #4 Sunset, which is in git at `e514df5`; SLOW ROCK/TECHNO, the user wanted something heavier, Berlin style, "let's experiment": key 1 rumbling after every kick, then "aggressive": a 16th-note sequence around key 8, a stab on every offbeat, built by layers and pots) and #3 Warehouse (2026-11-05, SLOW ROCK/TECHNO 130 bpm, Am Am Dm Em: a bass rolling on the 16ths after each kick, offbeat stabs, a one-bar hook moved up on bars 3-4) and #6 Cosmic (2026-11-06, SLOW ROCK/TECHNO: the user's keys 5 3 1 found with the filter pot; layers Melody (the user's rhythm: 5 a bar, 3 and 1 half a bar), Echo and Taps (picked from an audition, `build-host/audition/cosmic/`), Pulse and Bass (the user's own, read off MIDI captures; the bass one octave down, `songs/2026-11-06-cosmic-bass.mid`)) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
   its `button` and `beat` (#1 DISCO/EDM, #2 MARCH/BREAKS); the page synth's `BEATS`
   copies main/rhythm.c's patterns (change both), the clips read rhythm.c. After changing a chord or `matrix_diodes`: `tools/check_riff_chords.py`
   (some key sets are held back and would never sound). Its Listen buttons play

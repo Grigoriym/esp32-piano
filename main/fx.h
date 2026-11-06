@@ -2,12 +2,12 @@
  * The 8 chicks are effects on the live keys (2026-11-06, the user's ask; they
  * played drums before). Pure (no ESP-IDF), host-tested.
  *
- * Top row (T1-T4, from the BLUES end), each press on / off:
+ * Top row (chicks 1-4, from the left as the user counts them), each press on / off:
  *   Echo     each note comes back FX_ECHOES times, softer, a dotted 8th apart (on FX_ECHO_CH)
  *   Hold     sustain (CC64): notes ring after the key is let go
  *   Octave   each key plays an octave higher too
  *   Arp      held keys play one at a time, lowest to highest, on every 16th of the grid
- * Bottom row (B1-B4):
+ * Bottom row (chicks 5-8, from the left):
  *   Rise     one bar: the keys bend up an octave and the filter opens; then back
  *   Tape     half a bar: keys and loop bend down an octave, the keys go dark; then the keys stop
  *   Stutter  while held: the keys still sounding retrigger on every 16th
