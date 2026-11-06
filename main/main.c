@@ -389,6 +389,8 @@ static void on_cell(size_t r, size_t c, bool down, void *ctx)
         case KEYMAP_STYLE: rhythm_select(&rhythm, keymap.style); break;
         case KEYMAP_METRO:
             metro_toggle(&metro, at, send_at, &metro.due_us);
+            /* On a playing loop: its bars from the loop's start, not from the press. */
+            if (metro.on && looper.state == LOOPER_PLAYING) metro_align(&metro, looper.start_us, at);
             if (metro.on) mixer_send_fx(&mixer, MIXER_CLICK, send_midi, NULL);
             break;
         case KEYMAP_RESET:
@@ -440,7 +442,8 @@ void app_main(void)
             looper_set_grid(&looper, origin, (int64_t)beat->steps * step);
             groove_set_grid(&groove, origin, step, beat->steps);
         } else {
-            looper_set_grid(&looper, 0, 0);
+            /* No beat: the metronome's bars, if it clicks (the user heard a loop drift off it, 2026-11-06). */
+            looper_set_grid(&looper, metro.origin_us, metro.on ? METRO_BEATS * metro_beat_us(&metro) : 0);
             groove_set_grid(&groove, 0, 0, 0);
         }
         if (matrix_feed(&matrix, now, prev)) {

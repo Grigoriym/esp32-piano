@@ -48,8 +48,13 @@ void metro_setup(midi_send_fn send, void *ctx);
 /* A pot level (0-127) as a tempo. */
 int metro_bpm_for(int level);
 
-/* Pot 6 moved: a running metronome carries on from its last click at the new tempo. */
+/* Pot 6 moved: a running metronome carries on from its last click at the new tempo,
+ * the bar counting on. */
 void metro_set_bpm(metro_t *m, int bpm);
+
+/* Its own grid moved to have a bar line at bar_us (a playing loop's start), the
+ * next click the first beat on it at or after at_us. Call right after metro_toggle. */
+void metro_align(metro_t *m, int64_t bar_us, int64_t at_us);
 
 /* One beat on its own grid. */
 int64_t metro_beat_us(const metro_t *m);

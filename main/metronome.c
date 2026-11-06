@@ -49,9 +49,23 @@ int metro_bpm_for(int level)
 void metro_set_bpm(metro_t *m, int bpm)
 {
     if (bpm == m->bpm) return;
-    /* Re-anchored on the last click: the next one comes a new beat after it. */
-    if (m->on && m->last_us > INT64_MIN / 4) m->origin_us = m->last_us;
+    /* Re-anchored on the last click: the next one comes a new beat after it, and
+     * the bar keeps counting where it was (a loop on its bars stays on them). */
+    if (m->on && m->last_us > INT64_MIN / 4) {
+        int64_t old = metro_beat_us(m);
+        int64_t k = floor_div(m->last_us - m->origin_us + old / 2, old);
+        int64_t into_bar = k - floor_div(k, METRO_BEATS) * METRO_BEATS;
+        m->bpm = bpm;
+        m->origin_us = m->last_us - into_bar * metro_beat_us(m);
+        return;
+    }
     m->bpm = bpm;
+}
+
+void metro_align(metro_t *m, int64_t bar_us, int64_t at_us)
+{
+    m->origin_us = bar_us;
+    m->last_us = at_us - metro_beat_us(m) / 2 - 1; /* the next click: the first beat at or after at_us */
 }
 
 int64_t metro_beat_us(const metro_t *m)

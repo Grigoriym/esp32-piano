@@ -119,6 +119,41 @@ static void test_a_new_tempo_goes_on_from_the_last_click(void)
     TEST_ASSERT_EQUAL_INT64(2500000, at[1]);
 }
 
+static void test_a_new_tempo_keeps_the_bar_count(void)
+{
+    metro_set_bpm(&m, 120);
+    metro_toggle(&m, 0, send, &m.due_us);
+    for (int64_t t = 0; t <= 1100000; t += 1000) /* clicks at 0 (beat 1), 0.5, 1.0 (beat 3) */
+        metro_tick(&m, t, m.origin_us, metro_beat_us(&m), 4, send, &m.due_us);
+    metro_set_bpm(&m, 60);
+    size_t before = rec.n;
+    for (int64_t t = 1101000; t <= 3100000; t += 1000)
+        metro_tick(&m, t, m.origin_us, metro_beat_us(&m), 4, send, &m.due_us);
+    int64_t at[16];
+    uint8_t note[16];
+    TEST_ASSERT_EQUAL(2, clicks(before, at, note));
+    TEST_ASSERT_EQUAL_INT64(2000000, at[0]);
+    TEST_ASSERT_EQUAL(METRO_NOTE, note[0]); /* beat 4 */
+    TEST_ASSERT_EQUAL_INT64(3000000, at[1]);
+    TEST_ASSERT_EQUAL(METRO_BAR_NOTE, note[1]); /* beat 1 again */
+}
+
+static void test_aligned_on_a_loop_it_clicks_on_the_loops_bars(void)
+{
+    metro_set_bpm(&m, 120);
+    metro_toggle(&m, 1300000, send, &m.due_us);
+    metro_align(&m, 0, 1300000); /* the loop started at 0: beat 1 at 0, 2.0, ... */
+    size_t before = rec.n;
+    run(1300000, 2100000, m.origin_us, metro_beat_us(&m), 4);
+    int64_t at[16];
+    uint8_t note[16];
+    TEST_ASSERT_EQUAL(2, clicks(before, at, note));
+    TEST_ASSERT_EQUAL_INT64(1500000, at[0]); /* not at the press, not in the past */
+    TEST_ASSERT_EQUAL(METRO_NOTE, note[0]);
+    TEST_ASSERT_EQUAL_INT64(2000000, at[1]);
+    TEST_ASSERT_EQUAL(METRO_BAR_NOTE, note[1]);
+}
+
 static void test_follows_the_beat_grid_without_a_double_click(void)
 {
     metro_toggle(&m, 0, send, &m.due_us);
@@ -167,6 +202,8 @@ int main(void)
     RUN_TEST(test_on_makes_its_channel_dry);
     RUN_TEST(test_pot_tempo_range);
     RUN_TEST(test_a_new_tempo_goes_on_from_the_last_click);
+    RUN_TEST(test_a_new_tempo_keeps_the_bar_count);
+    RUN_TEST(test_aligned_on_a_loop_it_clicks_on_the_loops_bars);
     RUN_TEST(test_follows_the_beat_grid_without_a_double_click);
     RUN_TEST(test_toggle_off);
     RUN_TEST(test_the_screen_dot_flashes_with_the_click_beat_1_apart);
