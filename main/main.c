@@ -16,7 +16,7 @@
  * keymap.c (names, what each key and button plays), demo.c (DEMO button),
  * looper.c (RECORD / REPLAY), rhythm.c (SELECT: drum beats), mixer.c (the five
  * pots: beat, metronome volume, live keys, filter, reverb, metronome tempo), metronome.c
- * (FROG), leds.c (the LED strip).
+ * (FROG), leds.c (the LED strip), viz.c (the 8x8 LED matrix: falling notes, ledmx.c).
  * MIDI goes out as UDP over WiFi to tools/piano_bridge.c (main/midi_link.h).
  *
  * Output on serial (115200):
@@ -47,6 +47,7 @@
 #include "freertos/task.h"
 #include "groove.h"
 #include "keymap.h"
+#include "ledmx.h"
 #include "leds.h"
 #include "looper.h"
 #include "matrix.h"
@@ -57,6 +58,7 @@
 #include "screen.h"
 #include "stats.h"
 #include "strip.h"
+#include "viz.h"
 #include "wifi.h"
 
 /* The MCP23017 (address 0x20: A0-A2 pulled down on the board). IOCON.BANK = 0,
@@ -192,9 +194,15 @@ static void report(const grid_t old_g, const grid_t new_g)
     printf("\n");
 }
 
+static viz_t viz; /* the LED matrix */
+
 static void send_midi(const uint8_t *msg, size_t len, const char *what, void *ctx)
 {
-    if (len) midi_link_send(msg, len);
+    if (len) {
+        midi_link_send(msg, len);
+        int64_t now = esp_timer_get_time();
+        viz_midi(&viz, msg, len, now, now);
+    }
     /* The chicks' channels follow the keys' sound, volume, fader, filter, reverb and hold (fx.h). */
     if (len >= 2 && (msg[0] & 0x0f) == KEY_CH && ((msg[0] & 0xf0) == 0xb0 || (msg[0] & 0xf0) == 0xc0)) {
         static const uint8_t COPY[] = {FX_ECHO_CH, FX_WIDE_CH, FX_WIDE2_CH};
@@ -210,7 +218,10 @@ static void send_midi(const uint8_t *msg, size_t len, const char *what, void *ct
  * points to the time it should sound. */
 static void send_at(const uint8_t *msg, size_t len, const char *what, void *ctx)
 {
-    if (len) midi_link_send_at(msg, len, *(const int64_t *)ctx);
+    if (len) {
+        midi_link_send_at(msg, len, *(const int64_t *)ctx);
+        viz_midi(&viz, msg, len, *(const int64_t *)ctx, esp_timer_get_time());
+    }
     if (what) printf("MIDI  %s%s\n", what, midi_link_connected() ? "" : " (not connected)");
 }
 
@@ -449,6 +460,19 @@ static void fx_run(int64_t now)
     }
 }
 
+/* The 8x8 LED matrix: falling notes (viz.c) shown by ledmx.c. */
+static void viz_start(void)
+{
+    viz_init(&viz);
+    esp_err_t err = ledmx_init();
+    if (err != ESP_OK) printf("LED matrix: %s\n", esp_err_to_name(err));
+}
+
+static void viz_run(int64_t now)
+{
+    if (viz_update(&viz, now)) ledmx_show(viz.cols);
+}
+
 void app_main(void)
 {
     mcp_init();
@@ -456,6 +480,7 @@ void app_main(void)
     pots_init();
     esp_err_t strip_err = strip_init();
     if (strip_err != ESP_OK) printf("LED strip: %s\n", esp_err_to_name(strip_err));
+    viz_start();
     screen_init();
     wifi_connect(WIFI_TIMEOUT_MS);
     midi_link_init("chicco-piano");
@@ -546,6 +571,7 @@ void app_main(void)
             next_leds = t + LEDS_PERIOD_US;
             leds_update(t);
         }
+        viz_run(t);
         stats_update(&debug_stats, t);
         show(&matrix);
         stats_scan(pass, esp_timer_get_time() - pass);
