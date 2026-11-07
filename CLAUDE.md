@@ -513,6 +513,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
+**2026-11-07: the 8x8 LED matrix and both 74HC595s passed** on the WROVER (`esp32-hw-checks` `ONLY_CHECK 3`: one LED walks all 64, all on, a smiley; the user saw all three). Wiring as the kit's chapter 16.3 schematic but on DS D25, SH_CP D26, ST_CP D27: `docs/matrix-check-wiring.html` (chip A = columns, gets DS; its pin 9 feeds chip B = rows through 220R; matrix pins 1-8 = the row on the side that lit pin 9 + pin 13's corner LED). Next: the visualizer on the piano.
+
 **State 2026-11-06 (night, end of session):** flashed, not yet tried by the user: the looper's multiply (a layer
 recorded over several passes grows the loop; the user's ask, to have a part and then a pass of silence), a style
 button while the beat plays changes only the keys (the user noticed the loop break when DISCO/SLOW ROCK moved the
