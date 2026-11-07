@@ -79,3 +79,16 @@ bool viz_update(viz_t *v, int64_t now_us)
     }
     return changed;
 }
+
+void viz_compose(const viz_t *v, int beat, int beats, uint8_t out[8])
+{
+    const uint8_t notes = (uint8_t)((1u << VIZ_NOTE_ROWS) - 1);
+    const uint8_t base = (uint8_t)(1u << 7);
+    const uint8_t count = (uint8_t)(1u << 6);
+    for (int c = 0; c < 8; c++) {
+        out[c] = v->cols[c] & notes;
+        if (beat < 0 || beats <= 0 || beat >= beats) continue;
+        out[c] |= base;
+        if (c >= beat * 8 / beats && c < (beat + 1) * 8 / beats) out[c] |= count;
+    }
+}

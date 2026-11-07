@@ -16,7 +16,7 @@
  * keymap.c (names, what each key and button plays), demo.c (DEMO button),
  * looper.c (RECORD / REPLAY), rhythm.c (SELECT: drum beats), mixer.c (the five
  * pots: beat, metronome volume, live keys, filter, reverb, metronome tempo), metronome.c
- * (FROG), leds.c (the LED strip), viz.c (the 8x8 LED matrix: falling notes, ledmx.c).
+ * (FROG), leds.c (the LED strip), viz.c (the 8x8 LED matrix: falling notes and the beat, ledmx.c).
  * MIDI goes out as UDP over WiFi to tools/piano_bridge.c (main/midi_link.h).
  *
  * Output on serial (115200):
@@ -460,7 +460,7 @@ static void fx_run(int64_t now)
     }
 }
 
-/* The 8x8 LED matrix: falling notes (viz.c) shown by ledmx.c. */
+/* The 8x8 LED matrix: falling notes and the beat (viz.c) shown by ledmx.c. */
 static void viz_start(void)
 {
     viz_init(&viz);
@@ -470,7 +470,26 @@ static void viz_start(void)
 
 static void viz_run(int64_t now)
 {
-    if (viz_update(&viz, now)) ledmx_show(viz.cols);
+    int beat = -1;
+    int beats = 0;
+    if (rhythm.on) {
+        const rhythm_style_t *st = rhythm_style(rhythm.style);
+        int step = groove_step(&groove, now);
+        if (step >= 0) {
+            beat = step / st->steps_per_beat;
+            beats = st->steps / st->steps_per_beat;
+        }
+    } else if (metro.on && now >= metro.origin_us && metro_beat_us(&metro) > 0) {
+        beat = (int)((now - metro.origin_us) / metro_beat_us(&metro) % METRO_BEATS);
+        beats = METRO_BEATS;
+    }
+    viz_update(&viz, now);
+    static uint8_t last[8];
+    uint8_t f[8];
+    viz_compose(&viz, beat, beats, f);
+    if (memcmp(f, last, sizeof(f)) == 0) return;
+    memcpy(last, f, sizeof(f));
+    ledmx_show(f);
 }
 
 void app_main(void)

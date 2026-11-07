@@ -89,6 +89,30 @@ void test_all_notes_off_ends_a_streak(void)
     TEST_ASSERT_EQUAL_HEX8(0x06, v.cols[viz_column(60)]);
 }
 
+void test_notes_stop_above_the_beat_rows(void)
+{
+    midi(0x90, 33, 100, 0, 0);
+    rows(0, 8); /* held: a streak down the whole column */
+    uint8_t f[8];
+    viz_compose(&v, -1, 4, f);
+    TEST_ASSERT_EQUAL_HEX8(0x3f, f[0]);
+    for (int c = 1; c < 8; c++) TEST_ASSERT_EQUAL_HEX8(0, f[c]);
+}
+
+void test_beat_rows_count_the_bar(void)
+{
+    uint8_t f[8];
+    viz_compose(&v, 2, 4, f); /* beat 3 of 4: columns 5 and 6 */
+    TEST_ASSERT_EQUAL_HEX8(0x80, f[3]);
+    TEST_ASSERT_EQUAL_HEX8(0xc0, f[4]);
+    TEST_ASSERT_EQUAL_HEX8(0xc0, f[5]);
+    TEST_ASSERT_EQUAL_HEX8(0x80, f[6]);
+    viz_compose(&v, 1, 2, f); /* 2/4: half the row each */
+    TEST_ASSERT_EQUAL_HEX8(0x80, f[3]);
+    TEST_ASSERT_EQUAL_HEX8(0xc0, f[4]);
+    TEST_ASSERT_EQUAL_HEX8(0xc0, f[7]);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -98,5 +122,7 @@ int main(void)
     RUN_TEST(test_a_sequenced_note_waits_for_its_time);
     RUN_TEST(test_drums_metronome_and_chick_copies_are_left_out);
     RUN_TEST(test_all_notes_off_ends_a_streak);
+    RUN_TEST(test_notes_stop_above_the_beat_rows);
+    RUN_TEST(test_beat_rows_count_the_bar);
     return UNITY_END();
 }
