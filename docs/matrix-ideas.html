@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matrix Ideas</title>
+<style>
+  :root { --bg:#f4f3ef; --fg:#1d1d1b; --mute:#6d6d68; --card:#fff; --line:#dcdad3; --acc:#d4351c; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#141518; --fg:#ececea; --mute:#9a9a94; --card:#1e1f23; --line:#33343a; --acc:#ff6a4d; } }
+  :root[data-theme="dark"] { --bg:#141518; --fg:#ececea; --mute:#9a9a94; --card:#1e1f23; --line:#33343a; --acc:#ff6a4d; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.4 system-ui, sans-serif; }
+  main { max-width:1150px; margin:0 auto; padding:16px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:var(--mute); margin-bottom:12px; }
+  .bar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+  button { font:inherit; padding:7px 14px; border:2px solid var(--line); background:var(--card); color:var(--fg); border-radius:8px; cursor:pointer; }
+  #now { color:var(--mute); font-variant-numeric:tabular-nums; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:14px; }
+  .card { background:var(--card); border:2px solid var(--line); border-radius:10px; padding:12px; cursor:pointer; user-select:none; }
+  .card.on { border-color:var(--acc); }
+  .card h2 { font-size:17px; margin:0 0 6px; display:flex; justify-content:space-between; }
+  .card h2 .pick { color:var(--acc); font-size:15px; }
+  .card p { margin:8px 0 0; color:var(--mute); font-size:14px; }
+  canvas { display:block; width:100%; max-width:226px; aspect-ratio:1; margin:0 auto; border-radius:8px; }
+  #picked { margin-top:16px; font-size:18px; }
+</style>
+</head>
+<body>
+<main>
+<h1>What the 8×8 matrix could show</h1>
+<div class="sub">All previews play the same made-up song: the beat at 124 bpm and a 2-bar loop with layers added one by one (bass, chords, hook), then live keys.
+Keys <b>A S D F G H J K L</b> on your keyboard play live notes too. One colour only, on or off, like the real matrix. Click the cards you like.</div>
+<div class="bar"><button id="pp">Pause</button><span id="now"></span></div>
+<div class="grid" id="grid"></div>
+<div id="picked"></div>
+</main>
+<script>
+const BPM = 124, STEP_MS = 60000 / BPM / 4, LOOP = 32; // 16ths, 2-bar loop
+
+// The made-up song. Keys 1-32 as on the toy (A minor in EDM mode).
+const LAYERS = [
+  {name:'bass',   notes:[[0,1,2],[3,1,1],[6,1,2],[10,1,2],[16,6,2],[19,6,1],[22,6,2],[26,6,2]]},
+  {name:'chords', notes:[[0,8,7],[0,10,7],[0,12,7],[8,8,6],[8,10,6],[8,12,6],[16,13,7],[16,15,7],[16,17,7],[24,13,6],[24,15,6],[24,17,6]]},
+  {name:'hook',   notes:[[0,22,2],[4,24,2],[6,25,2],[8,24,4],[16,22,2],[20,20,2],[22,19,2],[24,20,4]]},
+];
+const BEAT = {kick:[0,4,8,12], snare:[4,12], hat:[2,6,10,14], clap:[12]};
+// Song plan, in loops: how many layers play, which layer is being recorded, live keys on.
+const PLAN = [[0,0,0],[0,0,0],[1,1,0],[1,1,0],[2,2,0],[2,2,0],[3,-1,1],[3,-1,1]];
+
+const modes = [];
+let step = -1, t0 = performance.now(), paused = false, pausedAt = 0;
+const held = new Map(); // key -> steps left (for "what sounds now")
+
+function emit(ev) { for (const m of modes) m.onEvent && m.onEvent(ev); }
+function songStep(s) {
+  const loopIx = Math.floor(s / LOOP) % PLAN.length, pos = s % LOOP;
+  const [nLayers, rec, live] = PLAN[loopIx];
+  for (const m of modes) m.onStep && m.onStep(s, pos, nLayers, rec);
+  const st = pos % 16;
+  for (const d in BEAT) if (BEAT[d].includes(st)) emit({drum:d, s});
+  for (let l = 0; l < nLayers; l++) for (const [p,k,len] of LAYERS[l].notes) if (p === pos) note(k, len, l);
+  if (rec >= 0) for (const [p,k,len] of LAYERS[rec].notes) if (p === pos) note(k, len, rec); // being played in
+  if (live && (pos % 4 === 2 || (pos % 8 === 7))) note(15 + ((s * 7) % 13), 1 + (s % 2), 'live');
+}
+function note(key, len, layer) { held.set(key, Math.max(held.get(key) || 0, len)); emit({key, len, layer}); }
+
+// ---- 8x8 helpers
+const blank = () => Array.from({length:8}, () => Array(8).fill(0));
+const col = k => Math.min(7, Math.floor((k - 1) / 4)); // 32 keys -> 8 bands of 4
+const FONT = { A:['.XXX.','X...X','X...X','XXXXX','X...X','X...X','X...X'], B:['XXXX.','X...X','X...X','XXXX.','X...X','X...X','XXXX.'],
+  C:['.XXX.','X...X','X....','X....','X....','X...X','.XXX.'], D:['XXXX.','X...X','X...X','X...X','X...X','X...X','XXXX.'],
+  E:['XXXXX','X....','X....','XXXX.','X....','X....','XXXXX'], F:['XXXXX','X....','X....','XXXX.','X....','X....','X....'],
+  G:['.XXX.','X...X','X....','X.XXX','X...X','X...X','.XXXX'] };
+const NAMES = ['A','B','C','D','E','F','G'];
+const keyName = k => NAMES[(k - 1) % 7];
+
+// ---- the ideas
+function add(id, title, desc, make) { modes.push(Object.assign({id, title, desc, g:blank()}, make())); }
+
+add('A', 'Falling notes', 'Each key drops a dot from the top, low keys left, high keys right. Long notes leave a longer streak.', () => ({
+  drops:[], onEvent(e){ if (e.key) this.drops.push({c:col(e.key), y:0, len:Math.min(4,e.len)}); },
+  onStep(){ for (const d of this.drops) d.y++; this.drops = this.drops.filter(d => d.y - d.len < 8); },
+  draw(g){ for (const d of this.drops) for (let i = 0; i < d.len; i++) { const y = d.y - i; if (y >= 0 && y < 8) g[y][d.c] = 1; } },
+}));
+add('B', 'Level bars', 'Like an equaliser: each column is a range of keys, it jumps up when one plays and sinks back.', () => ({
+  lv:Array(8).fill(0), onEvent(e){ if (e.key) this.lv[col(e.key)] = Math.max(this.lv[col(e.key)], e.layer === 'live' ? 8 : 6); },
+  onStep(){ this.lv = this.lv.map(v => Math.max(0, v - 1)); },
+  draw(g){ this.lv.forEach((v,c) => { for (let y = 8 - v; y < 8; y++) g[y][c] = 1; }); },
+}));
+add('C', 'Beat counter', 'Four squares are the four beats of the bar. The current one is lit, and beat 1 flashes the whole screen briefly.', () => ({
+  st:0, onStep(s){ this.st = s % 16; },
+  draw(g, frac){ const b = Math.floor(this.st / 4), q = [[0,0],[0,4],[4,4],[4,0]][b];
+    if (this.st === 0 && frac < 0.5) { for (const r of g) r.fill(1); return; }
+    for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) g[q[0]+y][q[1]+x] = (y===0||y===3||x===0||x===3||this.st%4===0) ? 1 : 0;
+  },
+}));
+add('D', 'Drum steps', 'The beat as a step sequencer: rows are kick, snare, hat, clap (top half: first half of the bar, bottom: second). A dot runs along.', () => ({
+  st:0, onStep(s){ this.st = s % 16; },
+  draw(g){ const ds = ['kick','snare','hat','clap'];
+    for (let half = 0; half < 2; half++) ds.forEach((d,i) => { for (let x = 0; x < 8; x++) if (BEAT[d].includes(half*8 + x)) g[half*4+i][x] = 1; });
+    const h = Math.floor(this.st / 8), x = this.st % 8; for (let i = 0; i < 4; i++) g[h*4+i][x] ^= 1; },
+}));
+add('E', 'Loop layers', 'Each pair of rows is one loop layer, laid out over the whole loop (left to right). A column sweeps along as it plays; the layer being recorded blinks.', () => ({
+  pos:0, n:0, rec:-1, onStep(s, pos, n, rec){ this.pos = pos; this.n = n; this.rec = rec; },
+  draw(g, frac, s){ for (let l = 0; l < 4; l++) {
+      const has = l < this.n || l === this.rec; if (!has) continue;
+      if (l === this.rec && Math.floor(s / 2) % 2) continue;
+      const L = LAYERS[l]; if (!L) continue;
+      for (const [p,,len] of L.notes) for (let q = p; q < p + len; q++) { g[l*2][Math.floor(q/4)] = 1; if (len > 2) g[l*2+1][Math.floor(q/4)] = 1; }
+    }
+    const x = Math.floor(this.pos / 4); for (let y = 0; y < 8; y++) g[y][x] ^= (y % 2 === 0 ? 1 : 0); },
+}));
+add('F', 'Scrolling roll', 'What sounds right now enters on the right and scrolls left, high notes on top. You see the last 8 steps of the music.', () => ({
+  cols:Array.from({length:8}, () => Array(8).fill(0)),
+  onStep(){ const c = Array(8).fill(0); for (const [k,left] of held) if (left > 0) c[7 - col(k)] = 1; this.cols.shift(); this.cols.push(c); },
+  draw(g){ this.cols.forEach((c,x) => c.forEach((v,y) => { if (v) g[y][x] = 1; })); },
+}));
+add('G', 'Drum hits', 'Pure rhythm: a kick sends a ring out from the middle, the snare flashes the frame, hats sparkle a random dot.', () => ({
+  ring:-1, flash:0, spark:[], onEvent(e){ if (e.drum === 'kick') this.ring = 0; if (e.drum === 'snare') this.flash = 1;
+    if (e.drum === 'hat') this.spark.push([Math.floor(Math.random()*8), Math.floor(Math.random()*8), 2]); },
+  onStep(){ if (this.ring >= 0) this.ring = this.ring >= 3 ? -1 : this.ring + 1; this.flash = 0;
+    this.spark = this.spark.map(([x,y,n]) => [x,y,n-1]).filter(s => s[2] > 0); },
+  draw(g){ if (this.ring >= 0) { const r = this.ring, lo = 3 - r, hi = 4 + r;
+      for (let i = lo; i <= hi; i++) { g[lo][i] = g[hi][i] = g[i][lo] = g[i][hi] = 1; } }
+    if (this.flash) for (let i = 0; i < 8; i++) { g[0][i] = g[7][i] = g[i][0] = g[i][7] = 1; }
+    for (const [x,y] of this.spark) g[y][x] = 1; },
+}));
+add('H', 'Note letter', 'The name of the last key played (A to G), big. Holds still while the same note repeats.', () => ({
+  letter:'A', onEvent(e){ if (e.key && (e.layer === 'live' || e.layer === 2 || e.layer === 0)) this.letter = keyName(e.key); },
+  draw(g){ FONT[this.letter].forEach((row,y) => [...row].forEach((ch,x) => { if (ch === 'X') g[y][x+2] = 1; })); },
+}));
+add('I', 'Mix: notes + beat', 'Falling notes in the top 6 rows, and the bottom 2 rows count the beat (4 blocks of 2 columns).', () => {
+  const a = {drops:[]}; return {
+    onEvent(e){ if (e.key) a.drops.push({c:col(e.key), y:0, len:Math.min(3,e.len)}); },
+    onStep(s){ for (const d of a.drops) d.y++; a.drops = a.drops.filter(d => d.y - d.len < 6); this.st = s % 16; },
+    st:0,
+    draw(g){ for (const d of a.drops) for (let i = 0; i < d.len; i++) { const y = d.y - i; if (y >= 0 && y < 6) g[y][d.c] = 1; }
+      const b = Math.floor(this.st / 4); for (let x = 0; x < 8; x++) { g[7][x] = 1; if (Math.floor(x/2) === b) g[6][x] = 1; } },
+  };
+});
+
+// ---- cards
+let picked = new Set();
+try { picked = new Set(JSON.parse(localStorage.getItem('mtxpick') || '[]')); } catch (e) {}
+const grid = document.getElementById('grid');
+for (const m of modes) {
+  const c = document.createElement('div'); c.className = 'card' + (picked.has(m.id) ? ' on' : '');
+  c.innerHTML = `<h2><span>${m.id}. ${m.title}</span><span class="pick">${picked.has(m.id) ? '✓ picked' : ''}</span></h2><canvas width="226" height="226"></canvas><p>${m.desc}</p>`;
+  c.onclick = () => { picked.has(m.id) ? picked.delete(m.id) : picked.add(m.id);
+    c.classList.toggle('on'); c.querySelector('.pick').textContent = picked.has(m.id) ? '✓ picked' : '';
+    try { localStorage.setItem('mtxpick', JSON.stringify([...picked])); } catch (e) {} showPicked(); };
+  grid.append(c); m.ctx = c.querySelector('canvas').getContext('2d');
+}
+function showPicked() { const p = [...picked].sort(); document.getElementById('picked').innerHTML = p.length ? `Picked: <b>${p.join(', ')}</b>. Tell me these letters.` : 'Nothing picked yet.'; }
+showPicked();
+
+function paint(m, s, frac) {
+  const g = blank(); m.draw(g, frac, s); const ctx = m.ctx, W = 226, cell = W / 8;
+  ctx.fillStyle = '#0b0b0c'; ctx.fillRect(0, 0, W, W);
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+    ctx.beginPath(); ctx.arc(x*cell + cell/2, y*cell + cell/2, cell*0.36, 0, 7);
+    ctx.fillStyle = g[y][x] ? '#ff2a1a' : '#2a1513'; if (g[y][x]) { ctx.shadowColor = '#ff3b22'; ctx.shadowBlur = 10; } else ctx.shadowBlur = 0;
+    ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+}
+function frame(now) {
+  if (!paused) {
+    const s = Math.floor((now - t0) / STEP_MS);
+    while (step < s) { step++; for (const [k,v] of held) held.set(k, v - 1); for (const [k,v] of held) if (v <= 0) held.delete(k); songStep(step); }
+    const frac = (now - t0) / STEP_MS - s;
+    for (const m of modes) paint(m, step, frac);
+    const loopIx = Math.floor(step / LOOP) % PLAN.length, [n, rec, live] = PLAN[loopIx];
+    document.getElementById('now').textContent = `bar ${Math.floor(step/16)%2+1}, beat ${Math.floor(step%16/4)+1} · layers playing: ${n}` + (rec >= 0 ? ` · recording ${LAYERS[rec].name}` : '') + (live ? ' · live keys' : '');
+  }
+  requestAnimationFrame(frame);
+}
+document.getElementById('pp').onclick = e => {
+  paused = !paused; e.target.textContent = paused ? 'Play' : 'Pause';
+  if (paused) pausedAt = performance.now(); else t0 += performance.now() - pausedAt;
+};
+const KB = 'asdfghjkl';
+addEventListener('keydown', e => { const i = KB.indexOf(e.key.toLowerCase()); if (i >= 0 && !e.repeat) note(15 + i, 2, 'live'); });
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
