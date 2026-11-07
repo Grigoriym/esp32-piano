@@ -9,9 +9,14 @@ void looper_init(looper_t *l)
 {
     int64_t origin = l->grid_origin_us;
     int64_t bar = l->grid_bar_us;
+    uint8_t pot_now[LOOPER_POTS];
+    memcpy(pot_now, l->pot_now, sizeof(pot_now));
+    uint8_t known = l->pot_known;
     memset(l, 0, sizeof(*l));
     l->grid_origin_us = origin;
     l->grid_bar_us = bar;
+    memcpy(l->pot_now, pot_now, sizeof(pot_now));
+    l->pot_known = known;
     for (size_t i = 0; i < LOOPER_LAYERS; i++) l->gain[i] = MIXER_LEVEL;
 }
 
@@ -38,6 +43,19 @@ static void set_bit(uint8_t *bits, uint8_t note, bool on)
     } else {
         bits[note / 8] &= (uint8_t)~(1u << (note % 8));
     }
+}
+
+static bool is_note(const uint8_t *msg)
+{
+    return (msg[0] & 0xf0) == 0x90 || (msg[0] & 0xf0) == 0x80;
+}
+
+/* A recorded pot move's pot (mixer_pot_t), or -1. */
+static int pot_of(const uint8_t *msg)
+{
+    if ((msg[0] & 0xf0) != 0xb0) return -1;
+    int pot = (int)msg[1] - LOOPER_POT_CC;
+    return pot >= MIXER_KEYS && pot < MIXER_KEYS + LOOPER_POTS ? pot : -1;
 }
 
 static int64_t floor_div(int64_t a, int64_t b)
@@ -80,7 +98,7 @@ static void silence_at_wrap(looper_t *l, midi_send_fn send, void *ctx)
             bool ends_later = false;
             for (size_t i = 0; i < l->n; i++) {
                 const uint8_t *m = l->ev[i].msg;
-                if ((m[0] & 0x0f) != ch || m[1] != note) continue;
+                if (!is_note(m) || (m[0] & 0x0f) != ch || m[1] != note) continue;
                 ends_later = (m[0] & 0xf0) == 0x80 || !m[2]; /* the first of this note: an off */
                 break;
             }
@@ -117,12 +135,21 @@ static void start_playing(looper_t *l, int64_t start_us, int64_t played_us, midi
     log_msg(send, ctx, what);
 }
 
+/* Where the first note is (a pot move stored at the take's start can come before it). */
+static uint32_t first_note_t(const looper_t *l)
+{
+    for (size_t i = 0; i < l->n; i++) {
+        if (is_note(l->ev[i].msg)) return l->ev[i].t_us;
+    }
+    return 0;
+}
+
 /* Notes played past the loop's length: those before where the loop's first note
  * comes again finish a phrase that started mid-bar and go to the pass's start;
  * the rest are the next pass played before a late RECORD and are dropped. */
 static void wrap_tail(looper_t *l)
 {
-    uint32_t first = l->ev[0].t_us;
+    uint32_t first = first_note_t(l);
     uint32_t sixteenth = (uint32_t)(l->grid_bar_us / 16);
     size_t out = 0;
     for (size_t i = 0; i < l->n; i++) {
@@ -154,7 +181,7 @@ static void close_loop(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx
     l->n_layers = 1;
     if (l->grid_bar_us) {
         /* Bars as played: from the first note, which may come mid-bar. */
-        int64_t phrase = played - l->ev[0].t_us;
+        int64_t phrase = played - first_note_t(l);
         int64_t bars = (phrase + l->grid_bar_us / 2) / l->grid_bar_us;
         l->length_us = (uint32_t)((bars < 1 ? 1 : bars) * l->grid_bar_us);
         wrap_tail(l);
@@ -206,7 +233,9 @@ static void end_dub(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
         int64_t t = l->dub[i].t_us;
         if (t < 0) t += total; /* a pickup: before the loop's start comes round again */
         if (t < 0) t = 0;
-        if (t >= total) {
+        if (!is_note(e.msg)) { /* a pot move: past the end it is the next pass's */
+            if (t >= total) continue;
+        } else if (t >= total) {
             if (on) {
                 set_bit(dropped, e.msg[1], true);
                 continue;
@@ -254,6 +283,7 @@ void looper_record(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
                 l->dubbing = true;
                 l->dub_events = 0;
                 l->dub_base_us = nearest_pass(l, now_us);
+                l->pot_taken = 0;
                 memset(l->rec_held, 0, sizeof(l->rec_held));
                 log_msg(send, ctx, "loop: adding a layer");
             }
@@ -387,8 +417,15 @@ void looper_tick(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
         l->program_due = 0;
         while (l->pos < l->n && l->ev[l->pos].t_us <= t) {
             const looper_event_t *e = &l->ev[l->pos++];
-            set_bit(l->sounding[e->msg[0] & 0x0f], e->msg[1], (e->msg[0] & 0xf0) == 0x90 && e->msg[2]);
             l->due_us = l->start_us + e->t_us;
+            int pot = pot_of(e->msg);
+            if (pot >= 0) {
+                mixer_send_pot_to(e->msg[0] & 0x0f, (mixer_pot_t)pot, e->msg[2], send, ctx);
+                continue;
+            }
+            if (is_note(e->msg)) {
+                set_bit(l->sounding[e->msg[0] & 0x0f], e->msg[1], (e->msg[0] & 0xf0) == 0x90 && e->msg[2]);
+            }
             uint8_t msg[3];
             if (mixer_apply(e->msg, 3, l->gain[e->layer], msg)) send(msg, 3, NULL, ctx);
         }
@@ -400,4 +437,42 @@ void looper_tick(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
         l->pos = 0;
         l->played_us = -1;
     }
+}
+
+/* Stores a pot move in the take: t from the take's start (the loop's start for the
+ * first layer, dub_base_us for one added). Keeps a slot free for a note off. */
+static void store_pot(looper_t *l, int64_t t, int pot, uint8_t level)
+{
+    bool first_layer = l->state == LOOPER_RECORDING;
+    size_t layer = first_layer ? 0 : l->n_layers;
+    uint8_t msg[3] = {(uint8_t)(0xb0 | (LOOP_CH + layer)), (uint8_t)(LOOPER_POT_CC + pot), level};
+    if (first_layer) {
+        if (l->n + 1 >= LOOPER_MAX_EVENTS) return;
+        uint32_t at = (uint32_t)(t < 0 ? 0 : t);
+        size_t j = l->n++; /* in time order: the take's start value goes before the notes */
+        for (; j > 0 && l->ev[j - 1].t_us > at; j--) l->ev[j] = l->ev[j - 1];
+        l->ev[j] = (looper_event_t){.t_us = at, .msg = {msg[0], msg[1], msg[2]}, .layer = 0};
+    } else {
+        if (l->dub_events + 1 >= LOOPER_DUB_EVENTS) return;
+        l->dub[l->dub_events].t_us = (int32_t)t;
+        memcpy(l->dub[l->dub_events].msg, msg, 3);
+        l->dub_events++;
+    }
+}
+
+void looper_pot(looper_t *l, int64_t now_us, int pot, uint8_t level)
+{
+    int i = pot - MIXER_KEYS;
+    if (i < 0 || i >= LOOPER_POTS) return;
+    uint8_t bit = (uint8_t)(1u << i);
+    uint8_t was = l->pot_now[i];
+    bool known = l->pot_known & bit;
+    l->pot_now[i] = level;
+    l->pot_known |= bit;
+    if (known && was == level) return;
+    bool first_layer = l->state == LOOPER_RECORDING;
+    if (!first_layer && !l->dubbing) return;
+    if (known && !(l->pot_taken & bit)) store_pot(l, 0, pot, was); /* where it was when the take began */
+    l->pot_taken |= bit;
+    store_pot(l, now_us - (first_layer ? l->start_us : l->dub_base_us), pot, level);
 }

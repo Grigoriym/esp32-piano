@@ -446,6 +446,67 @@ static void test_a_pickup_held_over_the_pass_start_rings_on(void)
     TEST_ASSERT_EQUAL(1, count(on, 0x80 | (LOOP_CH + 1), 64)); /* its own off, at 9.791 s */
 }
 
+/* Reverb moves (CC 98 = 16 on the layer's channel, then the data entry MSB) from rec[i] on. */
+static size_t reverb_moves(size_t i, uint8_t ch, uint8_t *last_msb)
+{
+    size_t c = 0;
+    for (; i < rec.n; i++) {
+        const uint8_t *m = rec.e[i].msg;
+        if (rec.e[i].len != 3 || m[0] != (0xb0 | ch)) continue;
+        if (m[1] == 98 && m[2] == 16) c++;
+        if (m[1] == 6 && c) *last_msb = m[2];
+    }
+    return c;
+}
+
+static void test_a_layer_keeps_the_reverb_turned_while_recording(void)
+{
+    looper_pot(&l, 0, MIXER_REVERB, 0); /* before: dry */
+    start_layer();                      /* from 3.05 s, its pass from 3 s */
+    note_p(3500000, 64, true, 19);
+    looper_pot(&l, 3600000, MIXER_REVERB, 64);
+    looper_pot(&l, 3800000, MIXER_REVERB, 127);
+    note_p(3900000, 64, false, 19);
+    run(3050000, 4990000);
+    looper_record(&l, 5000000, midi_rec, &rec);
+    size_t start = rec.n;
+    uint8_t msb = 0;
+    run(5000000, 5400000);                                        /* the pass from 5 s, before the turn */
+    TEST_ASSERT_EQUAL(1, reverb_moves(start, LOOP_CH + 1, &msb)); /* back to dry at the start */
+    TEST_ASSERT_EQUAL((8192 - MIXER_REVERB_SEND) >> 7, msb);      /* the send's offset: -100% */
+    run(5400000, 6990000);
+    TEST_ASSERT_EQUAL(3, reverb_moves(start, LOOP_CH + 1, &msb));
+    TEST_ASSERT_EQUAL((8192 + MIXER_REVERB_SEND) >> 7, msb); /* +100% at the end, as turned */
+    TEST_ASSERT_EQUAL(1, count(start, 0x90 | (LOOP_CH + 1), 64));
+}
+
+static void test_pots_left_alone_add_nothing(void)
+{
+    looper_pot(&l, 0, MIXER_REVERB, 40);
+    start_layer();
+    looper_pot(&l, 3500000, MIXER_REVERB, 40); /* sent again, same level */
+    note_p(3600000, 64, true, 19);
+    note_p(3700000, 64, false, 19);
+    run(3050000, 4990000);
+    looper_record(&l, 5000000, midi_rec, &rec);
+    TEST_ASSERT_EQUAL(4, l.n); /* two notes of each layer, no pot moves */
+}
+
+static void test_the_first_layer_keeps_its_pot_moves_without_moving_its_start(void)
+{
+    looper_pot(&l, 0, MIXER_FILTER, 127);
+    looper_set_grid(&l, 0, 2000000);
+    looper_record(&l, 0, midi_rec, &rec);
+    note(1000000, KEY_CH, 60, true); /* the loop starts on the bar line at 0 */
+    looper_pot(&l, 1200000, MIXER_FILTER, 30);
+    note(1500000, KEY_CH, 60, false);
+    looper_record(&l, 3000000, midi_rec, &rec);
+    TEST_ASSERT_EQUAL(2000000, l.length_us); /* the phrase from the first note, as before */
+    TEST_ASSERT_EQUAL(4, l.n);               /* the filter at the start, the note, the move, the off */
+    TEST_ASSERT_EQUAL(LOOPER_POT_CC + MIXER_FILTER, l.ev[0].msg[1]);
+    TEST_ASSERT_EQUAL(127, l.ev[0].msg[2]);
+}
+
 static void test_a_late_record_drops_the_layers_next_pass(void)
 {
     start_layer();
@@ -525,6 +586,9 @@ int main(void)
     RUN_TEST(test_a_record_near_the_pass_end_counts_from_the_next_pass);
     RUN_TEST(test_a_pickup_held_over_the_pass_start_rings_on);
     RUN_TEST(test_a_late_record_drops_the_layers_next_pass);
+    RUN_TEST(test_a_layer_keeps_the_reverb_turned_while_recording);
+    RUN_TEST(test_pots_left_alone_add_nothing);
+    RUN_TEST(test_the_first_layer_keeps_its_pot_moves_without_moving_its_start);
     RUN_TEST(test_clear_forgets_the_loop);
     RUN_TEST(test_a_full_loop_keeps_room_for_the_last_note_off);
     return UNITY_END();

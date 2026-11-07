@@ -123,6 +123,18 @@ void mixer_send_filter_to(uint8_t ch, uint8_t level, midi_send_fn send, void *ct
     send_nrpn(ch, GEN_FILTER, filter_offset(level), NULL, send, ctx);
 }
 
+void mixer_send_pot_to(uint8_t ch, mixer_pot_t pot, uint8_t level, midi_send_fn send, void *ctx)
+{
+    if (pot == MIXER_KEYS) {
+        uint8_t cc[3] = {(uint8_t)(0xb0 | ch), 11, level};
+        send(cc, 3, NULL, ctx);
+    } else if (pot == MIXER_FILTER) {
+        send_nrpn(ch, GEN_FILTER, filter_offset(level), NULL, send, ctx);
+    } else if (pot == MIXER_REVERB) {
+        send_nrpn(ch, GEN_REVERB, reverb_offset(level), NULL, send, ctx);
+    }
+}
+
 void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx)
 {
     char what[40];

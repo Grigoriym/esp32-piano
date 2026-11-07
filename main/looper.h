@@ -33,7 +33,15 @@
  * REPLAY stops the loop or starts it again from the top (at the next bar line
  * while the beat runs); while recording it closes the loop like RECORD, while
  * adding a layer it keeps the layer and stops. A note still held at the end of
- * the loop stops there. */
+ * the loop stops there.
+ *
+ * Pot moves (keys fader, filter, reverb: looper_pot) made while recording a layer are
+ * part of it (the user, 2026-11-07: a reverb turned during a take was lost): stored as
+ * CC LOOPER_POT_CC + the pot, played back as what that pot sends, on the layer's channel.
+ * The first move in a take also stores where the pot was at the take's start, so the
+ * layer goes back to it each time round. */
+#define LOOPER_POT_CC     102 /* + mixer_pot_t: an undefined CC, never sent as is */
+#define LOOPER_POTS       3   /* keys fader, filter, reverb: mixer_pot_t 2, 3, 4 */
 #define LOOPER_MAX_EVENTS 1024
 #define LOOPER_LAYERS     LOOP_CHANNELS
 #define LOOPER_DUB_EVENTS 512 /* the layer being added, until it is closed */
@@ -74,7 +82,10 @@ typedef struct {
     int64_t due_us;                      /* when what looper_tick sends right now should sound */
     uint8_t rec_held[2][16];             /* bit per note, keys and drums: held while recording */
     uint8_t sounding[16][16];            /* bit per channel and note: loop notes on */
-    uint8_t gain[LOOPER_LAYERS]; /* each layer's level, 0-127 (127: no pot sets it since 2026-11-06) */
+    uint8_t gain[LOOPER_LAYERS];  /* each layer's level, 0-127 (127: no pot sets it since 2026-11-06) */
+    uint8_t pot_now[LOOPER_POTS]; /* where each recorded pot is (kept by looper_init) */
+    uint8_t pot_known;            /* bit per pot: pot_now holds a reading */
+    uint8_t pot_taken;            /* bit per pot: its value at the take's start is stored */
 } looper_t;
 
 void looper_init(looper_t *l);
@@ -94,6 +105,10 @@ void looper_clear(looper_t *l, midi_send_fn send, void *ctx);
 /* Every message keymap sent: notes are stored while recording or adding a
  * layer. program: the keys' instrument right now. */
 void looper_capture(looper_t *l, int64_t now_us, const uint8_t *msg, size_t len, uint8_t program);
+
+/* A pot's new level, as it is sent (pot: mixer_pot_t; only the keys fader, filter and
+ * reverb are kept). Stored while recording or adding a layer. */
+void looper_pot(looper_t *l, int64_t now_us, int pot, uint8_t level);
 
 /* Call often (every scan): sends what is due by now_us. Each message's own time
  * is in l->due_us while it is sent. */

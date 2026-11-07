@@ -306,6 +306,7 @@ static void pots_read(int64_t now)
         fx_due[i] = false;
         fx_sent = now;
         mixer_send_fx(&mixer, (mixer_pot_t)i, send_midi, NULL);
+        looper_pot(&looper, now, (int)i, mixer.pot[i]); /* a layer being recorded keeps the move */
     }
 }
 
