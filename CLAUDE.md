@@ -209,9 +209,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `tools/chicco-piano-launch.sh`: links the unit if it isn't (a `disable`
   removes the link) and (re)starts it; right-click **Stop** stops it. Path
   hardcoded too.
-- `docs/cheatsheet.html`: what every key and button does, the Megalovania
-  opening as key numbers, a metronome, the chords of Sinan Sakić's "Ej, od kad
-  sam se rodio" (from chord sites; no melody, none found). Local only: the user
+- `docs/cheatsheet.html`: what every button and knob does (only that since 2026-11-07, the user's ask; the keyboard,
+  the Megalovania opening, the metronome and the Sinan Sakić chords are in git at `81a7e2d`). Local only: the user
   doesn't use artifacts (2026-11-05: "all docs we have offline"); an old published
   copy exists, don't republish it.
 - EDM mode (2026-11-03, the user wants to make simple electronic music, not learn
