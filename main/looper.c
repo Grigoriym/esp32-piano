@@ -68,6 +68,30 @@ static void silence(looper_t *l, midi_send_fn send, void *ctx)
     memset(l->sounding, 0, sizeof(l->sounding));
 }
 
+/* Note offs at a pass's end for the loop notes sounding then, except those the
+ * loop itself ends early in the next pass: a pickup held over the loop's start
+ * rings on (2026-11-07: a note pressed 9 ms before the pass start was cut to 9 ms
+ * at the wrap). A note with no off of its own still stops here. */
+static void silence_at_wrap(looper_t *l, midi_send_fn send, void *ctx)
+{
+    for (unsigned ch = 0; ch < 16; ch++) {
+        for (unsigned note = 0; note < 128; note++) {
+            if (!get_bit(l->sounding[ch], (uint8_t)note)) continue;
+            bool ends_later = false;
+            for (size_t i = 0; i < l->n; i++) {
+                const uint8_t *m = l->ev[i].msg;
+                if ((m[0] & 0x0f) != ch || m[1] != note) continue;
+                ends_later = (m[0] & 0xf0) == 0x80 || !m[2]; /* the first of this note: an off */
+                break;
+            }
+            if (ends_later) continue;
+            uint8_t msg[3] = {(uint8_t)(0x80 | ch), (uint8_t)note, 0};
+            send(msg, 3, NULL, ctx);
+            set_bit(l->sounding[ch], (uint8_t)note, false);
+        }
+    }
+}
+
 /* The first event at or after a time into the pass. */
 static size_t first_after(const looper_t *l, int64_t t)
 {
@@ -371,7 +395,7 @@ void looper_tick(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
         l->played_us = t;
         if (t < (int64_t)l->length_us) return;
         l->due_us = l->start_us + l->length_us;
-        silence(l, send, ctx);
+        silence_at_wrap(l, send, ctx);
         l->start_us += l->length_us;
         l->pos = 0;
         l->played_us = -1;

@@ -428,6 +428,24 @@ static void test_a_record_near_the_pass_end_counts_from_the_next_pass(void)
     TEST_ASSERT_EQUAL(1, count(start, 0x90 | (LOOP_CH + 1), 64)); /* the pickup, at the pass's end */
 }
 
+static void test_a_pickup_held_over_the_pass_start_rings_on(void)
+{
+    record_one_note();
+    run(3000000, 4900000);
+    looper_record(&l, 4900000, midi_rec, &rec);
+    note_p(4991000, 64, true, 19); /* 9 ms before the pass from 5 s, held 0.8 s */
+    note_p(5791000, 64, false, 19);
+    run(4900000, 6990000);
+    looper_record(&l, 7000000, midi_rec, &rec);
+    run(7000000, 8990000);
+    size_t on = rec.n;
+    run(8990000, 9500000); /* its on at 8.991 s, then the wrap at 9 s */
+    TEST_ASSERT_EQUAL(1, count(on, 0x90 | (LOOP_CH + 1), 64));
+    TEST_ASSERT_EQUAL(0, count(on, 0x80 | (LOOP_CH + 1), 64)); /* not cut at the wrap */
+    run(9500000, 9900000);
+    TEST_ASSERT_EQUAL(1, count(on, 0x80 | (LOOP_CH + 1), 64)); /* its own off, at 9.791 s */
+}
+
 static void test_a_late_record_drops_the_layers_next_pass(void)
 {
     start_layer();
@@ -505,6 +523,7 @@ int main(void)
     RUN_TEST(test_a_layer_over_two_passes_doubles_the_loop);
     RUN_TEST(test_a_layer_is_heard_once_closed);
     RUN_TEST(test_a_record_near_the_pass_end_counts_from_the_next_pass);
+    RUN_TEST(test_a_pickup_held_over_the_pass_start_rings_on);
     RUN_TEST(test_a_late_record_drops_the_layers_next_pass);
     RUN_TEST(test_clear_forgets_the_loop);
     RUN_TEST(test_a_full_loop_keeps_room_for_the_last_note_off);
