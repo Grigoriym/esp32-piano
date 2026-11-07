@@ -263,10 +263,20 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   lines, tempo and bar:beat from its clicks (else from the kicks). Sounds sent before the server started are unknown
   (no name on the chip). Tested from a recorded stream in headless Firefox (call `resize()` and `draw()` before the
   screenshot, or it catches an empty frame); not yet seen by the user.
+- **8x8 LED matrix** (2026-11-07): `ledmx.c` drives it (two 74HC595s, DS D25 / SH_CP D26 / ST_CP D27, a 1 kHz
+  `esp_timer` shows one column at a time; `FLIP_ROWS`/`FLIP_COLS` if it sits the other way: which way is up isn't
+  confirmed by the user yet). `viz.c` (pure, host-tested) is what it shows: the user's pick "I" of
+  `docs/matrix-ideas.html` (9 animated previews; "A", falling notes alone, came first): notes of channels 1-6 fall
+  in the top 6 rows (column by pitch, 7 semitones a column from A1; sequenced notes at their own time), the bottom
+  2 rows count the beat or the metronome. The beat itself isn't drawn as notes. Wiring: `docs/wiring.html`
+  and `docs/matrix-check-wiring.html` (the step-by-step page used to wire it). The kit's tutorial is local:
+  `~/claude/esp32/00Freenove_Ultimate_Starter_Kit_for_ESP32-master/C/C_Tutorial.pdf` (schematics are images:
+  `pdftoppm -f <page> -l <page> -r 400 -png`, then crop; chapter 16.3 is pages 166-174).
 - `docs/how-scan-works.html`: animated explainer of the row-by-row scan and the ghost (local page).
 - `docs/wiring.html`: **the wiring doc**, every DevKit pin and what goes on it
   (local page, open in a browser; not published). Update it with every
-  wiring change. 2026-10-22: the 16 toy lines on the MCP23017 (`EFn` → `Bn`,
+  wiring change, in the same step as the wiring (2026-11-07 the matrix went onto the piano without it until the
+  user asked "did you add the matrix in our wiring?"). 2026-10-22: the 16 toy lines on the MCP23017 (`EFn` → `Bn`,
   `ABn` → `An`), the 10 kΩ pull-ups gone, all keys checked by the user. Screen (TFT 1.69",
   HSPI: SCL D14, SDA D13, CS D15, RES D5, DC D4, BLK open) works, shows
   `ui.c` (sound, volume, octave, beat, loop, DEMO, PC link); the user checked
@@ -289,6 +299,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - Firmware: ESP-IDF in C, like the siblings. No Arduino.
 
 ### Traps found here
+- **LED matrix lit everywhere but one diagonal = both 74HC595s get the same data** (2026-11-07, after moving the
+  wires from the test board to the piano): chip B's pin 14 must come from chip A's pin 9 only. The user fixed a
+  wire and it worked. The firmware was right: the same code passed on the test board.
 - **The cable can come up garbled**: 2026-11-04 the bridge read only junk (mostly 0xF8)
   for a whole session, so everything went over WiFi (`playing what comes over WiFi`,
   never `the cable`) and WiFi stalls made the hiccups. A reset of the board (a pyserial
@@ -514,6 +527,14 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 ## Next step
 **2026-11-07: the 8x8 LED matrix and both 74HC595s passed** on the WROVER (`esp32-hw-checks` `ONLY_CHECK 3`: one LED walks all 64, all on, a smiley; the user saw all three). Wiring as the kit's chapter 16.3 schematic but on DS D25, SH_CP D26, ST_CP D27: `docs/matrix-check-wiring.html` (chip A = columns, gets DS; its pin 9 feeds chip B = rows through 220R; matrix pins 1-8 = the row on the side that lit pin 9 + pin 13's corner LED). Next: the visualizer on the piano.
 
+**State 2026-11-07 (end of session):** the matrix is on the piano and shows "Mix" (falling notes + beat count),
+flashed; the user played keys ("seems to work"), the beat rows not confirmed. Looper fixes flashed, not yet judged:
+a note pressed just before the loop's start rings on (it was cut at the wrap: a held 2.7 s note played 9 ms,
+found by capturing the loop and lining it up with the beat), and a layer records pot 3-5 moves made during its take.
+Cheat sheet trimmed to buttons and knobs. Unresolved: the user hears a recorded bass "play 3 times normally and cut
+the beginning the 4th time" (Open items); the live page "does not work" for the user (Open items). Offered, not
+answered: the "Chicco Piano" menu entry also opening the live page.
+
 **State 2026-11-06 (night, end of session):** flashed, not yet tried by the user: the looper's multiply (a layer
 recorded over several passes grows the loop; the user's ask, to have a part and then a pass of silence), a style
 button while the beat plays changes only the keys (the user noticed the loop break when DISCO/SLOW ROCK moved the
@@ -688,6 +709,11 @@ Open items:
   Not looked into: time each part of the pass (the 8 MCP23017 row writes + reads, the pots' 8-sample ADC reads,
   `show()`, the sequencers) with `esp_timer_get_time()` around each, printed in the STATS line. The user hasn't
   noticed lag.
+  Worse since the beat or metronome runs (2026-11-07, matrix on): idle core 0 66-67%, pass ~6.4 ms (worst ~11),
+  scan gap ~12 ms; once FROG/SELECT start, core 1 (the screen) jumps 2% -> ~25%, the pass to ~7.8 ms (worst ~20-27)
+  and the longest gap to ~22 ms; `SCAN stalled` >20 ms was logged ~1600 times in one session. Whether the matrix
+  (1 kHz timer, `gpio_set_level` x50 a column) or the screen redrawing on every click/step causes it: not measured.
+  A key needs 3 equal scans, so ~60 ms with 20 ms gaps: a very short tap could be lost.
 - Which way the knob turns isn't checked: with four screens (Status, Play, Groove, Debug)
   it now matters. Pressing it undoes a loop layer (2026-11-03).
 - SELECT starts the beat at the press, not on a playing loop's bar line: stop the beat
@@ -727,7 +753,15 @@ Open items:
   found; if the bar sticks again, the hops are bigger than 2 levels: check pot-watch.log.
 - The 2026-11-03 cable/WiFi winner flips and the 94 ms slow key: not seen again with the
   cable clean (2026-11-04, only `the cable` won); the 2-minute lookup stall
-  explains slow keys like it. Closed unless they come back.
+  explains slow keys like it. Closed unless they come back. **Back 2026-11-07:** the bridge flipped to `WiFi` and back
+  every ~5-30 s for minutes (cable output still readable); not looked into.
+- **"Plays 3 times normally, the 4th time cuts the beginning"** (the user, 2026-11-07, a 2-bar bass = #6 Cosmic's,
+  on SLOW ROCK with the metronome): `arecordmidi` of the bridge's output showed 16 identical passes, each first note
+  on the metronome's beat 1, nothing late in the bridge log. The user is sure something is wrong ("you see nothing,
+  but there is an error somewhere"). Not checked: what comes out of the speakers. Next time: `pw-record` the sink for
+  a minute while it happens and compare the start of every pass in the audio (FluidSynth voices, xruns).
+- **The live page "does not work"** for the user (2026-11-07): the server answered 200 and `/events` streamed the
+  beat, clicks and keys. What the user saw (opened as a file? a blank roll?) wasn't answered.
 - FluidSynth renders #1 at `pc_synth.sh`'s gain 1.0 ~9 dB over full scale; whether the
   live output clips too isn't checked (`render_riffs.py` uses 0.3).
 - **Fixed 2026-11-06 (a style button no longer touches a playing beat): a style switch while a loop plays moved the
