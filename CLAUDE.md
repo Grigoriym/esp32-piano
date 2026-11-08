@@ -288,7 +288,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (host tests in `test/`, gcc + ASan/UBSan, Unity from `$IDF_PATH`),
   `tools/format.sh --check`, `tools/lint.sh` (clang-tidy, its own
   `build/clang` tree), `tools/size_check.sh` (33% flash free, 2026-11-04). Format and lint only see git-tracked files: `git add` new
-  ones first. `tools/test.sh` runs one binary per test file and exits 1 on any
+  ones first. **Source `~/esp/esp-idf/export.sh` in the same shell first**: without `$IDF_PATH` test.sh and lint.sh
+  exit 1 with no failing test named (2026-11-08 a commit went out on "test 1 / lint 1" read too late; rerun in an
+  exported shell, both 0). `tools/test.sh` runs one binary per test file and exits 1 on any
   failure: judge it by its exit code, not `| tail` (2026-10-25/26 a `tail` showed
   the last file's OK and hid two `test_matrix` failures until CI caught them;
   the matrix tests use the real `matrix_diodes`, so changing it can break them).
@@ -313,7 +315,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   never `the cable`) and WiFi stalls made the hiccups. A reset of the board (a pyserial
   open) and a service restart fixed it; cause unknown. Again 2026-11-04 ~21:00: the bridge
   logged `cable: gone`, ~3 min later the cable reopened while the board restarted, and it
-  read junk until a `systemctl --user restart chicco-piano` (no board reset needed). Check
+  read junk until a `systemctl --user restart chicco-piano` (no board reset needed). Again 2026-11-08 (junk from the
+  service start, WiFi carried everything and lost RESET's tail, see the burst trap); a flash + service start fixed it. Check
   `build-host/toy-serial.log` is readable text.
 - **The service holds the toy's serial port (exclusive) since 2026-11-03: stop it to
   flash or capture** (`systemctl --user stop chicco-piano`, then start it again).
@@ -542,6 +545,14 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 ## Next step
 **2026-11-07: the 8x8 LED matrix and both 74HC595s passed** on the WROVER (`esp32-hw-checks` `ONLY_CHECK 3`: one LED walks all 64, all on, a smiley; the user saw all three). Wiring as the kit's chapter 16.3 schematic but on DS D25, SH_CP D26, ST_CP D27: `docs/matrix-check-wiring.html` (chip A = columns, gets DS; its pin 9 feeds chip B = rows through 220R; matrix pins 1-8 = the row on the side that lit pin 9 + pin 13's corner LED). Next: the visualizer on the piano.
 
+**State 2026-11-08 (end of session):** RESET's Hold-off was lost over WiFi (burst trap, fixed). A loop now records
+the chicks' notes (Echo, Hold, Octave, Arp, Stutter; `take.c`); the first try cut held notes to 350 ms, fixed and
+caught by the new end-to-end test. `tools/loop_check.py` + the toy's channel-16 marks: first run on the toy, a 40-note
+take over 38 passes, OK. The user went through chicks 1-3 (Echo, Hold, Octave explained); 4-8 still to go. Hold on
+piano works but only lengthens the decay (~0.5 s -> ~2 s, rendered): the user first heard no difference. Ideas
+offered: Echo's fade on a pot (ADS1115) or the knob; Wide, Rise, Tape in recordings (they bend or copy the whole
+channel, a layer has one).
+
 **State 2026-11-07 (end of session):** the matrix is on the piano and shows "Mix" (falling notes + beat count),
 flashed; the user played keys ("seems to work"), the beat rows not confirmed. Looper fixes flashed, not yet judged:
 a note pressed just before the loop's start rings on (it was cut at the wrap: a held 2.7 s note played 9 ms,
@@ -769,14 +780,19 @@ Open items:
 - The 2026-11-03 cable/WiFi winner flips and the 94 ms slow key: not seen again with the
   cable clean (2026-11-04, only `the cable` won); the 2-minute lookup stall
   explains slow keys like it. Closed unless they come back. **Back 2026-11-07:** the bridge flipped to `WiFi` and back
-  every ~5-30 s for minutes (cable output still readable); not looked into.
+  every ~5-30 s for minutes (cable output still readable); not looked into. Again 2026-11-08 (20:55, every ~10 s).
 - **"Plays 3 times normally, the 4th time cuts the beginning"** (the user, 2026-11-07, a 2-bar bass = #6 Cosmic's,
   on SLOW ROCK with the metronome): `arecordmidi` of the bridge's output showed 16 identical passes, each first note
   on the metronome's beat 1, nothing late in the bridge log. The user is sure something is wrong ("you see nothing,
   but there is an error somewhere"). Not checked: what comes out of the speakers. Next time: `pw-record` the sink for
   a minute while it happens and compare the start of every pass in the audio (FluidSynth voices, xruns).
-- **The live page "does not work"** for the user (2026-11-07): the server answered 200 and `/events` streamed the
-  beat, clicks and keys. What the user saw (opened as a file? a blank roll?) wasn't answered.
+  2026-11-08 a similar report ("it should have played without interruptions") was a 4-bar loop whose bar 4 held
+  one note (MIDI and the headset's audio both regular); the next one ("the end notes get cut") was real, the 350 ms
+  echo bug, found only by comparing the take with its playback. Next time: `tools/loop_check.py record` first.
+- The live page works for the user (2026-11-08, opened at http://127.0.0.1:21929/; the 2026-11-07 "does not work"
+  was never explained). Its trembling is fixed: the "now" line under the roll wrapped with many notes and resized
+  the canvas several times a second (a pitch-range fix alone didn't change it). Still offered, not answered: the
+  "Chicco Piano" menu entry also opening the page.
 - FluidSynth renders #1 at `pc_synth.sh`'s gain 1.0 ~9 dB over full scale; whether the
   live output clips too isn't checked (`render_riffs.py` uses 0.3).
 - **Fixed 2026-11-06 (a style button no longer touches a playing beat): a style switch while a loop plays moved the
