@@ -207,10 +207,68 @@ static void test_debug_screen_draws_inside_the_screen(void)
     TEST_ASSERT_EQUAL_HEX16(UI_BG, canvas_get(&c, CANVAS_W / 2, CANVAS_H - 2));
 }
 
+static void test_layers_screen_draws_inside_the_screen(void)
+{
+    s.screen = UI_SCREEN_LAYERS;
+    ui_render(&c, &s); /* no loop */
+    s.loop = UI_LOOP_ADDING;
+    s.loop_layers = 4;
+    s.layer_cursor = 3;
+    s.layer_muted = 0x05;
+    s.layer_pending = 0x02;
+    s.layer_sound[0] = "A very long sound name that does not fit";
+    ui_render(&c, &s);
+    TEST_ASSERT_TRUE(count(UI_RED) > 5); /* layer 4 recording */
+    TEST_ASSERT_EQUAL_HEX16(UI_BG, canvas_get(&c, CANVAS_W / 2, CANVAS_H - 2));
+}
+
+static void test_layers_screen_shows_which_layer_plays(void)
+{
+    s.screen = UI_SCREEN_LAYERS;
+    s.loop = UI_LOOP_PLAYING;
+    s.loop_layers = 2;
+    ui_render(&c, &s);
+    int on = count(UI_GREEN);
+    s.layer_muted = 0x02;
+    ui_render(&c, &s);
+    TEST_ASSERT_TRUE(count(UI_GREEN) < on); /* one "on" fewer */
+}
+
+static void test_the_knob_walks_the_layers_before_the_next_screen(void)
+{
+    ui_screen_t screen = UI_SCREEN_GROOVE;
+    int cursor = 2;
+    ui_knob_turn(&screen, &cursor, 1, 3);
+    TEST_ASSERT_EQUAL(UI_SCREEN_LAYERS, screen);
+    TEST_ASSERT_EQUAL(0, cursor);
+    ui_knob_turn(&screen, &cursor, 1, 3);
+    ui_knob_turn(&screen, &cursor, 1, 3);
+    TEST_ASSERT_EQUAL(UI_SCREEN_LAYERS, screen);
+    TEST_ASSERT_EQUAL(2, cursor);
+    ui_knob_turn(&screen, &cursor, 1, 3);
+    TEST_ASSERT_EQUAL(UI_SCREEN_DEBUG, screen);
+    ui_knob_turn(&screen, &cursor, -1, 3); /* back in from the end: the last layer */
+    TEST_ASSERT_EQUAL(UI_SCREEN_LAYERS, screen);
+    TEST_ASSERT_EQUAL(2, cursor);
+    ui_knob_turn(&screen, &cursor, -1, 0); /* no loop: one stop */
+    TEST_ASSERT_EQUAL(UI_SCREEN_GROOVE, screen);
+    ui_knob_turn(&screen, &cursor, 1, 0);
+    TEST_ASSERT_EQUAL(UI_SCREEN_LAYERS, screen);
+    TEST_ASSERT_EQUAL(0, cursor);
+    ui_knob_turn(&screen, &cursor, -1, 0);
+    TEST_ASSERT_EQUAL(UI_SCREEN_GROOVE, screen);
+    screen = UI_SCREEN_DEBUG;
+    ui_knob_turn(&screen, &cursor, 1, 0);
+    TEST_ASSERT_EQUAL(UI_SCREEN_STATUS, screen);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_debug_screen_draws_inside_the_screen);
+    RUN_TEST(test_layers_screen_draws_inside_the_screen);
+    RUN_TEST(test_layers_screen_shows_which_layer_plays);
+    RUN_TEST(test_the_knob_walks_the_layers_before_the_next_screen);
     RUN_TEST(test_chicks_light_on_every_screen);
     RUN_TEST(test_volume_bar_follows_the_volume);
     RUN_TEST(test_percent_from_midi_volume);

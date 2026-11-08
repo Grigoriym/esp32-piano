@@ -32,7 +32,10 @@ static bool same(const ui_state_t *a, const ui_state_t *b)
            && a->g_lane_name[0] == b->g_lane_name[0] && a->g_lane_name[1] == b->g_lane_name[1]
            && a->g_on_time == b->g_on_time && a->g_off == b->g_off && a->g_has_last == b->g_has_last
            && a->g_last_ms == b->g_last_ms && a->metro_on == b->metro_on && a->metro_bpm == b->metro_bpm
-           && a->metro_flash == b->metro_flash && a->fx == b->fx
+           && a->metro_flash == b->metro_flash && a->fx == b->fx && a->layer_cursor == b->layer_cursor
+           && a->layer_muted == b->layer_muted && a->layer_pending == b->layer_pending
+           && a->layer_sound[0] == b->layer_sound[0] && a->layer_sound[1] == b->layer_sound[1]
+           && a->layer_sound[2] == b->layer_sound[2] && a->layer_sound[3] == b->layer_sound[3]
            && memcmp(&a->dbg, &b->dbg, sizeof(a->dbg)) == 0;
 }
 

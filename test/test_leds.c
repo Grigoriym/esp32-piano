@@ -101,6 +101,19 @@ static void test_a_stopped_loop_is_dim(void)
     TEST_ASSERT_GREATER_THAN(stopped, AT(0)[1]);
 }
 
+static void test_a_muted_layer_is_dim(void)
+{
+    s.layers = 2;
+    s.loop_playing = true;
+    s.target = 1;
+    leds_draw(&s, out);
+    uint8_t on = AT(0)[1];
+    s.muted = 0x01;
+    leds_draw(&s, out);
+    TEST_ASSERT_GREATER_THAN(AT(0)[1], on);
+    TEST_ASSERT_TRUE(lit(0));
+}
+
 static void test_the_layer_being_recorded_blinks_red(void)
 {
     s.layers = 2;
@@ -176,6 +189,7 @@ int main(void)
     RUN_TEST(test_the_beat_is_on_strip_leds_7_8_1_2);
     RUN_TEST(test_layers_in_their_colours_the_target_brighter);
     RUN_TEST(test_a_stopped_loop_is_dim);
+    RUN_TEST(test_a_muted_layer_is_dim);
     RUN_TEST(test_the_layer_being_recorded_blinks_red);
     RUN_TEST(test_armed_blinks_led_1);
     RUN_TEST(test_a_pot_turned_shows_a_bar);

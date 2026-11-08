@@ -44,7 +44,7 @@ static const uint8_t CHICK_FX[N_COLS] = {0, 3, 5, 6, 2, 7, 1, 4}; /* chicks 1 4 
 /* General MIDI drum notes for the animals, AB7 x EF0-EF7 (AB6: the chicks, no drums); 0 = none. */
 static const uint8_t DRUM_NOTE[2][N_COLS] = {
     /* AB6 chicks */ {0},
-    /* AB7 */ {36, 0, 48, 46, 0, 0, 0, 0}, /* dog, (frog: the metronome), red bird, blue bird */
+    /* AB7 */ {36, 0, 48, 0, 0, 0, 0, 0}, /* dog, (frog: the metronome), red bird; blue bird: undo */
 };
 
 void keymap_init(keymap_t *k)
@@ -139,7 +139,8 @@ static void style_button(keymap_t *k, size_t c, midi_send_fn send, void *ctx)
 /* Buttons the caller handles, AB5 and AB7 x EF0-EF7. */
 static const keymap_action_t ACTION[2][N_COLS] = {
     /* AB5 */ {[5] = KEYMAP_RECORD, [6] = KEYMAP_REPLAY},
-    /* AB7 */ {[1] = KEYMAP_METRO, [4] = KEYMAP_SELECT, [5] = KEYMAP_DEMO}, /* FROG was a low tom */
+    /* AB7 */ {[1] = KEYMAP_METRO, [3] = KEYMAP_UNDO, [4] = KEYMAP_SELECT, [5] = KEYMAP_DEMO},
+    /* FROG was a low tom, BLUE BIRD an open hi-hat (undo since 2026-11-08: the knob's press mutes a layer) */
 };
 
 keymap_action_t keymap_event(keymap_t *k, size_t r, size_t c, bool down, midi_send_fn send, void *ctx)

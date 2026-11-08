@@ -29,7 +29,15 @@
  *
  *   [E][H][O][A]  [R][T][S][W]      Echo Hold Octave Arp, Rise Tape Stutter Wide
  *
- * The fourth screen, Debug: each core's load as a bar, free memory, the WiFi
+ * The fourth screen, Layers (2026-11-08): the loop's layers, one row each, in the LED strip's
+ * colours, with its sound and whether it plays. The knob walks through the rows before it goes
+ * on to the next screen; its press mutes the row's layer or brings it back (looper_mute).
+ *
+ *   ▌ 1  Growl bass, Am        on
+ *   ▌ 2  Saw lead, Am       muted       the row the knob is on: lit behind
+ *   ▌ 3  Saw lead, Am  mute at bar      waits for the next bar line
+ *
+ * The fifth screen, Debug: each core's load as a bar, free memory, the WiFi
  * signal, the scan loop's timing, the time since boot.
  *
  * The third screen: the Groove screen, the beat's bar as 16 (or 12) steps
@@ -55,6 +63,7 @@ typedef enum {
     UI_SCREEN_STATUS,
     UI_SCREEN_PLAY,
     UI_SCREEN_GROOVE,
+    UI_SCREEN_LAYERS,
     UI_SCREEN_DEBUG,
     UI_SCREEN_COUNT,
 } ui_screen_t;
@@ -87,6 +96,11 @@ typedef struct {
         fx; /* the chicks' effects on: bit per fx_kind_t (fx.h), Echo Hold Octave Arp, Rise Tape Stutter Wide */
     ui_loop_t loop;
     int loop_layers; /* the one being added included */
+    /* Layers screen */
+    int layer_cursor;           /* the row the knob is on */
+    uint8_t layer_muted;        /* bit per layer */
+    uint8_t layer_pending;      /* bit per layer: muted flips at the next bar line */
+    const char *layer_sound[4]; /* each layer's instrument */
     ui_screen_t screen;
     uint32_t keys;     /* the keys playing: bit 0 = key 1 */
     uint32_t held;     /* pressed but held back as a possible ghost */
@@ -127,7 +141,15 @@ int ui_fx_x(int kind); /* the left edge of effect kind's box */
 #define UI_RED   RGB(255, 90, 95)
 #define UI_FX    RGB(90, 200, 255)
 
+/* The Layers screen's rows, for the tests. */
+#define UI_LAYER_ROW_Y 50
+#define UI_LAYER_ROW_H 38
+
 void ui_render(canvas_t *c, const ui_state_t *s);
+
+/* The knob turned one step (step +1 or -1): on the Layers screen it moves through the
+ * rows first (layers of them), else and past the ends to the next screen. */
+void ui_knob_turn(ui_screen_t *screen, int *cursor, int step, int layers);
 
 /* MIDI volume 0..127 as 0..100 %, rounded. */
 int ui_percent(int midi);

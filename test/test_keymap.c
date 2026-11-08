@@ -120,6 +120,8 @@ static void test_buttons(void)
     TEST_ASSERT_EQUAL(KEYMAP_RECORD, keymap_event(&k, 5, 5, true, midi_rec, &rec));
     TEST_ASSERT_EQUAL(KEYMAP_REPLAY, keymap_event(&k, 5, 6, true, midi_rec, &rec));
     TEST_ASSERT_EQUAL(KEYMAP_SELECT, keymap_event(&k, 7, 4, true, midi_rec, &rec));
+    TEST_ASSERT_EQUAL(KEYMAP_UNDO, keymap_event(&k, 7, 3, true, midi_rec, &rec)); /* BLUE BIRD */
+    TEST_ASSERT_EQUAL(KEYMAP_NONE, keymap_event(&k, 7, 3, false, midi_rec, &rec));
     TEST_ASSERT_EQUAL(4, rec.n);
 }
 

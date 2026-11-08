@@ -350,10 +350,49 @@ void looper_undo(looper_t *l, midi_send_fn send, void *ctx)
         silence(l, send, ctx);
         l->n_layers--;
         drop_layers(l, l->n_layers);
+        l->muted &= (uint8_t)((1u << l->n_layers) - 1);
+        l->mute_flip &= (uint8_t)((1u << l->n_layers) - 1);
         log_msg(send, ctx, "loop: last layer dropped");
     } else if (l->n_layers == 1) {
         looper_clear(l, send, ctx);
         log_msg(send, ctx, "loop: erased");
+    }
+}
+
+void looper_mute(looper_t *l, size_t layer, int64_t now_us, midi_send_fn send, void *ctx)
+{
+    if (layer >= l->n_layers) return;
+    l->mute_flip ^= (uint8_t)(1u << layer);
+    l->mute_at_us = now_us;
+    if (l->grid_bar_us)
+        l->mute_at_us =
+            l->grid_origin_us + (floor_div(now_us - l->grid_origin_us, l->grid_bar_us) + 1) * l->grid_bar_us;
+    if (l->state != LOOPER_PLAYING) { /* stopped: nothing to wait for */
+        l->muted ^= l->mute_flip;
+        l->mute_flip = 0;
+    }
+    char what[48];
+    bool will_mute = (l->muted ^ l->mute_flip) & (1u << layer);
+    snprintf(what, sizeof(what), "loop: layer %u %s", (unsigned)layer + 1, will_mute ? "muted" : "back");
+    log_msg(send, ctx, what);
+}
+
+/* The mutes asked for take effect now (l->mute_at_us): note offs for a muted layer's notes. */
+static void apply_mutes(looper_t *l, midi_send_fn send, void *ctx)
+{
+    uint8_t now_muted = l->mute_flip & ~l->muted;
+    l->muted ^= l->mute_flip;
+    l->mute_flip = 0;
+    l->due_us = l->mute_at_us;
+    for (unsigned layer = 0; layer < LOOPER_LAYERS; layer++) {
+        if (!(now_muted & (1u << layer))) continue;
+        unsigned ch = LOOP_CH + layer;
+        for (unsigned note = 0; note < 128; note++) {
+            if (!get_bit(l->sounding[ch], (uint8_t)note)) continue;
+            uint8_t msg[3] = {(uint8_t)(0x80 | ch), (uint8_t)note, 0};
+            send(msg, 3, NULL, ctx);
+            set_bit(l->sounding[ch], (uint8_t)note, false);
+        }
     }
 }
 
@@ -416,7 +455,9 @@ void looper_tick(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
         }
         l->program_due = 0;
         while (l->pos < l->n && l->ev[l->pos].t_us <= t) {
-            const looper_event_t *e = &l->ev[l->pos++];
+            const looper_event_t *e = &l->ev[l->pos];
+            if (l->mute_flip && l->start_us + e->t_us >= l->mute_at_us) apply_mutes(l, send, ctx);
+            l->pos++;
             l->due_us = l->start_us + e->t_us;
             int pot = pot_of(e->msg);
             if (pot >= 0) {
@@ -424,12 +465,16 @@ void looper_tick(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
                 continue;
             }
             if (is_note(e->msg)) {
-                set_bit(l->sounding[e->msg[0] & 0x0f], e->msg[1], (e->msg[0] & 0xf0) == 0x90 && e->msg[2]);
+                bool on = (e->msg[0] & 0xf0) == 0x90 && e->msg[2];
+                if (on && (l->muted & (1u << e->layer))) continue;
+                set_bit(l->sounding[e->msg[0] & 0x0f], e->msg[1], on);
             }
             uint8_t msg[3];
             if (mixer_apply(e->msg, 3, l->gain[e->layer], msg)) send(msg, 3, NULL, ctx);
         }
         l->played_us = t;
+        int64_t pass_end = l->start_us + l->length_us;
+        if (l->mute_flip && l->mute_at_us <= now_us && l->mute_at_us <= pass_end) apply_mutes(l, send, ctx);
         if (t < (int64_t)l->length_us) return;
         l->due_us = l->start_us + l->length_us;
         silence_at_wrap(l, send, ctx);

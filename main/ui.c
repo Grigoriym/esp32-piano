@@ -1,6 +1,7 @@
 #include "ui.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #include "chord.h"
 
@@ -269,6 +270,81 @@ static void debug_screen(canvas_t *c, const ui_state_t *s)
     dbg_line(c, 228, "Up", v, INK);
 }
 
+/* A layer's state on the right: "rec", "mute at bar", "muted", "on"; returns its width. */
+static int layer_state(canvas_t *c, const ui_state_t *s, int i, int y)
+{
+    bool muted = s->layer_muted & (1u << i);
+    bool pending = s->layer_pending & (1u << i);
+    bool rec = (s->loop == UI_LOOP_ADDING && i == s->loop_layers - 1) || s->loop == UI_LOOP_RECORDING;
+    const char *state = "on";
+    uint16_t color = UI_GREEN;
+    if (rec) {
+        state = "rec";
+        color = UI_RED;
+    } else if (pending) {
+        state = muted ? "back at bar" : "mute at bar";
+        color = ACCENT;
+    } else if (muted) {
+        state = "muted";
+        color = MUTED;
+    }
+    canvas_text_right(c, &FONT_TEXT, RIGHT, y, state, color);
+    return font_text_width(&FONT_TEXT, state);
+}
+
+/* One existing layer's row: its colour, number, sound and state. */
+static void layer_row(canvas_t *c, const ui_state_t *s, int i, int y)
+{
+    static const uint16_t COLOR[4] = {RGB(0, 200, 220), RGB(230, 70, 220), RGB(240, 220, 40),
+                                      RGB(255, 140, 30)}; /* the LED strip's cyan, magenta, yellow, orange */
+    bool muted = s->layer_muted & (1u << i);
+    char num[12];
+    snprintf(num, sizeof(num), "%d", i + 1);
+    canvas_fill(c, LEFT, y + 6, 6, UI_LAYER_ROW_H - 16, muted ? LINE : COLOR[i]);
+    canvas_text(c, &FONT_TEXT, LEFT + 12, y + 7, num, muted ? MUTED : INK);
+    int sw = layer_state(c, s, i, y + 7);
+    /* The sound, cut to the room left of the state. */
+    char sound[24];
+    snprintf(sound, sizeof(sound), "%s", s->layer_sound[i] ? s->layer_sound[i] : "?");
+    int room = RIGHT - sw - 8 - (LEFT + 30);
+    for (size_t n = strlen(sound); n > 0 && font_text_width(&FONT_TEXT, sound) > room; n--) sound[n - 1] = 0;
+    canvas_text(c, &FONT_TEXT, LEFT + 30, y + 7, sound, muted ? MUTED : INK);
+}
+
+static void layers_screen(canvas_t *c, const ui_state_t *s)
+{
+    if (s->loop_layers <= 0) {
+        canvas_text_center(c, &FONT_TEXT, 120, "No loop", MUTED);
+        canvas_text_center(c, &FONT_TEXT, 145, "RECORD starts one", MUTED);
+        return;
+    }
+    for (int i = 0; i < 4; i++) {
+        int y = UI_LAYER_ROW_Y + i * UI_LAYER_ROW_H;
+        if (i >= s->loop_layers) {
+            char num[12];
+            snprintf(num, sizeof(num), "%d", i + 1);
+            canvas_text(c, &FONT_TEXT, LEFT + 12, y + 7, num, LINE);
+            continue;
+        }
+        if (i == s->layer_cursor) canvas_fill(c, LEFT - 6, y, RIGHT - LEFT + 12, UI_LAYER_ROW_H - 4, LINE);
+        layer_row(c, s, i, y);
+    }
+    canvas_text_center(c, &FONT_TEXT, 210, "press: mute / unmute", MUTED);
+}
+
+void ui_knob_turn(ui_screen_t *screen, int *cursor, int step, int layers)
+{
+    if (*screen == UI_SCREEN_LAYERS) {
+        int next = *cursor + step;
+        if (next >= 0 && next < layers) {
+            *cursor = next;
+            return;
+        }
+    }
+    *screen = (ui_screen_t)((*screen + step + UI_SCREEN_COUNT) % UI_SCREEN_COUNT);
+    if (*screen == UI_SCREEN_LAYERS) *cursor = step > 0 || layers <= 0 ? 0 : layers - 1;
+}
+
 int ui_fx_x(int kind)
 {
     /* Two groups of 4 like the chicks' two rows, a wider gap between them. */
@@ -308,6 +384,10 @@ void ui_render(canvas_t *c, const ui_state_t *s)
     }
     if (s->screen == UI_SCREEN_GROOVE) {
         groove_screen(c, s);
+        return;
+    }
+    if (s->screen == UI_SCREEN_LAYERS) {
+        layers_screen(c, s);
         return;
     }
     if (s->screen == UI_SCREEN_DEBUG) {

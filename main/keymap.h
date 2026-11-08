@@ -61,6 +61,7 @@ typedef enum {
     KEYMAP_SELECT, /* SELECT pressed */
     KEYMAP_STYLE,  /* a style button pressed (its program change is already sent) */
     KEYMAP_METRO,  /* FROG pressed: the metronome (metronome.h) */
+    KEYMAP_UNDO,   /* BLUE BIRD pressed: drop the last loop layer (looper_undo) */
     KEYMAP_FX,     /* a chick pressed or let go: effect k->fx (fx.h's order = chicks 1-8), k->fx_down */
 } keymap_action_t;
 

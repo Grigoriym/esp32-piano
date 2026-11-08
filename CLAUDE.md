@@ -95,7 +95,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (no ESP-IDF includes, host-tested): `matrix.c` (debounce 3 scans, ghost
   rectangles; a press that may be a ghost is held back), `keymap.c` (names
   and what every key and button plays), `demo.c` (DEMO: Megalovania intro,
-  channel 2, 100 bpm, velocity 70), `looper.c` (RECORD/REPLAY/knob press: a looper
+  channel 2, 100 bpm, velocity 70), `looper.c` (RECORD/REPLAY/BLUE BIRD: a looper
   that starts at the first note; with the beat on, or else the metronome clicking (2026-11-06: a loop to
   the metronome alone was 3709 ms against its 3692 ms 2 bars and drifted) (`looper_set_grid`, from main
   every scan) it starts on that note's bar line, its length is first note to
@@ -104,8 +104,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   note's place wrap to the start, a late RECORD's next-pass notes are dropped; RECORD while playing adds a layer, heard once closed; recorded over several passes (second RECORD rounded to
   whole passes from the pass start nearest the first) the loop grows to that many passes, older layers repeated, up to
   8 (the user, 2026-11-06: a part, then a pass of silence; before, every pass stacked into one) (up to 4, keys on
-  channels 3-6 each with its instrument, drums on 10), the knob's press undoes
-  one (2026-11-03); RESET erases it), `rhythm.c` (SELECT: a drum
+  channels 3-6 each with its instrument, drums on 10), BLUE BIRD undoes
+  one (the knob's press until 2026-11-08; BLUE BIRD was an open hi-hat); `looper_mute` silences a layer and brings it
+  back, on the next bar line with a beat/metronome, else at once (2026-11-08, the Layers screen, below); RESET erases it), `rhythm.c` (SELECT: a drum
   beat per style button, one bar of `x`/`X`/`.` steps per drum; while it plays a style button changes only the
   keys' sound, not the beat or its kit (the user, 2026-11-06: it used to switch at the beat's bar line and moved the
   beat off a playing loop); velocity 70, not recorded by the looper). They send through
@@ -161,7 +162,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   red), 5-8 the beat's count (all turned 2 along the strip, `LEDS_TURN`: the strip lies in a circle, the user
   wanted the beat on strip LEDs 7, 8, 1, 2, 2026-11-05); a pot turned shows its level as a bar for 1.5 s. All 3 pots
   read 0-127 over their travel (2026-11-04); mid-travel they can jitter, see Open items.
-  `stats.c` (2026-11-06, the user felt the chip warm): the fourth knob screen, Debug (each core's load from the idle
+  **Layers screen** (2026-11-08, the user's ask after "is it a groovebox?": performing a song from one loop by
+  muting layers): the fourth knob screen, one row per layer (LED colour, sound, on / muted / mute at bar / rec). The
+  knob walks its rows before the next screen (`ui_knob_turn`, host-tested); its press mutes the row's layer. A muted
+  layer is dim on the strip. `tools/loop_check.py` doesn't know mutes yet: a muted pass reads as missing notes.
+  Next planned: the ADS1115 pots as one fader per layer.
+  `stats.c` (2026-11-06, the user felt the chip warm): the fifth knob screen, Debug (each core's load from the idle
   tasks' run time, `CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS`; free and lowest RAM, WiFi dBm, the longest scan gap,
   a scan pass's work average / longest, uptime), and a `STATS ...` log line every 10 s. First reading: core 0 ~60%
   busy, a scan pass ~5.3 ms of work (worst 7.7), so the scan runs every ~7 ms, not the 2 ms the notes assume (debounce
@@ -606,7 +612,7 @@ noise (Open items). The amp is off the wiring doc (not used).
 
 **State 2026-11-03 (end of session):** the toy is a small groovebox now: EDM mode on
 DISCO (four on the floor) and MARCH (breakbeat), both 124 bpm, keys in A minor, the
-synth drum kit; the looper keeps time with the beat and stacks 4 layers (knob press =
+synth drum kit; the looper keeps time with the beat and stacks 4 layers (knob press, BLUE BIRD since 2026-11-08, =
 undo); a Groove screen shows timing; MIDI goes over the USB cable and WiFi at once.
 `docs/riffs.html` lists two songs (#1 on DISCO, #2 on MARCH), the user played #1 through
 and found #2's fixed bass fine. The user continues tomorrow: what with, not said (ask).
@@ -740,8 +746,8 @@ Open items:
   and the longest gap to ~22 ms; `SCAN stalled` >20 ms was logged ~1600 times in one session. Whether the matrix
   (1 kHz timer, `gpio_set_level` x50 a column) or the screen redrawing on every click/step causes it: not measured.
   A key needs 3 equal scans, so ~60 ms with 20 ms gaps: a very short tap could be lost.
-- Which way the knob turns isn't checked: with four screens (Status, Play, Groove, Debug)
-  it now matters. Pressing it undoes a loop layer (2026-11-03).
+- Which way the knob turns isn't checked: with five screens (Status, Play, Groove, Layers, Debug)
+  it now matters. Pressing it mutes a layer on the Layers screen (2026-11-08; it was undo, now BLUE BIRD).
 - SELECT starts the beat at the press, not on a playing loop's bar line: stop the beat
   under a loop recorded with it and start it again, and they drift apart (seen in the
   code, 2026-11-03, not reported by the user). The song plans use REPLAY for the

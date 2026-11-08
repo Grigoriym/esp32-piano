@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#define DIM   3 /* a stopped loop's layers, a layer pot 2 isn't on */
+#define DIM   3 /* a stopped loop's layers, a muted layer */
 #define MID   8
 #define FULL  LEDS_MAX
 #define BEATS 4 /* LEDs 5-8 */
@@ -48,7 +48,8 @@ void leds_draw(const leds_state_t *s, leds_t out)
         if (i == s->recording_layer) {
             if (blink(s->now_us, 250000)) set(out, i, RED, MID);
         } else {
-            set(out, i, LAYER[i], !s->loop_playing ? DIM : i == s->target ? FULL : MID);
+            bool dim = !s->loop_playing || (s->muted & (1u << i));
+            set(out, i, LAYER[i], dim ? DIM : i == s->target ? FULL : MID);
         }
     }
     if (s->armed && s->layers == 0 && blink(s->now_us, 1000000)) set(out, 0, RED, MID);

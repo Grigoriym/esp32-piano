@@ -341,6 +341,7 @@ static void leds_update(int64_t now)
         .armed = looper.state == LOOPER_ARMED,
         .loop_playing = looper.state == LOOPER_PLAYING,
         .target = (int)looper_layers(&looper) - 1,
+        .muted = looper.muted,
         .pot = -1,
     };
     if (rhythm.on) {
@@ -369,6 +370,7 @@ static void leds_update(int64_t now)
 }
 
 static ui_screen_t screen_shown;
+static int layer_cursor;       /* the Layers screen's row */
 static ui_debug_t debug_stats; /* stats.c, once a second */
 
 /* What the screen shows, from the state of every part. */
@@ -425,6 +427,16 @@ static void show(const matrix_t *m)
              : looper.length_us            ? UI_LOOP_STOPPED
                                            : UI_LOOP_EMPTY;
     s.loop_layers = (int)looper_layers(&looper);
+    if (layer_cursor >= (int)looper.n_layers)
+        layer_cursor = looper.n_layers ? (int)looper.n_layers - 1 : 0; /* undone */
+    s.layer_cursor = layer_cursor;
+    s.layer_muted = looper.muted;
+    s.layer_pending = looper.mute_flip;
+    for (int i = 0; i < s.loop_layers && i < 4; i++) {
+        /* The layer being added takes the keys' sound when its first note comes. */
+        s.layer_sound[i] = keymap_program_name(
+            i < (int)looper.n_layers || looper.dub_events ? looper.program[i] : keymap.program);
+    }
     screen_set(&s);
 }
 
@@ -509,6 +521,7 @@ static void on_cell(size_t r, size_t c, bool down, void *ctx)
             rhythm_toggle(&rhythm, keymap.style, now, send_at, &at);
             break;
         case KEYMAP_STYLE: break; /* the keys' sound only: a playing beat stays as it is */
+        case KEYMAP_UNDO: looper_undo(&looper, send_at, &at); break;
         case KEYMAP_METRO:
             metro_toggle(&metro, at, send_at, &metro.due_us);
             /* On a playing loop: its bars from the loop's start, not from the press. */
@@ -572,6 +585,26 @@ static void viz_run(int64_t now)
     ledmx_show(f);
 }
 
+/* The knob: turning walks the screens (and the Layers screen's rows), its press on the
+ * Layers screen mutes or brings back a layer. */
+static void knob_events(void)
+{
+    knob_event_t knob;
+    while (encoder_poll(&knob)) {
+        printf("KNOB  %s\n", knob == KNOB_CW ? "CW" : knob == KNOB_CCW ? "CCW" : "PRESS");
+        int layers = (int)looper.n_layers; /* a layer being added can't be muted yet */
+        if (knob == KNOB_PRESS) {
+            /* The Layers screen: mute or bring back the row's layer (BLUE BIRD undoes since 2026-11-08). */
+            if (screen_shown == UI_SCREEN_LAYERS) {
+                int64_t at = esp_timer_get_time() + MIDI_LINK_LEAD_US;
+                looper_mute(&looper, (size_t)layer_cursor, at, send_at, &at);
+            }
+        } else {
+            ui_knob_turn(&screen_shown, &layer_cursor, knob == KNOB_CW ? 1 : -1, layers);
+        }
+    }
+}
+
 void app_main(void)
 {
     mcp_init();
@@ -627,19 +660,7 @@ void app_main(void)
             report(prev, matrix.stable);
             matrix_sync(&matrix, on_cell, NULL);
         }
-        knob_event_t knob;
-        while (encoder_poll(&knob)) {
-            printf("KNOB  %s\n", knob == KNOB_CW ? "CW" : knob == KNOB_CCW ? "CCW" : "PRESS");
-            if (knob == KNOB_PRESS) {
-                int64_t at = esp_timer_get_time() + MIDI_LINK_LEAD_US;
-                loop_snap_t was = loop_snap();
-                looper_undo(&looper, send_at, &at);
-                loop_marks(was);
-            } else {
-                int step = knob == KNOB_CW ? 1 : UI_SCREEN_COUNT - 1;
-                screen_shown = (ui_screen_t)((screen_shown + step) % UI_SCREEN_COUNT);
-            }
-        }
+        knob_events();
         int64_t t = esp_timer_get_time();
         /* The sequencers run MIDI_LINK_LEAD_US ahead; the PC plays each message at
          * its time. The beat sends at most one step a call, due at its next_us;

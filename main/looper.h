@@ -35,6 +35,10 @@
  * adding a layer it keeps the layer and stops. A note still held at the end of
  * the loop stops there.
  *
+ * looper_mute (the knob's press on the Layers screen, 2026-11-08) silences a layer or brings it
+ * back, at the next bar line while the beat or the metronome runs, else at once: the layer stays in
+ * the loop, only its notes aren't sent. Muting stops its notes still sounding (its drums ring out).
+ *
  * Pot moves (keys fader, filter, reverb: looper_pot) made while recording a layer are
  * part of it (the user, 2026-11-07: a reverb turned during a take was lost): stored as
  * CC LOOPER_POT_CC + the pot, played back as what that pot sends, on the layer's channel.
@@ -86,6 +90,9 @@ typedef struct {
     uint8_t pot_now[LOOPER_POTS]; /* where each recorded pot is (kept by looper_init) */
     uint8_t pot_known;            /* bit per pot: pot_now holds a reading */
     uint8_t pot_taken;            /* bit per pot: its value at the take's start is stored */
+    uint8_t muted;                /* bit per layer: its notes aren't sent */
+    uint8_t mute_flip;            /* bit per layer: muted flips at mute_at_us */
+    int64_t mute_at_us;
 } looper_t;
 
 void looper_init(looper_t *l);
@@ -98,6 +105,11 @@ void looper_replay(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx);
 
 /* Drops the layer being added, or the last one (the knob's press). */
 void looper_undo(looper_t *l, midi_send_fn send, void *ctx);
+
+/* Mutes layer (0..n_layers-1) or brings it back, at the next bar line after now_us (the
+ * time being sent, the lead included) or at once without a beat; pressed again before
+ * that, it stays as it was. */
+void looper_mute(looper_t *l, size_t layer, int64_t now_us, midi_send_fn send, void *ctx);
 
 /* Stops whatever it does and forgets the loop (RESET). */
 void looper_clear(looper_t *l, midi_send_fn send, void *ctx);

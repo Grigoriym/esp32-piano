@@ -341,6 +341,81 @@ static void test_undo_drops_the_last_layer_then_the_loop(void)
     TEST_ASSERT_EQUAL(0, l.length_us);
 }
 
+static void test_a_muted_layer_is_silent_and_comes_back(void)
+{
+    add_layer(); /* layer 2: key 64 at 3.5 s of the 2 s loop from 3 s, 0.5 s into a pass */
+    looper_mute(&l, 1, 5200000, midi_rec, &rec);
+    size_t start = rec.n;
+    run(5200000, 7900000);            /* passes from 5 s and 7 s */
+    TEST_ASSERT_EQUAL(0x02, l.muted); /* no beat: at once */
+    TEST_ASSERT_EQUAL(0, count(start, 0x90 | (LOOP_CH + 1), 64));
+    TEST_ASSERT_EQUAL(1, count(start, 0x90 | LOOP_CH, 60)); /* layer 1 plays on, at 7 s */
+    looper_mute(&l, 1, 7900000, midi_rec, &rec);
+    start = rec.n;
+    run(7900000, 9900000);
+    TEST_ASSERT_EQUAL(1, count(start, 0x90 | (LOOP_CH + 1), 64));
+}
+
+static void test_muting_stops_the_layers_sounding_note(void)
+{
+    add_layer();
+    run(5200000, 5600000); /* key 64 on at 5.5 s, off at 5.7 s */
+    TEST_ASSERT_EQUAL(1, count(0, 0x90 | (LOOP_CH + 1), 64));
+    size_t start = rec.n;
+    looper_mute(&l, 1, 5600000, midi_rec, &rec);
+    run(5600000, 5601000);
+    TEST_ASSERT_EQUAL(1, count(start, 0x80 | (LOOP_CH + 1), 64));
+}
+
+static void test_with_the_beat_a_mute_waits_for_the_bar_line(void)
+{
+    looper_set_grid(&l, 0, 1000000);
+    looper_record(&l, 0, midi_rec, &rec);
+    note(0, KEY_CH, 60, true);
+    note(100000, KEY_CH, 60, false);
+    note(500000, KEY_CH, 62, true);
+    note(600000, KEY_CH, 62, false);
+    looper_record(&l, 1000000, midi_rec, &rec); /* a 1-bar loop */
+    run(1000000, 1200000);
+    looper_mute(&l, 0, 1200000, midi_rec, &rec);
+    TEST_ASSERT_EQUAL(0, l.muted);
+    size_t start = rec.n;
+    run(1200000, 1900000);
+    TEST_ASSERT_EQUAL(1, count(start, 0x90 | LOOP_CH, 62)); /* still this bar */
+    start = rec.n;
+    run(1900000, 2900000);
+    TEST_ASSERT_EQUAL(0x01, l.muted);
+    TEST_ASSERT_EQUAL(0, count(start, 0x90 | LOOP_CH, 60)); /* from the bar line on */
+    TEST_ASSERT_EQUAL(0, count(start, 0x90 | LOOP_CH, 62));
+}
+
+static void test_a_second_press_before_the_bar_line_cancels(void)
+{
+    looper_set_grid(&l, 0, 1000000);
+    looper_record(&l, 0, midi_rec, &rec);
+    note(0, KEY_CH, 60, true);
+    note(100000, KEY_CH, 60, false);
+    looper_record(&l, 1000000, midi_rec, &rec);
+    run(1000000, 1200000);
+    looper_mute(&l, 0, 1200000, midi_rec, &rec);
+    looper_mute(&l, 0, 1300000, midi_rec, &rec);
+    size_t start = rec.n;
+    run(1300000, 2500000);
+    TEST_ASSERT_EQUAL(0, l.muted);
+    TEST_ASSERT_EQUAL(1, count(start, 0x90 | LOOP_CH, 60));
+}
+
+static void test_undo_forgets_the_dropped_layers_mute(void)
+{
+    add_layer();
+    looper_mute(&l, 1, 5200000, midi_rec, &rec);
+    looper_undo(&l, midi_rec, &rec);
+    TEST_ASSERT_EQUAL(0, l.muted);
+    looper_mute(&l, 3, 5200000, midi_rec, &rec); /* no such layer */
+    TEST_ASSERT_EQUAL(0, l.muted);
+    TEST_ASSERT_EQUAL(0, l.mute_flip);
+}
+
 static void test_undo_while_adding_drops_the_new_layer(void)
 {
     record_one_note();
@@ -579,6 +654,11 @@ int main(void)
     RUN_TEST(test_the_first_layer_keeps_playing_while_adding);
     RUN_TEST(test_undo_drops_the_last_layer_then_the_loop);
     RUN_TEST(test_undo_while_adding_drops_the_new_layer);
+    RUN_TEST(test_a_muted_layer_is_silent_and_comes_back);
+    RUN_TEST(test_muting_stops_the_layers_sounding_note);
+    RUN_TEST(test_with_the_beat_a_mute_waits_for_the_bar_line);
+    RUN_TEST(test_a_second_press_before_the_bar_line_cancels);
+    RUN_TEST(test_undo_forgets_the_dropped_layers_mute);
     RUN_TEST(test_a_layer_with_nothing_played_is_not_added);
     RUN_TEST(test_no_more_than_four_layers);
     RUN_TEST(test_a_layer_over_two_passes_doubles_the_loop);
