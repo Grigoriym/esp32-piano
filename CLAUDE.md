@@ -149,7 +149,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   7 Stutter (held: retrigger on 16ths), 8 Wide (two copies +-12 cents on channels 12-13). Grid: the beat's, else the
   metronome's tempo. Bend range 12 (RPN, `fx_setup`, at boot and link-up). `send_midi` copies every CC and program on
   channel 1 to channels 11-13. Rendered first: bend RPN and CC64 work; CC93 chorus and CC10 pan did nothing on the saw
-  lead. The looper records the plain keys. Not yet tried by the user.
+  lead. The looper records the notes the chicks make (`take.c`, pure, 2026-11-08, the user's ask: a take with Echo
+  and Octave played back plain): Echo's repeats, Octave, Arp, Stutter, Hold as late note offs, all on the layer's one
+  channel (an echo over its still-held key is left out: it cut held notes to 350 ms, 2026-11-08); not Wide, Rise, Tape (channel-wide bends/copies).
   **Chick numbers are the user's** (2026-11-06): 1-4 the top row from the left, 5-8 the bottom row from the left;
   chick 8 is next to the style buttons at the BLUES end (first written as "T1", backwards: Echo sat on chick 8).
   Every screen's bottom row shows them by initial, `E H O A  R T S W` = chicks 1-8,
@@ -322,6 +324,15 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - **This PC runs ufw, which drops UDP that isn't a reply.** The toy must
   answer from the port the HELLO went to (21928); sending from a second socket
   (another source port) made every packet vanish with no error on either side.
+- **A recording plays back wrong: `tools/loop_check.py record`** (2026-11-08, the user: "sometimes I have problems
+  with recordings and you cannot find a problem"). Start it, the user records and lets it play 3 passes, Ctrl+C or
+  the timeout; it lists each note of the take that is missing, moved, cut short, longer or extra in each pass
+  (`tools/loop_check.py <capture.mid>` checks a saved capture). It reads the toy's marks on channel 16 (`main.c`:
+  CC 118 = what the looper did * 8 + layers, CC 119 = a pass start at its own time; FluidSynth ignores them), so a
+  capture from before 2026-11-08 has none. A take is checked in the passes before the next take starts. The same
+  comparison runs in the host tests: `test_take.c` plays a real take (Echo + Octave, held notes, 130 bpm) through
+  fx -> take -> looper and checks 3 passes; it failed on the 350 ms bug. Add a test case there for each new
+  recording bug, from its capture.
 - **What the user played: capture it, don't guess it.** 2026-11-06 a riff given as key names got a guessed
   rhythm, wrong ("mine is different"); `arecordmidi` while the user played, then `tools/midi_dump.py`, read it
   right first time (notes against the metronome's beat-1 clicks, 16ths from its tempo). Same for saving a loop:

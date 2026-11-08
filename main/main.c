@@ -39,6 +39,7 @@
 #include "driver/i2c_master.h"
 #include "encoder.h"
 #include "fx.h"
+#include "take.h"
 #include "esp_adc/adc_oneshot.h"
 #include "esp_rom_sys.h"
 #include "esp_system.h"
@@ -106,6 +107,7 @@ static groove_t groove;
 static mixer_t mixer;
 static metro_t metro;
 static fx_t fx;
+static take_t take; /* what the chicks play, as the looper records it */
 static adc_oneshot_unit_handle_t adc;
 
 static i2c_master_dev_handle_t mcp;
@@ -236,18 +238,32 @@ static void send_beat(const uint8_t *msg, size_t len, const char *what, void *ct
     send_at(out, mixer_apply(msg, len, mixer.beat, out), what, ctx);
 }
 
-/* What keymap sends: played as is (pot 3 is CC11 on the keys' channel) and
- * recorded (pot 2 sets the layer's level). */
+static void take_out(const uint8_t *msg, size_t len, const char *what, void *ctx)
+{
+    (void)what;
+    (void)ctx;
+    looper_capture(&looper, esp_timer_get_time(), msg, len, keymap.program);
+}
+
+/* What the chicks' effects send: played, and recorded as the notes they make (take.h). */
+static void send_fx(const uint8_t *msg, size_t len, const char *what, void *ctx)
+{
+    send_midi(msg, len, what, ctx);
+    take_msg(&take, msg, len, take_out, NULL);
+}
+
+/* What keymap sends: played as is (pot 3 is CC11 on the keys' channel); the keys'
+ * notes go through the chicks' effects and are recorded from there. */
 static void send_key(const uint8_t *msg, size_t len, const char *what, void *ctx)
 {
     int64_t now = esp_timer_get_time();
     if (len == 3 && (msg[0] & 0x0f) == KEY_CH && ((msg[0] & 0xf0) == 0x90 || (msg[0] & 0xf0) == 0x80)) {
-        fx_key(&fx, msg, len, now, send_midi, NULL); /* through the chicks' effects; recorded plain */
+        fx_key(&fx, msg, len, now, send_fx, NULL);
         if (what) send_midi(NULL, 0, what, ctx);
-    } else {
-        send_midi(msg, len, what, ctx);
+        return;
     }
-    looper_capture(&looper, now, msg, len, keymap.program);
+    send_midi(msg, len, what, ctx);
+    looper_capture(&looper, now, msg, len, keymap.program); /* drums */
 }
 
 static void pots_init(void)
@@ -412,6 +428,66 @@ static void show(const matrix_t *m)
     screen_set(&s);
 }
 
+/* Marks for tools/loop_check.py on channel 16 (FluidSynth ignores these CCs): what the
+ * looper did, sent at once like the keys, and each pass's start, at its own time. */
+#define MARK_STATUS  (0xb0 | 15)
+#define MARK_TAKE_CC 118
+#define MARK_PASS_CC 119
+enum { MARK_ARMED = 1, MARK_CLOSED, MARK_DUB, MARK_DUB_CLOSED, MARK_STOPPED, MARK_DROPPED };
+
+typedef struct {
+    looper_state_t state;
+    bool dubbing;
+    size_t layers;
+} loop_snap_t;
+
+static loop_snap_t loop_snap(void)
+{
+    return (loop_snap_t){looper.state, looper.dubbing, looper.n_layers};
+}
+
+static void mark(uint8_t cc, uint8_t value, const int64_t *at)
+{
+    uint8_t m[3] = {MARK_STATUS, cc, value};
+    if (at) {
+        int64_t when = *at;
+        send_at(m, 3, NULL, &when);
+    } else {
+        send_midi(m, 3, NULL, NULL);
+    }
+}
+
+/* A take mark: what happened * 8 + the layers in the loop after it. */
+static void take_mark(int what)
+{
+    mark(MARK_TAKE_CC, (uint8_t)(what * 8 + (int)looper.n_layers), NULL);
+}
+
+/* What changed in the looper since was: each step as a mark. */
+static void loop_marks(loop_snap_t was)
+{
+    loop_snap_t now = loop_snap();
+    bool taking = was.state == LOOPER_ARMED || was.state == LOOPER_RECORDING;
+    if ((was.dubbing && !now.dubbing && now.layers == was.layers) || now.layers < was.layers
+        || (taking && now.state == LOOPER_IDLE))
+        take_mark(MARK_DROPPED); /* first: RECORD on a stopped loop forgets it, then arms */
+    if (now.state == LOOPER_ARMED && was.state != LOOPER_ARMED) take_mark(MARK_ARMED);
+    if (taking && now.state == LOOPER_PLAYING) take_mark(MARK_CLOSED);
+    if (!was.dubbing && now.dubbing) take_mark(MARK_DUB);
+    if (was.dubbing && !now.dubbing && now.layers > was.layers) take_mark(MARK_DUB_CLOSED);
+    if (was.state == LOOPER_PLAYING && now.state == LOOPER_IDLE && now.layers) take_mark(MARK_STOPPED);
+}
+
+/* A pass that starts now or later gets its mark at its own time (a pass already under
+ * way when the loop closed has none: it would come late). */
+static void pass_mark(int64_t now, int64_t ahead)
+{
+    static int64_t marked;
+    if (looper.state != LOOPER_PLAYING || looper.start_us == marked || ahead < looper.start_us) return;
+    marked = looper.start_us;
+    if (marked >= now) mark(MARK_PASS_CC, (uint8_t)looper.n_layers, &marked);
+}
+
 static void on_cell(size_t r, size_t c, bool down, void *ctx)
 {
     int64_t now = esp_timer_get_time();
@@ -420,6 +496,7 @@ static void on_cell(size_t r, size_t c, bool down, void *ctx)
      * what they already sent ahead, so it can't arrive before a note on. */
     int64_t at = now + MIDI_LINK_LEAD_US;
     keymap.beat_on = rhythm.on;
+    loop_snap_t was = loop_snap();
     switch (keymap_event(&keymap, r, c, down, send_key, NULL)) {
         case KEYMAP_DEMO: demo_toggle(&demo, now, send_at, &at); break;
         case KEYMAP_RECORD: looper_record(&looper, now, send_at, &at); break;
@@ -438,22 +515,24 @@ static void on_cell(size_t r, size_t c, bool down, void *ctx)
             if (metro.on && looper.state == LOOPER_PLAYING) metro_align(&metro, looper.start_us, at);
             if (metro.on) mixer_send_fx(&mixer, MIXER_CLICK, send_midi, NULL);
             break;
-        case KEYMAP_FX: fx_button(&fx, (fx_kind_t)keymap.fx, keymap.fx_down, now, send_midi, NULL); break;
+        case KEYMAP_FX: fx_button(&fx, (fx_kind_t)keymap.fx, keymap.fx_down, now, send_fx, NULL); break;
         case KEYMAP_RESET:
-            fx_reset(&fx, send_midi, NULL);
+            fx_reset(&fx, send_fx, NULL);
+            take_init(&take);
             if (demo.on) demo_toggle(&demo, now, send_at, &at);
             if (rhythm.on) rhythm_toggle(&rhythm, keymap.style, now, send_at, &at);
             looper_clear(&looper, send_at, &at);
             break;
         case KEYMAP_NONE: break;
     }
+    loop_marks(was);
 }
 
 /* The chicks' effects: live, sent as it happens like the keys. */
 static void fx_run(int64_t now)
 {
     fx.filter = mixer.filter;
-    fx_tick(&fx, now, send_midi, NULL);
+    fx_tick(&fx, now, send_fx, NULL);
     if (fx.restore) { /* a Rise or Tape ended: the pots' filter again, and each layer's */
         fx.restore = false;
         mixer_send_fx(&mixer, MIXER_FILTER, send_midi, NULL);
@@ -513,6 +592,7 @@ void app_main(void)
     matrix_init(&matrix);
     keymap_init(&keymap);
     fx_init(&fx);
+    take_init(&take);
     fx_setup(send_midi, NULL);
     looper_init(&looper);
     groove_init(&groove);
@@ -552,7 +632,9 @@ void app_main(void)
             printf("KNOB  %s\n", knob == KNOB_CW ? "CW" : knob == KNOB_CCW ? "CCW" : "PRESS");
             if (knob == KNOB_PRESS) {
                 int64_t at = esp_timer_get_time() + MIDI_LINK_LEAD_US;
+                loop_snap_t was = loop_snap();
                 looper_undo(&looper, send_at, &at);
+                loop_marks(was);
             } else {
                 int step = knob == KNOB_CW ? 1 : UI_SCREEN_COUNT - 1;
                 screen_shown = (ui_screen_t)((screen_shown + step) % UI_SCREEN_COUNT);
@@ -568,6 +650,7 @@ void app_main(void)
         demo_tick(&demo, ahead, send_at, &ahead);
         fx_run(t);
         looper_tick(&looper, ahead, send_at, &looper.due_us);
+        pass_mark(t, ahead);
         rhythm_tick(&rhythm, ahead, send_beat, &beat_due);
         /* The metronome: on the beat's grid while it plays, else its own at pot 6's tempo. */
         if (rhythm.on) {

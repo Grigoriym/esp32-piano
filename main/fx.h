@@ -15,7 +15,8 @@
  *            FX_WIDE_CH, FX_WIDE2_CH). CC93 chorus and CC10 pan changed nothing on
  *            FluidR3's saw lead (rendered 2026-11-06), so it is a thicker sound, not a stereo one.
  *
- * Only what is played live: the looper records the plain keys. The grid is the
+ * The looper records the notes they make (take.h: Echo, Hold, Octave, Arp, Stutter; not
+ * Wide, Rise, Tape). The grid is the
  * beat's while it plays, else the metronome's (main.c, every scan). main.c copies
  * every control and program change on KEY_CH to the effect channels, so they
  * follow the sound, the volume, the keys' fader, the filter and the reverb.
