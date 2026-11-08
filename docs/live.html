@@ -44,7 +44,9 @@ h1 { font: 600 1.5rem var(--font-display); margin: 0; }
 #wrap { flex: 1; min-height: 320px; margin: 0 20px 20px; position: relative; border-radius: 12px; background: var(--stage); border: 1px solid var(--line); overflow: hidden; }
 /* Absolute: the canvas's pixel size must not change the layout (it grew the page and cut the drums off). */
 canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-#now { padding: 0 20px 16px; color: var(--muted); font: 500 .9rem var(--font-mono); min-height: 1.5em; }
+/* One line, always the same height: wrapping with many notes on resized the roll several times a second
+ * (2026-11-08, the user: "trembling"). */
+#now { padding: 0 20px 16px; color: var(--muted); font: 500 .9rem/1.5 var(--font-mono); height: calc(1.5em + 16px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: none; }
 @media (max-width: 600px) { header { padding: 12px 16px; } #legend, #now { padding-left: 16px; padding-right: 16px; } #wrap { margin: 0 16px 16px; } .big { margin-left: 0; } }
 </style>
 </head>
@@ -205,15 +207,25 @@ function renderLegend() {
   if (legend.innerHTML !== html) legend.innerHTML = html;
 }
 
-/* The pitch range follows what was played in the window, eased so it doesn't jump. */
+/* The pitch range: every pitch heard in the last RANGE_S seconds, in whole octaves, so it
+ * only moves when the playing goes higher or lower (2026-11-08, the user: fitting it to the
+ * notes on screen made the roll zoom in and out as each note scrolled by: "trembling"). */
+const RANGE_S = 30;
+const seenAt = {}; /* note -> last time it was on screen */
 let lo = 45, hi = 81;
 function range(t) {
+  for (const n of notes) if (n.t1 === null || n.t1 > t - WINDOW_S) seenAt[n.note] = t;
   let min = Infinity, max = -Infinity;
-  for (const n of notes) if ((n.t1 === null || n.t1 > t - WINDOW_S)) { min = Math.min(min, n.note); max = Math.max(max, n.note); }
+  for (const k in seenAt) {
+    if (seenAt[k] < t - RANGE_S) { delete seenAt[k]; continue; }
+    min = Math.min(min, +k); max = Math.max(max, +k);
+  }
   if (min === Infinity) return;
-  let want0 = min - 3, want1 = max + 3;
-  if (want1 - want0 < 24) { const mid = (want0 + want1) / 2; want0 = mid - 12; want1 = mid + 12; }
+  let want0 = Math.floor((min - 1) / 12) * 12, want1 = Math.ceil((max + 2) / 12) * 12;
+  if (want1 - want0 < 24) want1 = want0 + 24;
   lo += (want0 - lo) * 0.08; hi += (want1 - hi) * 0.08;
+  if (Math.abs(want0 - lo) < 0.01) lo = want0;
+  if (Math.abs(want1 - hi) < 0.01) hi = want1;
 }
 
 function resize() {
