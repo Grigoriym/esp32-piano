@@ -309,6 +309,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - Firmware: ESP-IDF in C, like the siblings. No Arduino.
 
 ### Traps found here
+- **Settings sent before FluidSynth was routed were lost** (2026-11-08, the user: layers sounded wetter than played):
+  the bridge said HELLO ~1 s before `pc_synth.sh` connected it to the synth, the toy's link-up burst (reverb, filter,
+  bend range, programs) went nowhere, so live keys played with the preset's reverb and each new layer with the pot's
+  +100%. The bridge now holds HELLO until a `FLUID` client reads its port and for its first 3.5 s (the toy resends only
+  after 3 s without HELLO). Check after a service start: the journal's `synth connected: saying HELLO` comes after
+  `toy ... -> synth`, and the toy log shows `reverb N` after it.
 - **LED matrix lit everywhere but one diagonal = both 74HC595s get the same data** (2026-11-07, after moving the
   wires from the test board to the piano): chip B's pin 14 must come from chip A's pin 9 only. The user fixed a
   wire and it worked. The firmware was right: the same code passed on the test board.

@@ -7,6 +7,13 @@
  * the fastest packets of the last few seconds (the slowest WiFi trip then only
  * eats into the toy's lead instead of shifting the beat).
  *
+ * HELLO is held back until something (FluidSynth) is connected to the port: the toy
+ * sends its settings (reverb, filter, bend range, sounds) the moment it hears HELLO,
+ * and before the route exists they were lost (2026-11-08: the live keys played with
+ * the preset's reverb, the loop layers with the pot's +100%). The toy counts a link as
+ * new (and resends) only after 3 s without HELLO, so a bridge also stays quiet for its
+ * first HELLO_QUIET_S: a quick service restart would otherwise look like the same link.
+ *
  * The same packets come over the USB cable too (main/midi_link.h): the serial
  * port is opened when given, HELLO goes there as well, and whichever copy of a
  * message comes first plays. The toy's log lines on the cable go to
@@ -297,6 +304,30 @@ typedef struct {
 static late_t late_seq[LATE_KEPT];
 static int late_next;
 
+#define HELLO_QUIET_S 3.5 /* the toy's HELLO timeout (main/midi_link.c) + a margin */
+
+/* FluidSynth reads from the port: the route to the synth exists. By name: the live
+ * page's aseqdump (tools/live_server.py) reads from it too. */
+static bool synth_listening(snd_seq_t *seq, int port)
+{
+    snd_seq_query_subscribe_t *q;
+    snd_seq_query_subscribe_alloca(&q);
+    snd_seq_addr_t self = {.client = (unsigned char)snd_seq_client_id(seq), .port = (unsigned char)port};
+    snd_seq_query_subscribe_set_root(q, &self);
+    snd_seq_query_subscribe_set_type(q, SND_SEQ_QUERY_SUBS_READ);
+    snd_seq_query_subscribe_set_index(q, 0);
+    snd_seq_client_info_t *info;
+    snd_seq_client_info_alloca(&info);
+    while (snd_seq_query_port_subscribers(seq, q) >= 0) {
+        const snd_seq_addr_t *a = snd_seq_query_subscribe_get_addr(q);
+        if (snd_seq_get_any_client_info(seq, a->client, info) >= 0
+            && strncmp(snd_seq_client_info_get_name(info), "FLUID", 5) == 0)
+            return true;
+        snd_seq_query_subscribe_set_index(q, snd_seq_query_subscribe_get_index(q) + 1);
+    }
+    return false;
+}
+
 int main(int argc, char **argv)
 {
     const char *host = argc > 1 ? argv[1] : "chicco-piano.local";
@@ -325,6 +356,8 @@ int main(int argc, char **argv)
     struct sockaddr_in toy;
     bool have_toy = false;
     double next_hello = 0, last_data = -10;
+    bool listening = false;
+    double started = now_s();
     int last_via = 0;
     int64_t polled = now_us(); /* when the last wait ended: the loop's own work is timed from it */
 
@@ -341,7 +374,12 @@ int main(int argc, char **argv)
                 have_toy = true;
             }
             pthread_mutex_unlock(&found_lock);
-            if (have_toy) {
+            bool now_listening = t - started >= HELLO_QUIET_S && synth_listening(seq, port);
+            if (now_listening != listening) {
+                listening = now_listening;
+                printf(listening ? "synth connected: saying HELLO\n" : "no synth on the port: HELLO held\n");
+            }
+            if (have_toy && listening) {
                 sendto(sock, "HELLO", 5, 0, (struct sockaddr *)&toy, sizeof(toy));
             }
             if (serial_path && ser < 0 && t >= next_serial_try) {
@@ -349,7 +387,7 @@ int main(int argc, char **argv)
                 ser = serial_open(serial_path);
                 if (ser >= 0) printf("cable: %s open\n", serial_path);
             }
-            if (ser >= 0 && write(ser, "HELLO\n", 6) != 6) {
+            if (ser >= 0 && listening && write(ser, "HELLO\n", 6) != 6) {
                 printf("cable: gone\n");
                 close(ser);
                 ser = -1;
