@@ -356,7 +356,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   layer's sound (`MIDI  program N`), its fader/filter/reverb (`layer N keeps keys K, filter F, reverb R`), and which key
   made each note (`DOWN  key k` followed by `MIDI  note on n`; in EDM mode the note alone doesn't give the key or the
   octave). Line a layer up against the pass start (layer 1's first note) and check it against the beat-1 clicks too:
-  2026-11-06 they differed by 86 ms (a style switch had moved the beat). **Flashing erases the loop on the toy**
+  2026-11-06 they differed by 86 ms (a style switch had moved the beat). **A service restart (and so every flash)
+  truncates `toy-serial.log`**: 2026-11-08 Song #2's style button and layer programs were gone that way and had to
+  be assumed; copy the log before restarting if a loop may be saved. **Flashing erases the loop on the toy**
   (RAM only): capture it first if the user may want it.
 - **Key tests: serial for what the grid reads, the PC side for what plays.**
   The user checks by ear: start the service before asking for presses
@@ -556,6 +558,14 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 
 ## Next step
 **2026-11-07: the 8x8 LED matrix and both 74HC595s passed** on the WROVER (`esp32-hw-checks` `ONLY_CHECK 3`: one LED walks all 64, all on, a smiley; the user saw all three). Wiring as the kit's chapter 16.3 schematic but on DS D25, SH_CP D26, ST_CP D27: `docs/matrix-check-wiring.html` (chip A = columns, gets DS; its pin 9 feeds chip B = rows through 220R; matrix pins 1-8 = the row on the side that lit pin 9 + pin 13's corner LED). Next: the visualizer on the piano.
+
+**State 2026-11-08 (late, end of session):** the user asked what the toy is: a loop-based groovebox; a full song is
+performed from one loop by muting and fading layers. Built and flashed: the Layers screen (knob walks the layers, press
+mutes at the next bar line; the user used it), BLUE BIRD = undo. Fixed: the bridge said HELLO before FluidSynth was
+routed, so the toy's settings were lost at each service start (Traps). Saved the user's loop as riffs #8 Song #2.
+Next: the ADS1115 pots as one fader per layer (when they arrive: Homebox entry, `esp32-hw-checks` test first). Later
+idea told the user: several loops (scenes, verse/chorus) switched on a bar line. Not done: `loop_check.py` knowing
+mutes; the knob's turn direction still unchecked.
 
 **State 2026-11-08 (end of session):** RESET's Hold-off was lost over WiFi (burst trap, fixed). A loop now records
 the chicks' notes (Echo, Hold, Octave, Arp, Stutter; `take.c`); the first try cut held notes to 350 ms, fixed and
