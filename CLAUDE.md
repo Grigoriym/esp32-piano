@@ -302,6 +302,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - **LED matrix lit everywhere but one diagonal = both 74HC595s get the same data** (2026-11-07, after moving the
   wires from the test board to the piano): chip B's pin 14 must come from chip A's pin 9 only. The user fixed a
   wire and it worked. The firmware was right: the same code passed on the test board.
+- **A burst of MIDI over WiFi lost its tail** (2026-11-08, the cable garbled so WiFi carried all): RESET's ~40
+  messages x 2 copies filled lwIP's buffers, `sendto` failed (ENOMEM, unchecked) and the last ones never arrived, Hold's
+  pedal-up among them (notes rang on after RESET; seen in `aseqdump`). The WiFi sender now retries 1 ms apart, up to 20
+  times, and logs `WiFi send failed`. Checked with the cable up only; over WiFi alone not yet.
 - **The cable can come up garbled**: 2026-11-04 the bridge read only junk (mostly 0xF8)
   for a whole session, so everything went over WiFi (`playing what comes over WiFi`,
   never `the cable`) and WiFi stalls made the hiccups. A reset of the board (a pyserial

@@ -1,5 +1,6 @@
 #include "midi_link.h"
 
+#include <errno.h>
 #include <string.h>
 
 #include "driver/uart.h"
@@ -16,6 +17,7 @@
 #define COPIES           2
 #define WIFI_QUEUE       64    /* packets waiting for the WiFi sender */
 #define WIFI_SLOW_US     20000 /* a sendto this slow is logged */
+#define WIFI_RETRIES     20    /* 1 ms apart: a full WiFi buffer empties in a few ms */
 
 static const char *TAG = "midi_link";
 
@@ -97,9 +99,21 @@ static void wifi_send_task(void *param)
     while (true) {
         if (xQueueReceive(wifi_queue, &p, portMAX_DELAY) != pdTRUE) continue;
         int64_t t = esp_timer_get_time();
+        /* A burst (RESET sends ~40 messages) fills lwIP's WiFi buffers and sendto
+         * fails with ENOMEM: both copies of the burst's tail were lost (2026-11-08,
+         * RESET's Hold-off never arrived). Wait for room instead of dropping. */
+        int failed = 0;
         for (int i = 0; i < COPIES; i++) {
-            sendto(sock, p.pkt, p.len, 0, (struct sockaddr *)&p.to, sizeof(p.to));
+            int tries = 0;
+            while (sendto(sock, p.pkt, p.len, 0, (struct sockaddr *)&p.to, sizeof(p.to)) < 0) {
+                if (errno != ENOMEM || ++tries > WIFI_RETRIES) {
+                    failed++;
+                    break;
+                }
+                vTaskDelay(1);
+            }
         }
+        if (failed == COPIES) ESP_LOGW(TAG, "WiFi send failed: errno %d", errno);
         int64_t took = esp_timer_get_time() - t;
         if (took > WIFI_SLOW_US) {
             ESP_LOGW(TAG, "WiFi send blocked %lld ms", took / 1000);
