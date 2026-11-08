@@ -29,3 +29,9 @@ in front, so they're what the song was played with, not read from it.
 - `2026-11-06-song-1-layer-4`: Song #1 again after a fourth layer (channel 6: keys 19/20/22, keys fader
   105, filter 69). Captured raw (no sounds in front). The beat and metronome here sit 86 ms after the
   loop's start (a DISCO/SLOW ROCK switch moved them); layer 4 was played to the beat.
+- `2026-11-08-song-2`: "Song #2", three loop layers (channels 3-5) over SLOW ROCK's TECHNO beat at 130 bpm with the
+  metronome (channel 9), ~5 passes, 3692 ms a pass. Layers 1-2 were recorded with Echo + Octave on (their repeats
+  at velocity 38/26/18 and +12 copies are in the capture); layer 1 at octave −1 (notes 21/24/28 = keys 1/3/5).
+  From the log: layer 1 keys 114, filter 53, reverb 127; layers 2-3 keys/filter/reverb 127; the style button and
+  layer programs weren't in the log (truncated at a service restart): saw lead and SLOW ROCK assumed from the
+  130 bpm beat. Written out as `#8 Song #2` in `docs/riffs.html`. No mp3.
