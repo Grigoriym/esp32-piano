@@ -601,7 +601,7 @@ will fix it next time"):
 **2026-11-09:** the 8x8 matrix is off the piano and out of the code (flashed 2026-11-09). ADS1115: one board passed `esp32-hw-checks` check 5 (0x48,
 A0-A3 each 0-3242 mV); the other 4 not checked one by one (the user). In `docs/wiring.html` since 2026-11-09: on
 D21/D22 beside the MCP23017 (ADDR open = 0x48), VDD 3V3, A0-A3 = 4 effect pots (B10K, the user's pick over layer
-faders: "just add what you suggested, we will improve/change afterwards"): resonance, echo, release, wobble
+faders: "just add what you suggested, we will improve/change afterwards"): resonance, echo, release, tremolo (a vibrato "wobble" until 2026-11-09, the user didn't like it)
 (`mixer.h`, `fx.h`; `main.c` reads one input per pot read, single-shot). Flashed; the user tried wobble at max (the freeze, Traps). Render-checked first: release 60 ms-1.9 s on the saw lead, Q peaks at the cutoff but drops the level (filter
 -2400 cents + Q 480 cB: rms 5183 -> 703), vibrato swing 47 -> 285 cents. Their moves during a take aren't recorded.
 A second ADS1115 (#2, ADDR on VDD = 0x49, one of the 4 boards not checked one by one) takes beat, keys, filter and
