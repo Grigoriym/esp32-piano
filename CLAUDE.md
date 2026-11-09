@@ -791,8 +791,8 @@ Open items:
   came back garbled (service restart fixed it); since then every pot is still, with or
   without the beat and a loop playing (not WiFi load either). Guess, not proven: a bad USB
   contact making 3V3 noisy. If the bar sticks again: count `POT` lines over 10 s, hands
-  off, then wiggle the USB plug. A 1 uF cap is on pot 2's wiper to GND: removed 2026-11-09 on my advice, the pot then flipped 13<->14 ~23 times
-  a second at rest (the 8 ADS1115 pots still); put back the same day.
+  off, then wiggle the USB plug. No cap on pot 2 since 2026-11-09: without its 1 uF cap it flipped 13<->14 ~23 times a second at rest; the user
+  swapped the pot instead and the new one read still (12 s, no POT line from any pot). So that pot was bad, at least then.
   2026-11-05, again (board flashed ~1 h before, the user had turned pot 2): hands off, pot 2
   at ~92 hopped 89-95 (~90 changes / 10 s), at ~64 hopped 61-66 (68); pot 1 at ~58 at the same
   time only 55-59 (~15), its hops not at the same moments as pot 2's. A board restart (the user)
