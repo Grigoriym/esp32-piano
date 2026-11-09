@@ -247,7 +247,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   piece's `plan` is its song plan). The page opens on a list of the songs; each song
   is its own view (`#<slug>`, e.g. `#2-night-drive`). 2026-11-03: #1 First Drop (bass,
   chords, arpeggio, hook; the clap roll was dropped at the user's ask, pad layers still
-  work) #5 Riddim Drop (2026-11-05, rewritten for the growl "E": ROCK/DUBSTEP, a Riddim stutter on key 1 with a hole on the snare, an Answer in that hole, a high Screech, a build-up with Rise (chick 5; was a snare-pad Build); the user likes "heaviest dubstep drops" and Skrillex; page synth has a `growl` voice for pieces with `sound: 'growl'`; `render_riffs.py` takes each piece's program from its button) and #4 Bunker (2026-11-05, replaced #4 Sunset, which is in git at `e514df5`; SLOW ROCK/TECHNO, the user wanted something heavier, Berlin style, "let's experiment": key 1 rumbling after every kick, then "aggressive": a 16th-note sequence around key 8, a stab on every offbeat, built by layers and pots) and #3 Warehouse (2026-11-05, SLOW ROCK/TECHNO 130 bpm, Am Am Dm Em: a bass rolling on the 16ths after each kick, offbeat stabs, a one-bar hook moved up on bars 3-4) and #6 Cosmic (2026-11-06, SLOW ROCK/TECHNO: the user's keys 5 3 1 found with the filter pot; layers Melody (the user's rhythm: 5 a bar, 3 and 1 half a bar), Echo and Taps (picked from an audition, `build-host/audition/cosmic/`), Pulse and Bass (the user's own, read off MIDI captures; the bass one octave down, `songs/2026-11-06-cosmic-bass.mid`)) and #7 Song #1 (2026-11-06, the user's own four-layer loop (layer 4 Riff on 19/20/22, fader 105, filter 69, added later), read off `songs/2026-11-06-song-1.mid`: Cosmic's bass, an offbeat pulse on 12/10/8, a high A on 22/24 at the keys fader ~89) and #8 Song #2 (2026-11-08, the user's three layers read off `songs/2026-11-08-song-2.mid`: bass 1/5/3 an octave down, stabs on 8/10, a melody on 10/12/13; layers 1-2 were played with Echo + Octave on, the notes are only the pressed keys) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
+  work) #5 Riddim Drop (2026-11-05, rewritten for the growl "E": ROCK/DUBSTEP, a Riddim stutter on key 1 with a hole on the snare, an Answer in that hole, a high Screech, a build-up with Rise (chick 5; was a snare-pad Build); the user likes "heaviest dubstep drops" and Skrillex; page synth has a `growl` voice for pieces with `sound: 'growl'`; `render_riffs.py` takes each piece's program from its button) and #4 Bunker (2026-11-05, replaced #4 Sunset, which is in git at `e514df5`; SLOW ROCK/TECHNO, the user wanted something heavier, Berlin style, "let's experiment": key 1 rumbling after every kick, then "aggressive": a 16th-note sequence around key 8, a stab on every offbeat, built by layers and pots) and #3 Warehouse (2026-11-05, SLOW ROCK/TECHNO 130 bpm, Am Am Dm Em: a bass rolling on the 16ths after each kick, offbeat stabs, a one-bar hook moved up on bars 3-4) and #6 Cosmic (2026-11-06, SLOW ROCK/TECHNO: the user's keys 5 3 1 found with the filter pot; layers Melody (the user's rhythm: 5 a bar, 3 and 1 half a bar), Echo and Taps (picked from an audition, `build-host/audition/cosmic/`), Pulse and Bass (the user's own, read off MIDI captures; the bass one octave down, `songs/2026-11-06-cosmic-bass.mid`)) and #7 Song #1 (2026-11-06, the user's own four-layer loop (layer 4 Riff on 19/20/22, fader 105, filter 69, added later), read off `songs/2026-11-06-song-1.mid`: Cosmic's bass, an offbeat pulse on 12/10/8, a high A on 22/24 at the keys fader ~89) and #8 Song #2 (2026-11-08, the user's three layers read off `songs/2026-11-08-song-2.mid`: bass 1/5/3 an octave down, stabs on 8/10, a melody on 10/12/13; layers 1-2 were played with Echo + Octave on, the notes are only the pressed keys) and #9 Song #3 (2026-11-09, four layers read off
+  `songs/2026-11-09-song-3.mid` and the log: the 1/5/3 bass with Echo an octave down, stabs 8/7/5, the 12/13 melody, a
+  15/17/19 figure an octave up with Echo) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
   its `button` and `beat` (#1 DISCO/EDM, #2 MARCH/BREAKS); the page synth's `BEATS`
   copies main/rhythm.c's patterns (change both), the clips read rhythm.c. After changing a chord or `matrix_diodes`: `tools/check_riff_chords.py`
   (some key sets are held back and would never sound). Its Listen buttons play
@@ -460,7 +462,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   no host test can: `screen.c` isn't host-built).
 - **Check a MIDI message on FluidSynth by rendering before building on it** (`fluidsynth -ni -F out.wav ...`
   + a level/centroid measurement): 2026-11-06 that showed CC74 does nothing and CC91 is inaudible here before any
-  firmware used them.
+  firmware used them. **Also when only the way messages are sent changes** (skipping, caching, reordering):
+  2026-11-09 `3090806` cut repeated NRPN registers to save CPU, unrendered, and broke every effect pot (the NRPN trap
+  above); the user found it by ear the next session, a 4-line render showed it in a minute.
 - **Every button is live**: a press of VOLUME− (or a style button) during a
   test can make the toy go quiet. RESET restores the defaults.
 - **A bad `cat.sf2` fails silently**: `pc_synth.sh` throws FluidSynth's output away and
@@ -580,6 +584,13 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
+**State 2026-11-09 (late, end of session):** flashed `69913f0`. Fixed: the NRPN cache from `3090806` (filter dead,
+reverb's top silent; Traps). The 4th effect pot is a tremolo (was vibrato "wobble", the user disliked it), the 2nd is
+Detune (fineTune 0 to -50 cents, kept per layer; was the Echo chick's amount, Echo now fixed at 4 repeats): both the
+user's picks from a described list (B attack, C pluck were the others), **not yet heard by the user**, who tests them
+next. Cheat sheet: Effects as one row of six (Filter, Reverb, Resonance, Detune, Release, Tremolo). Saved riffs #9
+Song #3. The NRPN flood is back (4 messages a channel a step): the load test below matters more now.
+
 **State 2026-11-09 (end of session):** flashed `3090806`: 10 pots (2 ADS1115s, 4 new effects), the 32x8 matrix with
 fireworks + bottom-row beat counter on SPI3, NRPN registers not resent on the live channels. Bridge fixed (late WiFi
 packets were read as toy restarts and froze the song). Old 8x8 matrix removed. **Open, for next time** (the user: "we
@@ -589,7 +600,8 @@ will fix it next time"):
 - **The toy restarted by itself at 20:17** (~10 min after the flash; bridge: `toy clock went back 610 s`); after it the
   cable was garbled, so the reset reason wasn't read. Restart the service, read `reset reason:` (9 = brownout: the
   matrix on VIN?).
-- **Reverb at max buries the keys under a beat** (rendered: dry keys 2 dB over their own wash alone, 1.2 dB under the
+- **Reverb at max buries the keys under a beat** (the user's "sound disappears at max reverb" turned out to be the
+  NRPN cache, fixed: re-hear before using this audition; rendered: dry keys 2 dB over their own wash alone, 1.2 dB under the
   rest with the techno beat). Audition waiting: `build-host/audition/reverb/` A +100% (now) / B +60% / C +35% / D +15%
   as the pot's top; the user picks, then cap `MIXER_REVERB_SEND`'s top or the room.
 - **Load test after the CPU fixes not done**: before them, core 1 36-49% with the matrix animating (bit-banged), core
@@ -603,7 +615,7 @@ A0-A3 each 0-3242 mV); the other 4 not checked one by one (the user). In `docs/w
 D21/D22 beside the MCP23017 (ADDR open = 0x48), VDD 3V3, A0-A3 = 4 effect pots (B10K, the user's pick over layer
 faders: "just add what you suggested, we will improve/change afterwards"): resonance, detune (was the Echo chick's amount until 2026-11-09), release, tremolo (a vibrato "wobble" until 2026-11-09, the user didn't like it)
 (`mixer.h`, `fx.h`; `main.c` reads one input per pot read, single-shot). Flashed; the user tried wobble at max (the freeze, Traps). Render-checked first: release 60 ms-1.9 s on the saw lead, Q peaks at the cutoff but drops the level (filter
--2400 cents + Q 480 cB: rms 5183 -> 703), vibrato swing 47 -> 285 cents. Their moves during a take aren't recorded.
+-2400 cents + Q 480 cB: rms 5183 -> 703), tremolo level swing 17 -> 45 dB, detune -24/-49 cents at 25/50. Their moves during a take aren't recorded.
 A second ADS1115 (#2, ADDR on VDD = 0x49, one of the 4 boards not checked one by one) takes beat, keys, filter and
 reverb (A0-A3, the user's ask, 2026-11-09); only the metronome's two pots stay on ADC1 (D33, VN); D32, D34, D35, VP
 are free. `main.c` steps both boards every 2 ms (`ADS_PERIOD_US`), one input each: a pot every ~8 ms at best, slower
