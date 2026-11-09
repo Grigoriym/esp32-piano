@@ -107,6 +107,18 @@ input[type="range"] { width: 100%; accent-color: var(--chick); }
 .beat.on { background: var(--chick); border-color: var(--chick); }
 .beat.first.on { background: var(--red); border-color: var(--red); }
 label.check { display: flex; gap: 6px; align-items: center; color: var(--muted); font-size: .92rem; cursor: pointer; }
+/* knobs and chicks: tiles across, like the toy */
+.ksecs { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; align-items: start; }
+.ksec { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ksec h3, .chicks-box h3 { font: 600 1.05rem var(--font-display); margin: 0; display: flex; align-items: center; gap: 8px; }
+.tiles { display: grid; gap: 10px; }
+.tile { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.tile b { font: 700 1rem var(--font-body); }
+.tile span { color: var(--muted); font-size: .92rem; line-height: 1.4; }
+.tile .num { font: 700 .8rem var(--font-mono); color: var(--chick-ink); background: var(--chick); border-radius: 999px; padding: 1px 8px; align-self: flex-start; }
+.chicks-box { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.chicks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 700px) { .chicks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .metro { grid-template-columns: 1fr; } .bpm { justify-content: center; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -159,34 +171,56 @@ label.check { display: flex; gap: 6px; align-items: center; color: var(--muted);
           <tr><td>BLUE BIRD</td><td>Undo the last loop layer (see above)</td></tr>
         </table>
       </div>
-      <div class="group">
-        <h3><span class="dot" style="background:var(--blue)"></span>Knobs, in four sections</h3>
-        <table>
-          <tr><td>Volume: beat</td><td>The beat's loudness; all the way down drops it out</td></tr>
-          <tr><td>Volume: keys</td><td>The keys you play live; held notes follow it. A loop layer keeps the level it was recorded at</td></tr>
-          <tr><td>Effects: filter</td><td>Left dark, right bright; live keys and DEMO only, a loop layer keeps its own</td></tr>
-          <tr><td>Effects: reverb</td><td>Left dry, middle the sound's own, right a huge room; live keys and DEMO only</td></tr>
-          <tr><td>Metronome: tempo</td><td>60-180 bpm (with a beat playing it follows the beat)</td></tr>
-          <tr><td>Metronome: volume</td><td>The click's loudness (FROG turns it on and off)</td></tr>
-          <tr><td>More effects: resonance</td><td>Left none, right a whistling peak at the filter's edge; turn the filter with it. Gets quieter as it rises</td></tr>
-          <tr><td>More effects: echo</td><td>How much chick 1's Echo repeats: left 1 quiet repeat, right 8 long ones</td></tr>
-          <tr><td>More effects: release</td><td>How long a note rings after you let go: left short, middle the sound's own, right ~2 s</td></tr>
-          <tr><td>More effects: wobble</td><td>Left none, right the pitch wavers (vibrato)</td></tr>
-        </table>
+    </div>
+  </section>
+  <section aria-labelledby="knob-h">
+    <h2 id="knob-h">Knobs, in four sections</h2>
+    <div class="ksecs">
+      <div class="ksec">
+        <h3><span class="dot" style="background:var(--green)"></span>Volume</h3>
+        <div class="tiles">
+          <div class="tile"><b>Beat</b><span>The beat's loudness; all the way down drops it out</span></div>
+          <div class="tile"><b>Keys</b><span>The keys you play live; held notes follow it. A loop layer keeps the level it was recorded at</span></div>
+        </div>
       </div>
-      <div class="group">
-        <h3><span class="dot" style="background:var(--chick)"></span>Chicks are effects</h3>
-        <p class="note-small">Two rows of four, counted from the top left: 1-4 the top row, 5-8 the bottom row. The screen shows them in that order (E H O A, R T S W), lit while on. A loop records Echo, Hold, Octave, Arp and Stutter with your notes; Wide, Rise and Tape are only heard live. RESET turns them all off.</p>
-        <table>
-          <tr><td>Chick 1</td><td>Echo on / off: each note comes back 3 times, softer, a dotted 8th apart</td></tr>
-          <tr><td>Chick 2</td><td>Hold on / off: notes ring after you let go</td></tr>
-          <tr><td>Chick 3</td><td>Octave on / off: each key plays an octave higher too</td></tr>
-          <tr><td>Chick 4</td><td>Arp on / off: held keys play one at a time, low to high, on every 16th</td></tr>
-          <tr><td>Chick 5</td><td>Rise: for one bar the keys climb an octave and the filter opens, then back</td></tr>
-          <tr><td>Chick 6</td><td>Tape stop: for half a bar keys and loop slide an octave down, then the keys stop</td></tr>
-          <tr><td>Chick 7</td><td>Stutter, while held: the keys you hold repeat on every 16th</td></tr>
-          <tr><td>Chick 8</td><td>Wide on / off: two slightly detuned copies of each note, a thicker sound</td></tr>
-        </table>
+      <div class="ksec">
+        <h3><span class="dot" style="background:var(--blue)"></span>Effects</h3>
+        <div class="tiles">
+          <div class="tile"><b>Filter</b><span>Left dark, right bright; live keys and DEMO only, a loop layer keeps its own</span></div>
+          <div class="tile"><b>Reverb</b><span>Left dry, middle the sound's own, right a huge room; live keys and DEMO only</span></div>
+        </div>
+      </div>
+      <div class="ksec">
+        <h3><span class="dot" style="background:var(--red)"></span>Metronome</h3>
+        <div class="tiles">
+          <div class="tile"><b>Tempo</b><span>60-180 bpm (with a beat playing it follows the beat)</span></div>
+          <div class="tile"><b>Volume</b><span>The click's loudness (FROG turns it on and off)</span></div>
+        </div>
+      </div>
+      <div class="ksec">
+        <h3><span class="dot" style="background:var(--chick)"></span>More effects</h3>
+        <div class="tiles">
+          <div class="tile"><b>Resonance</b><span>Left none, right a whistling peak at the filter's edge; turn the filter with it. Gets quieter as it rises</span></div>
+          <div class="tile"><b>Echo</b><span>How much chick 1's Echo repeats: left 1 quiet repeat, right 8 long ones</span></div>
+          <div class="tile"><b>Release</b><span>How long a note rings after you let go: left short, middle the sound's own, right ~2 s</span></div>
+          <div class="tile"><b>Wobble</b><span>Left none, right the pitch wavers (vibrato)</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section aria-labelledby="chick-h">
+    <h2 id="chick-h">Chicks are effects</h2>
+    <div class="chicks-box">
+      <p class="note-small">Laid out like on the toy: 1-4 the top row, 5-8 the bottom row, from the left. The screen shows them in that order (E H O A, R T S W), lit while on. A loop records Echo, Hold, Octave, Arp and Stutter with your notes; Wide, Rise and Tape are only heard live. RESET turns them all off.</p>
+      <div class="chicks">
+        <div class="tile"><span class="num">1</span><b>Echo</b><span>On / off: each note comes back, softer, a dotted 8th apart; how many and how soft: the Echo knob</span></div>
+        <div class="tile"><span class="num">2</span><b>Hold</b><span>On / off: notes ring after you let go</span></div>
+        <div class="tile"><span class="num">3</span><b>Octave</b><span>On / off: each key plays an octave higher too</span></div>
+        <div class="tile"><span class="num">4</span><b>Arp</b><span>On / off: held keys play one at a time, low to high, on every 16th</span></div>
+        <div class="tile"><span class="num">5</span><b>Rise</b><span>For one bar the keys climb an octave and the filter opens, then back</span></div>
+        <div class="tile"><span class="num">6</span><b>Tape stop</b><span>For half a bar keys and loop slide an octave down, then the keys stop</span></div>
+        <div class="tile"><span class="num">7</span><b>Stutter</b><span>While held: the keys you hold repeat on every 16th</span></div>
+        <div class="tile"><span class="num">8</span><b>Wide</b><span>On / off: two slightly detuned copies of each note, a thicker sound</span></div>
       </div>
     </div>
   </section>
