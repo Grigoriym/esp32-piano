@@ -4,7 +4,7 @@
  *
  * Top row (chicks 1-4, from the left as the user counts them), each press on / off:
  *   Echo     each note comes back fx_echo_repeats() times, each fx_echo_decay() % of the one before, a dotted
- *            8th apart (on FX_ECHO_CH); the Echo pot (ADS1115 A1) sets how much: f->echo
+ *            8th apart (on FX_ECHO_CH); how much: f->echo, FX_ECHO_LEVEL (its pot became Detune, 2026-11-09)
  *   Hold     sustain (CC64): notes ring after the key is let go
  *   Octave   each key plays an octave higher too
  *   Arp      held keys play one at a time, lowest to highest, on every 16th of the grid

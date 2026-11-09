@@ -17,7 +17,8 @@
  *
  * Pots 7-10 (2026-11-09) are effects on the live keys and DEMO like the filter
  * and reverb, frozen onto a loop layer the same way: resonance (initialFilterQ, 0 to MIXER_RES_CB;
- * rendered: a peak at the cutoff, quieter as it rises), echo (no MIDI: fx.h's Echo amount), release
+ * rendered: a peak at the cutoff, quieter as it rises), detune (fineTune, 0 to -MIXER_DETUNE_CENTS cents; rendered: -24 cents at 25, -49 at 50;
+ * it replaced the Echo chick's amount, 2026-11-09, the user's pick), release
  * (releaseVolEnv, -/+MIXER_RELEASE_TC with the preset's own in the middle; rendered on the saw lead:
  * 60 ms to 1.9 s) and tremolo (modLfoToVolume, 0 to MIXER_TREMOLO_STEPS cB at FluidSynth's default ~8 Hz LFO;
  * rendered on the saw lead: the level swing grows from its own ~17 dB to ~30 dB at 240, ~45 dB at 480, nearly a
@@ -55,6 +56,7 @@
 #define MIXER_RES_CB        400  /* resonance at the top: 40 dB */
 #define MIXER_RELEASE_TC    2400 /* release at either end: x/÷ ~4 (timecents) */
 #define MIXER_TREMOLO_STEPS 480  /* tremolo depth at the top, in cB (NRPN steps of 1 cB) */
+#define MIXER_DETUNE_CENTS  50   /* detune at the top: a quarter tone flat (NRPN steps of 1 cent) */
 #define MIXER_FX_LIVE       2    /* the pots' channels: 1 and 2 (0-1), the keys and DEMO */
 
 typedef enum {
@@ -65,7 +67,7 @@ typedef enum {
     MIXER_REVERB,
     MIXER_METRO,
     MIXER_RES, /* ADS1115 A0 */
-    MIXER_ECHO,
+    MIXER_DETUNE,
     MIXER_RELEASE,
     MIXER_TREMOLO, /* A3 */
 } mixer_pot_t;
@@ -77,10 +79,11 @@ typedef struct {
     int64_t moved_us[MIXER_POTS];   /* when it was last turned; 0: not since boot */
     int64_t changed_us[MIXER_POTS]; /* when its level last changed */
     uint8_t rest[MIXER_POTS];       /* level at the last turn: moved_us needs MIXER_TURN from it */
-    uint8_t beat, click, keys, filter, reverb, metro, res, echo, release, tremolo;
+    uint8_t beat, click, keys, filter, reverb, metro, res, detune, release, tremolo;
     uint8_t layer_filter[LOOPER_LAYERS], layer_reverb[LOOPER_LAYERS]; /* frozen when added */
     uint8_t layer_keys[LOOPER_LAYERS];                                /* pot 3's fader, frozen the same way */
-    uint8_t layer_res[LOOPER_LAYERS], layer_release[LOOPER_LAYERS], layer_tremolo[LOOPER_LAYERS];
+    uint8_t layer_res[LOOPER_LAYERS], layer_release[LOOPER_LAYERS], layer_tremolo[LOOPER_LAYERS],
+        layer_detune[LOOPER_LAYERS];
 } mixer_t;
 
 void mixer_init(mixer_t *m);
@@ -95,7 +98,7 @@ uint8_t mixer_scale(uint8_t velocity, uint8_t level);
  * the length to send: 0 for a note on at level 0, which is left out. */
 size_t mixer_apply(const uint8_t *msg, size_t len, uint8_t level, uint8_t *out);
 
-/* Sends pot 2's, 3's, 4's, 5's, resonance's, release's or tremolo's setting to the live channels (what: for the log, once). */
+/* Sends pot 2's, 3's, 4's, 5's, resonance's, detune's, release's or tremolo's setting to the live channels (what: for the log, once). */
 void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx);
 
 /* The filter at level (0-127, as pot 4) on one channel: the chicks' Rise and Tape (fx.h). */

@@ -17,7 +17,7 @@ void mixer_init(mixer_t *m)
     m->pot[MIXER_REVERB] = m->rest[MIXER_REVERB] = 0;
     m->pot[MIXER_RES] = m->rest[MIXER_RES] = 0;
     m->pot[MIXER_TREMOLO] = m->rest[MIXER_TREMOLO] = 0;
-    m->pot[MIXER_ECHO] = m->rest[MIXER_ECHO] = m->echo = 64;
+    m->pot[MIXER_DETUNE] = m->rest[MIXER_DETUNE] = 0;
     m->pot[MIXER_RELEASE] = m->rest[MIXER_RELEASE] = m->release = 64;
     for (size_t i = 0; i < LOOPER_LAYERS; i++) m->layer_release[i] = 64;
 }
@@ -41,7 +41,7 @@ static void apply(mixer_t *m, mixer_pot_t pot)
         case MIXER_METRO: m->metro = v; break;
         case MIXER_CLICK: m->click = v; break;
         case MIXER_RES: m->res = v; break;
-        case MIXER_ECHO: m->echo = v; break;
+        case MIXER_DETUNE: m->detune = v; break;
         case MIXER_RELEASE: m->release = v; break;
         case MIXER_TREMOLO: m->tremolo = v; break;
     }
@@ -139,10 +139,16 @@ static int tremolo_offset(uint8_t level)
     return level * MIXER_TREMOLO_STEPS / MIXER_LEVEL; /* modLfoToVolume: 1 cB a step */
 }
 
+static int detune_offset(uint8_t level)
+{
+    return -(level * MIXER_DETUNE_CENTS / MIXER_LEVEL); /* fineTune: 1 cent a step, flat */
+}
+
 #define GEN_FILTER  8
 #define GEN_RES     9
 #define GEN_REVERB  16
 #define GEN_TREMOLO 13
+#define GEN_DETUNE  52
 #define GEN_RELEASE 38
 
 /* The NRPN pots: their generator and offset at a level; false for the others. */
@@ -164,6 +170,10 @@ static bool nrpn_of(mixer_pot_t pot, uint8_t level, uint8_t *gen, int *offset)
         case MIXER_RELEASE:
             *gen = GEN_RELEASE;
             *offset = release_offset(level);
+            return true;
+        case MIXER_DETUNE:
+            *gen = GEN_DETUNE;
+            *offset = detune_offset(level);
             return true;
         case MIXER_TREMOLO:
             *gen = GEN_TREMOLO;
@@ -204,9 +214,11 @@ void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *c
         offset = reverb_offset(m->reverb);
         snprintf(what, sizeof(what), "reverb %u (send %+d.%d%%)", (unsigned)m->reverb, offset / 10,
                  (offset < 0 ? -offset : offset) % 10);
-    } else if (pot == MIXER_RES || pot == MIXER_RELEASE || pot == MIXER_TREMOLO) {
-        static const char *const NAME[] = {
-            [MIXER_RES] = "resonance", [MIXER_RELEASE] = "release", [MIXER_TREMOLO] = "tremolo"};
+    } else if (pot == MIXER_RES || pot == MIXER_DETUNE || pot == MIXER_RELEASE || pot == MIXER_TREMOLO) {
+        static const char *const NAME[] = {[MIXER_RES] = "resonance",
+                                           [MIXER_DETUNE] = "detune",
+                                           [MIXER_RELEASE] = "release",
+                                           [MIXER_TREMOLO] = "tremolo"};
         uint8_t level = m->pot[pot];
         nrpn_of(pot, level, &gen, &offset);
         snprintf(what, sizeof(what), "%s %u (%+d)", NAME[pot], (unsigned)level, offset);
@@ -229,10 +241,11 @@ void mixer_send_layer_fx(const mixer_t *m, size_t layer, midi_send_fn send, void
     if (layer >= LOOPER_LAYERS) return;
     char what[112];
     snprintf(what, sizeof(what),
-             "layer %u keeps keys %u, filter %u, reverb %u, resonance %u, release %u, tremolo %u",
+             "layer %u keeps keys %u, filter %u, reverb %u, resonance %u, release %u, tremolo %u, detune %u",
              (unsigned)layer + 1, (unsigned)m->layer_keys[layer], (unsigned)m->layer_filter[layer],
              (unsigned)m->layer_reverb[layer], (unsigned)m->layer_res[layer],
-             (unsigned)m->layer_release[layer], (unsigned)m->layer_tremolo[layer]);
+             (unsigned)m->layer_release[layer], (unsigned)m->layer_tremolo[layer],
+             (unsigned)m->layer_detune[layer]);
     uint8_t ch = (uint8_t)(LOOP_CH + layer);
     /* Pot 3's fader as it was (CC11 on the keys' channel isn't in the recording). */
     uint8_t cc[3] = {(uint8_t)(0xb0 | ch), 11, m->layer_keys[layer]};
@@ -241,6 +254,7 @@ void mixer_send_layer_fx(const mixer_t *m, size_t layer, midi_send_fn send, void
     send_nrpn(ch, GEN_RES, res_offset(m->layer_res[layer]), NULL, send, ctx);
     send_nrpn(ch, GEN_RELEASE, release_offset(m->layer_release[layer]), NULL, send, ctx);
     send_nrpn(ch, GEN_TREMOLO, tremolo_offset(m->layer_tremolo[layer]), NULL, send, ctx);
+    send_nrpn(ch, GEN_DETUNE, detune_offset(m->layer_detune[layer]), NULL, send, ctx);
     send_nrpn(ch, GEN_REVERB, reverb_offset(m->layer_reverb[layer]), what, send, ctx);
 }
 
@@ -253,5 +267,6 @@ void mixer_freeze_layer(mixer_t *m, size_t layer, midi_send_fn send, void *ctx)
     m->layer_res[layer] = m->res;
     m->layer_release[layer] = m->release;
     m->layer_tremolo[layer] = m->tremolo;
+    m->layer_detune[layer] = m->detune;
     mixer_send_layer_fx(m, layer, send, ctx);
 }
