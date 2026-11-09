@@ -275,7 +275,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   board on D25/D26/D27 (VCC on VIN), mounted standing up: 8 across, 32 tall (the user; which end is up and where
   the IN header sits: not told yet). `docs/matrix-random.html` previews, upright, 8 music-reacting scenes (A Spectrum, B Ripples,
   C Starfield, D Fireworks, E Life, F Wave, G Plasma, H Rain), each with random settings re-rolled each time it comes
-  up, and the rotation: a random scene every 4 bars on the bar line. The user picks the scenes there; no firmware yet.
+  up, and the rotation: a random scene every 4 bars on the bar line. The user picked D Fireworks alone (no rotation),
+  2026-11-09: `fireworks.c` (pure, host-tested: a note on channels 1-6 launches a rocket in its pitch's column, higher
+  notes fly higher, the next beat of the drum beat or metronome bursts it, else it bursts 0.6 s after topping out;
+  gravity and burst size re-rolled every 4 bars) shown by `dots.c` (own task on core 1, bit-banged like check 4,
+  brightness 1, a frame sent only when it changed). `DOTS_IN_AT_TOP` / `DOTS_MIRROR` are guesses: the user hasn't
+  said which end is up. In `docs/wiring.html`. Built, not flashed.
 - **8x8 LED matrix: gone** (2026-11-09, the user took it off the piano for good: too many wires). `ledmx.c` (two
   74HC595s on D25/D26/D27, 1 kHz timer), `viz.c` (the "Mix" picture: falling notes + beat count) and its test are in
   git at `007f8a5`; D25/D26/D27 are free again. `docs/matrix-ideas.html` (9 picture ideas) stays. Likely successor:

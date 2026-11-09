@@ -102,6 +102,8 @@ li input:checked + span { color: var(--muted); text-decoration: line-through; }
     <h2>Metronome pots, on the DevKit</h2>
     <div class="box"><svg id="pot6" viewBox="0 30 760 145" role="img" aria-label="Metronome: tempo: ends to the rails, wiper to VN"></svg></div>
     <div class="box"><svg id="pot2" viewBox="0 30 760 145" role="img" aria-label="Metronome: volume: ends to the rails, wiper to D33"></svg></div>
+    <h2>Dot matrix (32×8, MAX7219), IN header</h2>
+    <div class="box"><svg id="dots" viewBox="0 30 760 145" role="img" aria-label="The dot matrix's IN header: VCC to VIN, GND, DIN to D25, CS to D27, CLK to D26"></svg></div>
     <h2>LED strip (8 × WS2812), IN side</h2>
     <div class="box"><svg id="strip" viewBox="0 30 760 145" role="img" aria-label="The LED strip's IN side: S to TX2, V to 3V3, G to GND"></svg></div>
     <h2>Diode test (temporary)</h2>
@@ -128,7 +130,8 @@ const botRow = ["VIN","GND","D13","D12","D14","D27","D26","D25","D33","D32","D35
 const role = { "3V3": ["power", "+rail"], GND: ["gnd", "−rail"], D14: ["tft", "SCL"], D13: ["tft", "SDA"], D4: ["tft", "DC"], D15: ["tft", "CS"], D5: ["tft", "RES"],
   D21: ["i2c", "SDA"], D22: ["i2c", "SCL"],
   D18: ["knob", "CLK"], D19: ["knob", "DT"], D23: ["knob", "SW"],
-  D33: ["pot", "CLICK"], VN: ["pot", "TEMPO"], TX2: ["led", "LED"] };
+  D33: ["pot", "CLICK"], VN: ["pot", "TEMPO"], TX2: ["led", "LED"],
+  D25: ["mx", "DIN"], D26: ["mx", "CLK"], D27: ["mx", "CS"], VIN: ["mx", "5V"] };
 let svg = document.getElementById("board");
 const NS = "http://www.w3.org/2000/svg";
 const el = (name, attrs, text) => {
@@ -154,7 +157,7 @@ function row(names, y, labelY, tagY) {
 }
 row(topRow, 80, 106, 46);
 row(botRow, 170, 152, 214);
-el("text", { x: 34, y: 244, fill: "var(--muted)", "font-size": 11 }, "teal = MCP23017 + ADS1115   gold = knob   green = screen   orange = pots   blue-violet = LEDs   red = 3V3   blue = GND");
+el("text", { x: 34, y: 244, fill: "var(--muted)", "font-size": 11 }, "teal = MCP23017 + ADS1115   gold = knob   green = screen   orange = pots   blue-violet = LEDs   amber = dot matrix   red = 3V3   blue = GND");
 
 // The slot: 3 groups of 8 pads, EF7 first. AUD1 and AUD2 share one solder place.
 svg = document.getElementById("slot");
@@ -238,6 +241,10 @@ header("ads2", [["VDD", "+rail", "power"], ["GND", "−rail", "gnd"], ["SCL", "D
 ["Resonance", "Echo", "Release", "Wobble"].forEach((name, i) =>
   header(`lpot${i + 1}`, [["left end", "−rail", "gnd"], ["wiper", `#1 A${i}`, "pot"], ["right end", "+rail", "power"]],
     [`A${i}: ${name}. Use a B10K.`, "Clockwise the wrong way? Swap the two ends."]));
+
+// The dot matrix's IN header, as printed (the OUT end's holes stay empty).
+header("dots", [["VCC", "VIN", "mx"], ["GND", "−rail", "gnd"], ["DIN", "D25", "mx"], ["CS", "D27", "mx"], ["CLK", "D26", "mx"]],
+  ["VCC on VIN (5 V from USB), not 3V3.", "Standing up, 8 across and 32 tall."]);
 
 // The LED strip's IN side (the OUT side chains more strips: leave it empty).
 header("strip", [["S", "TX2", "led"], ["V", "+rail", "power"], ["G", "−rail", "gnd"]],

@@ -17,7 +17,7 @@
  * looper.c (RECORD / REPLAY), rhythm.c (SELECT: drum beats), mixer.c (the five
  * pots: the metronome's volume and tempo on ADC1; on ADS1115 #2 beat, live keys, filter, reverb;
  * on #1 resonance, echo, release, wobble), metronome.c
- * (FROG), leds.c (the LED strip).
+ * (FROG), leds.c (the LED strip), fireworks.c (the 32x8 dot matrix, shown by dots.c).
  * MIDI goes out as UDP over WiFi to tools/piano_bridge.c (main/midi_link.h).
  *
  * Output on serial (115200):
@@ -37,6 +37,7 @@
 #include <string.h>
 
 #include "demo.h"
+#include "dots.h"
 #include "driver/i2c_master.h"
 #include "encoder.h"
 #include "fx.h"
@@ -212,10 +213,18 @@ static void report(const grid_t old_g, const grid_t new_g)
     printf("\n");
 }
 
+/* Notes of the keys, DEMO and the loop layers (channels 1-6) go to the dot matrix. */
+static void dots_midi(const uint8_t *msg, size_t len, int64_t at_us)
+{
+    if (len == 3 && (msg[0] & 0xf0) == 0x90 && msg[2] && (msg[0] & 0x0f) < LOOP_CH + LOOP_CHANNELS)
+        dots_note(msg[1], at_us);
+}
+
 static void send_midi(const uint8_t *msg, size_t len, const char *what, void *ctx)
 {
     if (len) {
         midi_link_send(msg, len);
+        dots_midi(msg, len, esp_timer_get_time());
     }
     /* The chicks' channels follow the keys' sound, volume, fader, filter, reverb and hold (fx.h). */
     if (len >= 2 && (msg[0] & 0x0f) == KEY_CH && ((msg[0] & 0xf0) == 0xb0 || (msg[0] & 0xf0) == 0xc0)) {
@@ -234,6 +243,7 @@ static void send_at(const uint8_t *msg, size_t len, const char *what, void *ctx)
 {
     if (len) {
         midi_link_send_at(msg, len, *(const int64_t *)ctx);
+        dots_midi(msg, len, *(const int64_t *)ctx);
     }
     if (what) printf("MIDI  %s%s\n", what, midi_link_connected() ? "" : " (not connected)");
 }
@@ -395,6 +405,22 @@ static void pots_read(int64_t now)
         mixer_send_fx(&mixer, (mixer_pot_t)i, send_midi, NULL);
         looper_pot(&looper, now, (int)i, mixer.pot[i]); /* a layer being recorded keeps the move */
     }
+}
+
+/* The dot matrix's beat: the drum beat's, else the metronome's. */
+static void dots_run(int64_t now)
+{
+    static int last = -1;
+    int beat = -1;
+    if (rhythm.on) {
+        const rhythm_style_t *st = rhythm_style(rhythm.style);
+        int step = groove_step(&groove, now);
+        if (step >= 0) beat = step / st->steps_per_beat;
+    } else if (metro.on && now >= metro.origin_us && metro_beat_us(&metro) > 0) {
+        beat = (int)((now - metro.origin_us) / metro_beat_us(&metro) % METRO_BEATS);
+    }
+    if (beat >= 0 && beat != last) dots_beat(beat == 0);
+    last = beat;
 }
 
 /* The LED strip, from the state of the beat, the loop and the pots. */
@@ -647,6 +673,8 @@ void app_main(void)
     pots_init();
     esp_err_t strip_err = strip_init();
     if (strip_err != ESP_OK) printf("LED strip: %s\n", esp_err_to_name(strip_err));
+    esp_err_t dots_err = dots_init();
+    if (dots_err != ESP_OK) printf("dot matrix: %s\n", esp_err_to_name(dots_err));
     screen_init();
     wifi_connect(WIFI_TIMEOUT_MS);
     midi_link_init("chicco-piano");
@@ -730,6 +758,7 @@ void app_main(void)
         static size_t frozen;
         if (looper.n_layers < frozen) frozen = looper.n_layers; /* undone or erased */
         for (; frozen < looper.n_layers; frozen++) mixer_freeze_layer(&mixer, frozen, send_midi, NULL);
+        dots_run(t);
         if (t >= next_leds) {
             next_leds = t + LEDS_PERIOD_US;
             leds_update(t);
