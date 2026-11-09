@@ -209,7 +209,7 @@ static void test_a_layer_keeps_the_effects_it_was_recorded_with(void)
     m.keys = 30; /* pot 3, the live keys' fader */
     mixer_freeze_layer(&m, 1, midi_rec, &r);
     TEST_ASSERT_EQUAL(
-        21, r.n); /* the fader, filter, resonance, release, wobble, reverb, on the layer's own channel */
+        21, r.n); /* the fader, filter, resonance, release, tremolo, reverb, on the layer's own channel */
     TEST_ASSERT_EQUAL_HEX8(0xb0 | (LOOP_CH + 1), r.e[0].msg[0]);
     TEST_ASSERT_EQUAL(11, r.e[0].msg[1]);
     TEST_ASSERT_EQUAL(30, r.e[0].msg[2]);
@@ -217,7 +217,7 @@ static void test_a_layer_keeps_the_effects_it_was_recorded_with(void)
     TEST_ASSERT_EQUAL(8, r.e[2].msg[2]);
     TEST_ASSERT_EQUAL(9, r.e[6].msg[2]);
     TEST_ASSERT_EQUAL(38, r.e[10].msg[2]);
-    TEST_ASSERT_EQUAL(6, r.e[14].msg[2]);
+    TEST_ASSERT_EQUAL(13, r.e[14].msg[2]);
     TEST_ASSERT_EQUAL(16, r.e[18].msg[2]);
     TEST_ASSERT_EQUAL(8192 + MIXER_REVERB_SEND, r.e[20].msg[2] << 7 | r.e[19].msg[2]);
     TEST_ASSERT_EQUAL(0, strncmp("layer 2 keeps keys 30, filter 40, reverb 127", r.e[20].what, 44));
@@ -292,12 +292,12 @@ static void test_ads_pots_are_nrpn_offsets_on_their_generators(void)
     TEST_ASSERT_EQUAL(38, gen); /* releaseVolEnv: shortest at 0 */
     TEST_ASSERT_EQUAL(-MIXER_RELEASE_TC, off);
 
-    turn(MIXER_WOBBLE, 127, 0);
+    turn(MIXER_TREMOLO, 127, 0);
     memset(&r, 0, sizeof(r));
-    mixer_send_fx(&m, MIXER_WOBBLE, midi_rec, &r);
+    mixer_send_fx(&m, MIXER_TREMOLO, midi_rec, &r);
     last_nrpn(&r, 0, &gen, &off);
-    TEST_ASSERT_EQUAL(6, gen); /* vibLfoToPitch */
-    TEST_ASSERT_EQUAL(MIXER_WOBBLE_STEPS, off);
+    TEST_ASSERT_EQUAL(13, gen); /* modLfoToVolume */
+    TEST_ASSERT_EQUAL(MIXER_TREMOLO_STEPS, off);
 }
 
 static void test_echo_pot_sends_nothing(void)
@@ -313,7 +313,7 @@ static void test_echo_pot_sends_nothing(void)
 static void test_ads_effects_start_neutral(void)
 {
     TEST_ASSERT_EQUAL(0, m.res);
-    TEST_ASSERT_EQUAL(0, m.wobble);
+    TEST_ASSERT_EQUAL(0, m.tremolo);
     TEST_ASSERT_EQUAL(64, m.release); /* the middle: the preset's own (offset ~0) */
     TEST_ASSERT_EQUAL(64, m.echo);
 }

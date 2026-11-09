@@ -19,8 +19,9 @@
  * and reverb, frozen onto a loop layer the same way: resonance (initialFilterQ, 0 to MIXER_RES_CB;
  * rendered: a peak at the cutoff, quieter as it rises), echo (no MIDI: fx.h's Echo amount), release
  * (releaseVolEnv, -/+MIXER_RELEASE_TC with the preset's own in the middle; rendered on the saw lead:
- * 60 ms to 1.9 s) and wobble (vibLfoToPitch, 0 to MIXER_WOBBLE_STEPS steps of 2 cents; rendered: the swing
- * grows from the preset's ~47 cents to ~140). Their moves during a take aren't recorded (pots 3-5's are). FluidSynth 2.3
+ * 60 ms to 1.9 s) and tremolo (modLfoToVolume, 0 to MIXER_TREMOLO_STEPS cB at FluidSynth's default ~8 Hz LFO;
+ * rendered on the saw lead: the level swing grows from its own ~17 dB to ~30 dB at 240, ~45 dB at 480, nearly a
+ * chop; it replaced a vibrato, vibLfoToPitch, the user didn't like it, 2026-11-09). Their moves during a take aren't recorded (pots 3-5's are). FluidSynth 2.3
  * ignores CC74 (no default modulator, rendered 2026-11-06), so the filter is
  * an SF2 NRPN that offsets the cutoff generator on any SoundFont: 0 to
  * MIXER_FILTER_CENTS. The reverb is the same kind of NRPN on reverbEffectsSend
@@ -50,11 +51,11 @@
 #define MIXER_WAKE      2
 #define MIXER_FILTER_CENTS \
     (-4800) /* the cutoff at pot 4's 0; further down FluidR3's saw lead turns bright again (rendered) */
-#define MIXER_REVERB_SEND  1000 /* 100%: FluidSynth clamps the sum to 0-100% */
-#define MIXER_RES_CB       400  /* resonance at the top: 40 dB */
-#define MIXER_RELEASE_TC   2400 /* release at either end: x/÷ ~4 (timecents) */
-#define MIXER_WOBBLE_STEPS 50   /* vibrato depth at the top, in NRPN steps (2 cents each) */
-#define MIXER_FX_LIVE      2    /* the pots' channels: 1 and 2 (0-1), the keys and DEMO */
+#define MIXER_REVERB_SEND   1000 /* 100%: FluidSynth clamps the sum to 0-100% */
+#define MIXER_RES_CB        400  /* resonance at the top: 40 dB */
+#define MIXER_RELEASE_TC    2400 /* release at either end: x/÷ ~4 (timecents) */
+#define MIXER_TREMOLO_STEPS 480  /* tremolo depth at the top, in cB (NRPN steps of 1 cB) */
+#define MIXER_FX_LIVE       2    /* the pots' channels: 1 and 2 (0-1), the keys and DEMO */
 
 typedef enum {
     MIXER_BEAT,
@@ -66,7 +67,7 @@ typedef enum {
     MIXER_RES, /* ADS1115 A0 */
     MIXER_ECHO,
     MIXER_RELEASE,
-    MIXER_WOBBLE, /* A3 */
+    MIXER_TREMOLO, /* A3 */
 } mixer_pot_t;
 
 typedef struct {
@@ -76,10 +77,10 @@ typedef struct {
     int64_t moved_us[MIXER_POTS];   /* when it was last turned; 0: not since boot */
     int64_t changed_us[MIXER_POTS]; /* when its level last changed */
     uint8_t rest[MIXER_POTS];       /* level at the last turn: moved_us needs MIXER_TURN from it */
-    uint8_t beat, click, keys, filter, reverb, metro, res, echo, release, wobble;
+    uint8_t beat, click, keys, filter, reverb, metro, res, echo, release, tremolo;
     uint8_t layer_filter[LOOPER_LAYERS], layer_reverb[LOOPER_LAYERS]; /* frozen when added */
     uint8_t layer_keys[LOOPER_LAYERS];                                /* pot 3's fader, frozen the same way */
-    uint8_t layer_res[LOOPER_LAYERS], layer_release[LOOPER_LAYERS], layer_wobble[LOOPER_LAYERS];
+    uint8_t layer_res[LOOPER_LAYERS], layer_release[LOOPER_LAYERS], layer_tremolo[LOOPER_LAYERS];
 } mixer_t;
 
 void mixer_init(mixer_t *m);
@@ -94,7 +95,7 @@ uint8_t mixer_scale(uint8_t velocity, uint8_t level);
  * the length to send: 0 for a note on at level 0, which is left out. */
 size_t mixer_apply(const uint8_t *msg, size_t len, uint8_t level, uint8_t *out);
 
-/* Sends pot 2's, 3's, 4's, 5's, resonance's, release's or wobble's setting to the live channels (what: for the log, once). */
+/* Sends pot 2's, 3's, 4's, 5's, resonance's, release's or tremolo's setting to the live channels (what: for the log, once). */
 void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx);
 
 /* The filter at level (0-127, as pot 4) on one channel: the chicks' Rise and Tape (fx.h). */

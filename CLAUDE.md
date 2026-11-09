@@ -133,7 +133,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   diff"): FluidSynth's default room left the tail ~57 dB under the note, CC91 adds only 20%, and the saw lead has its
   own send, so CC91 0 wasn't dry. `pc_synth.sh` sets the room: room-size 1.0, damp 0, level 1, width 1 (the user's
   pick C of three rendered rooms, 2026-11-06). LED bar per pot: 1 green, 2 pink (click
-  volume), 3 white, 4 blue (filter), 5 violet (reverb), 6 warm white (click tempo); 7-10 orange, teal, lime, magenta (resonance, echo, release, wobble). Only D33 and VN
+  volume), 3 white, 4 blue (filter), 5 violet (reverb), 6 warm white (click tempo); 7-10 orange, teal, lime, magenta (resonance, echo, release, tremolo). Only D33 and VN
   are ADC pots since 2026-11-09 (D32, D34, D35, VP free). An unwired ADC pin floats: wire before flashing.
   **Pot names (2026-11-06, the user grouped them on the box):** three sections of two, Volume (beat = pot 1, keys = pot 3),
   Effects (filter = 4, reverb = 5), Metronome (tempo = 6, volume = 2). Docs for the player use these names, not
@@ -296,7 +296,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `ABn` → `An`), the 10 kΩ pull-ups gone, all keys checked by the user. Screen (TFT 1.69",
   HSPI: SCL D14, SDA D13, CS D15, RES D5, DC D4, BLK open) works, shows
   `ui.c` (sound, volume, octave, beat, loop, DEMO, PC link); the user checked
-  it. Knob: CLK D18, DT D19, SW D23, + on 3V3. Pots (2026-11-09): metronome volume on D33 and tempo on VN (ADC1); beat, keys, filter, reverb on ADS1115 #2 (0x49) A0-A3; resonance, echo, release, wobble on #1 (0x48) A0-A3, both on D21/D22; dot matrix DIN D25, CLK D26, CS D27, VCC on VIN; LED strip data on TX2 (GPIO17), V on 3V3. The amp is off the wiring doc (2026-11-04, not used; it was planned on D26/D25/D27).
+  it. Knob: CLK D18, DT D19, SW D23, + on 3V3. Pots (2026-11-09): metronome volume on D33 and tempo on VN (ADC1); beat, keys, filter, reverb on ADS1115 #2 (0x49) A0-A3; resonance, echo, release, tremolo on #1 (0x48) A0-A3, both on D21/D22; dot matrix DIN D25, CLK D26, CS D27, VCC on VIN; LED strip data on TX2 (GPIO17), V on 3V3. The amp is off the wiring doc (2026-11-04, not used; it was planned on D26/D25/D27).
 - The BLE-MIDI version (NimBLE, `ble_midi.c`) is in git at `923500c`.
 - **The four checks** (from mukklet, `FIRMWARE_PLAYBOOK.md`): `tools/test.sh`
   (host tests in `test/`, gcc + ASan/UBSan, Unity from `$IDF_PATH`),

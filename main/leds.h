@@ -15,7 +15,7 @@
  * A pot just turned (LEDS_POT_SHOW_US): all 8 show its level as a bar in its
  * colour (beat green, metronome volume pink, keys white, filter blue, reverb
  * violet, metronome tempo warm white; on the ADS1115: resonance orange, echo teal, release lime,
- * wobble magenta).
+ * tremolo magenta).
  */
 #pragma once
 
@@ -37,7 +37,7 @@ typedef struct {
     bool loop_playing;
     int target;    /* the newest layer, shown brighter; -1: none */
     uint8_t muted; /* bit per layer: shown dim */
-    int pot; /* the pot shown as a bar (0 beat, 1 click volume, 2 keys, 3 filter, 4 reverb, 5 click tempo, 6-9 resonance, echo, release, wobble); -1: none */
+    int pot; /* the pot shown as a bar (0 beat, 1 click volume, 2 keys, 3 filter, 4 reverb, 5 click tempo, 6-9 resonance, echo, release, tremolo); -1: none */
     int level; /* its part's level, 0-127 */
 } leds_state_t;
 
