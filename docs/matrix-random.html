@@ -211,7 +211,7 @@ let step = -1, t0 = performance.now(), last = t0, paused = false, pausedAt = 0;
 function each(fn) { for (const v of views) fn(v.st); }
 function note(key, len, layer) { held.set(key, Math.max(held.get(key) || 0, len)); each(s => s.onNote && s.onNote(key, len, layer)); }
 function songStep(s) {
-  const pos = s % LOOP, [n, rec, live] = PLAN[Math.floor(s / LOOP) % PLAN.length];
+  const pos = s % LOOP, [n, rec, live] = planAt(s);
   if (s > 0 && s % (16 * ROTATE_BARS) === 0) { rotate(); for (const v of views) if (v !== rot) v.reroll(); }
   each(st => st.onStep && st.onStep(s));
   const st = pos % 16;
@@ -230,20 +230,22 @@ function paint(v) {
     ctx.fillStyle = g[y][x] ? on : '#2a1513'; ctx.fill();
   }
 }
+const planAt = s => PLAN[Math.floor(Math.max(0, s) / LOOP) % PLAN.length];
 function frame(now) {
+  requestAnimationFrame(frame); // first: an error in one frame must not stop the animation
+  now = Math.max(now, t0);      // Chromium's first frame time can be before t0
   if (!paused) {
     const dt = Math.min(0.1, (now - last) / 1000);
     const s = Math.floor((now - t0) / STEP_MS);
     while (step < s) { step++; for (const [k,v] of held) { if (v <= 1) held.delete(k); else held.set(k, v - 1); } songStep(step); }
     each(st => st.tick && st.tick(dt));
     for (const v of views) paint(v);
-    const [n, rec, live] = PLAN[Math.floor(step / LOOP) % PLAN.length];
+    const [n, rec, live] = planAt(step);
     const bar = Math.floor(step / 16), next = ROTATE_BARS - bar % ROTATE_BARS;
     document.getElementById('now').textContent = `bar ${bar % 2 + 1}, beat ${Math.floor(step % 16 / 4) + 1} · layers playing: ${n}` +
       (rec >= 0 ? ` · recording ${LAYERS[rec].name}` : '') + (live ? ' · live keys' : '') + ` · next scene in ${next} bar${next > 1 ? 's' : ''}`;
   }
   last = now;
-  requestAnimationFrame(frame);
 }
 document.getElementById('pp').onclick = e => {
   paused = !paused; e.target.textContent = paused ? 'Play' : 'Pause';
