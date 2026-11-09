@@ -412,14 +412,19 @@ static void dots_run(int64_t now)
 {
     static int last = -1;
     int beat = -1;
+    int beats = 0;
     if (rhythm.on) {
         const rhythm_style_t *st = rhythm_style(rhythm.style);
         int step = groove_step(&groove, now);
-        if (step >= 0) beat = step / st->steps_per_beat;
+        if (step >= 0) {
+            beat = step / st->steps_per_beat;
+            beats = st->steps / st->steps_per_beat;
+        }
     } else if (metro.on && now >= metro.origin_us && metro_beat_us(&metro) > 0) {
         beat = (int)((now - metro.origin_us) / metro_beat_us(&metro) % METRO_BEATS);
+        beats = METRO_BEATS;
     }
-    if (beat >= 0 && beat != last) dots_beat(beat == 0);
+    if (beat >= 0 && beat != last) dots_beat(beat, beats);
     last = beat;
 }
 

@@ -41,7 +41,7 @@ static void test_a_note_launches_a_rocket_that_climbs_from_the_bottom(void)
     uint8_t pic[FW_H];
     fw_draw(&f, pic);
     TEST_ASSERT_EQUAL(1, f.n_rockets);
-    TEST_ASSERT_TRUE(pic[FW_H - 1] & (1u << fw_column(60)));
+    TEST_ASSERT_TRUE(pic[FW_H - 2] & (1u << fw_column(60))); /* above the beat counter */
     run(1000, 200000);
     TEST_ASSERT_TRUE(f.rocket[0].y < FW_H - 5);
 }
@@ -67,13 +67,13 @@ static void test_the_beat_bursts_rockets_into_sparks_that_fall_and_fade(void)
 {
     fw_note(&f, 70, 0);
     run(1000, 300000);
-    fw_beat(&f, false, 300000);
+    fw_beat(&f, 1, 4, 300000);
     TEST_ASSERT_EQUAL(0, f.n_rockets);
     TEST_ASSERT_EQUAL(f.burst, f.n_sparks);
     uint8_t pic[FW_H];
     fw_draw(&f, pic);
     TEST_ASSERT_TRUE(lit(pic) > 0);
-    run(300000, 2000000);
+    run(300000, 300000 + FW_BEAT_SHOW_US + 20000); /* the sparks gone, and the beat counter with no beat */
     TEST_ASSERT_EQUAL(0, f.n_sparks);
     fw_draw(&f, pic);
     TEST_ASSERT_EQUAL(0, lit(pic));
@@ -100,7 +100,7 @@ static void test_settings_are_rolled_again_every_few_bars(void)
     float g = f.gravity;
     int changed = 0;
     for (int bar = 1; bar <= 4 * FW_REROLL_BARS; bar++) {
-        fw_beat(&f, true, bar);
+        fw_beat(&f, 0, 4, bar);
         if (f.gravity != g) changed++;
         g = f.gravity;
     }
@@ -113,10 +113,41 @@ static void test_never_more_than_its_room(void)
 {
     for (int i = 0; i < 200; i++) {
         fw_note(&f, (uint8_t)(33 + i % 60), 0);
-        if (i % 3 == 0) fw_beat(&f, false, 0);
+        if (i % 3 == 0) fw_beat(&f, i % 4, 4, 1);
     }
     TEST_ASSERT_TRUE(f.n_rockets <= FW_ROCKETS);
     TEST_ASSERT_TRUE(f.n_sparks <= FW_SPARKS);
+}
+
+static void test_the_bottom_row_counts_the_beat(void)
+{
+    uint8_t pic[FW_H];
+    fw_draw(&f, pic);
+    TEST_ASSERT_EQUAL_HEX8(0, pic[FW_H - 1]); /* no beat yet */
+    fw_beat(&f, 0, 4, 1000);
+    fw_draw(&f, pic);
+    TEST_ASSERT_EQUAL_HEX8(0xFF, pic[FW_H - 1]); /* beat 1: the whole row */
+    fw_beat(&f, 1, 4, 1000);
+    fw_draw(&f, pic);
+    TEST_ASSERT_EQUAL_HEX8(0x0C, pic[FW_H - 1]); /* beat 2: dots 2-3 */
+    fw_beat(&f, 3, 4, 1000);
+    fw_draw(&f, pic);
+    TEST_ASSERT_EQUAL_HEX8(0xC0, pic[FW_H - 1]);
+    fw_beat(&f, 2, 3, 1000); /* a 3-beat bar */
+    fw_draw(&f, pic);
+    TEST_ASSERT_EQUAL_HEX8(0xE0, pic[FW_H - 1]);
+    run(1000, 1000 + FW_BEAT_SHOW_US + 20000); /* the beat stopped */
+    fw_draw(&f, pic);
+    TEST_ASSERT_EQUAL_HEX8(0, pic[FW_H - 1]);
+}
+
+static void test_the_bar_line_sends_two_sparks_up(void)
+{
+    fw_beat(&f, 0, 4, 1000);
+    TEST_ASSERT_EQUAL(2, f.n_sparks);
+    TEST_ASSERT_TRUE(f.spark[0].vy < 0);
+    fw_beat(&f, 1, 4, 1000);
+    TEST_ASSERT_EQUAL(2, f.n_sparks); /* not on the other beats */
 }
 
 int main(void)
@@ -131,5 +162,7 @@ int main(void)
     RUN_TEST(test_a_sequenced_note_launches_at_its_own_time);
     RUN_TEST(test_settings_are_rolled_again_every_few_bars);
     RUN_TEST(test_never_more_than_its_room);
+    RUN_TEST(test_the_bottom_row_counts_the_beat);
+    RUN_TEST(test_the_bar_line_sends_two_sparks_up);
     return UNITY_END();
 }

@@ -9,6 +9,10 @@
  * after it stopped climbing. Every FW_REROLL_BARS bar lines the gravity and the burst size
  * are rolled again (docs/matrix-random.html's "random settings").
  *
+ * The bottom row counts the beat (2026-11-09, the user's pick of two): the bar split into one
+ * block a beat, the current one lit, the whole row on beat 1, and two sparks fly up from it at each
+ * bar line. Dark FW_BEAT_SHOW_US after the last beat. Rockets start on the row above it.
+ *
  * Notes are timed like the MIDI they come from: a sequenced note (beat, loop, DEMO) is sent
  * ahead and launches at its own time.
  */
@@ -17,16 +21,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define FW_W           8
-#define FW_H           32
-#define FW_ROCKETS     5
-#define FW_SPARKS      96
-#define FW_PENDING     16
-#define FW_NOTE_LOW    33 /* A1, key 1 in EDM mode */
-#define FW_NOTE_SPAN   56
-#define FW_CLIMB       45.0f /* rows a second */
-#define FW_WAIT_US     600000
-#define FW_REROLL_BARS 4
+#define FW_W            8
+#define FW_H            32
+#define FW_ROCKETS      5
+#define FW_SPARKS       96
+#define FW_PENDING      16
+#define FW_NOTE_LOW     33 /* A1, key 1 in EDM mode */
+#define FW_NOTE_SPAN    56
+#define FW_CLIMB        45.0f /* rows a second */
+#define FW_WAIT_US      600000
+#define FW_REROLL_BARS  4
+#define FW_BEAT_SHOW_US 2000000
 
 typedef struct {
     float x, y, top;
@@ -53,6 +58,8 @@ typedef struct {
     fw_pending_t pending[FW_PENDING];
     int n_pending;
     int bars;
+    int beat, beats; /* the beat counter: beat 0.. of beats */
+    int64_t beat_us; /* the last beat; 0: none yet */
     int64_t last_us;
 } fw_t;
 
@@ -64,8 +71,8 @@ void fw_reroll(fw_t *f);
 /* A note on (MIDI note number), sounding at at_us. */
 void fw_note(fw_t *f, uint8_t note, int64_t at_us);
 
-/* A beat: the rockets up burst. bar_line: the first beat of a bar (counts for the reroll). */
-void fw_beat(fw_t *f, bool bar_line, int64_t now_us);
+/* Beat `beat` (0: the bar line) of `beats`: the rockets up burst, the counter moves. */
+void fw_beat(fw_t *f, int beat, int beats, int64_t now_us);
 
 /* Moves everything to now_us. */
 void fw_tick(fw_t *f, int64_t now_us);

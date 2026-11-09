@@ -25,7 +25,7 @@
 typedef struct {
     int64_t at_us; /* a note; 0: a beat */
     uint8_t note;
-    bool bar_line;
+    int8_t beat, beats;
 } dots_event_t;
 
 static QueueHandle_t events;
@@ -99,7 +99,7 @@ static void dots_task(void *arg)
             if (e.at_us) {
                 fw_note(&fw, e.note, e.at_us);
             } else {
-                fw_beat(&fw, e.bar_line, now);
+                fw_beat(&fw, e.beat, e.beats, now);
             }
         }
         fw_tick(&fw, now);
@@ -133,9 +133,9 @@ void dots_note(uint8_t note, int64_t at_us)
     xQueueSend(events, &e, 0);
 }
 
-void dots_beat(bool bar_line)
+void dots_beat(int beat, int beats)
 {
     if (!events) return;
-    dots_event_t e = {.at_us = 0, .bar_line = bar_line};
+    dots_event_t e = {.at_us = 0, .beat = (int8_t)beat, .beats = (int8_t)beats};
     xQueueSend(events, &e, 0);
 }

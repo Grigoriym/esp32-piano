@@ -20,5 +20,5 @@ esp_err_t dots_init(void);
 /* A note on (MIDI note number), sounding at at_us (esp_timer time). Any task. */
 void dots_note(uint8_t note, int64_t at_us);
 
-/* A beat; bar_line: the first of its bar. Any task. */
-void dots_beat(bool bar_line);
+/* Beat `beat` (0: the bar line) of `beats` a bar. Any task. */
+void dots_beat(int beat, int beats);

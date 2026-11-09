@@ -48,7 +48,8 @@ static void launch(fw_t *f, uint8_t note)
     if (span < 0) span = 0;
     if (span > FW_NOTE_SPAN) span = FW_NOTE_SPAN;
     float top = 1.0f + (float)(FW_NOTE_SPAN - span) * (FW_H * 0.7f) / FW_NOTE_SPAN;
-    f->rocket[f->n_rockets++] = (fw_rocket_t){.x = (float)c, .y = FW_H - 1, .top = top};
+    f->rocket[f->n_rockets++] =
+        (fw_rocket_t){.x = (float)c, .y = FW_H - 2, .top = top}; /* above the counter */
 }
 
 void fw_note(fw_t *f, uint8_t note, int64_t at_us)
@@ -72,11 +73,20 @@ static void burst(fw_t *f, int i)
     f->rocket[i] = f->rocket[--f->n_rockets];
 }
 
-void fw_beat(fw_t *f, bool bar_line, int64_t now_us)
+void fw_beat(fw_t *f, int beat, int beats, int64_t now_us)
 {
-    (void)now_us;
     while (f->n_rockets) burst(f, f->n_rockets - 1);
-    if (bar_line && ++f->bars % FW_REROLL_BARS == 0) fw_reroll(f);
+    f->beat = beat;
+    f->beats = beats > 0 ? beats : 4;
+    f->beat_us = now_us ? now_us : 1;
+    if (beat != 0) return;
+    for (int k = 0; k < 2 && f->n_sparks < FW_SPARKS; k++) /* the bar line: two sparks fly up */
+        f->spark[f->n_sparks++] = (fw_spark_t){.x = rnd(f, 0.0f, FW_W - 1),
+                                               .y = FW_H - 2,
+                                               .vx = rnd(f, -1.5f, 1.5f),
+                                               .vy = -rnd(f, 14.0f, 22.0f),
+                                               .life = rnd(f, 0.6f, 1.0f)};
+    if (++f->bars % FW_REROLL_BARS == 0) fw_reroll(f);
 }
 
 void fw_tick(fw_t *f, int64_t now_us)
@@ -137,4 +147,14 @@ void fw_draw(const fw_t *f, uint8_t out[FW_H])
         dot(out, f->rocket[i].x, f->rocket[i].y + 1.0f); /* a short tail */
     }
     for (int i = 0; i < f->n_sparks; i++) dot(out, f->spark[i].x, f->spark[i].y);
+    if (f->beat_us && f->last_us - f->beat_us < FW_BEAT_SHOW_US) {
+        if (f->beat == 0) {
+            out[FW_H - 1] = 0xFF;
+        } else {
+            int from = f->beat * FW_W / f->beats;
+            int to = (f->beat + 1) * FW_W / f->beats;
+            out[FW_H - 1] = 0;
+            for (int x = from; x < to; x++) out[FW_H - 1] |= (uint8_t)(1u << x);
+        }
+    }
 }

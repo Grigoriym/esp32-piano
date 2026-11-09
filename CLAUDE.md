@@ -278,7 +278,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   up, and the rotation: a random scene every 4 bars on the bar line. The user picked D Fireworks alone (no rotation),
   2026-11-09: `fireworks.c` (pure, host-tested: a note on channels 1-6 launches a rocket in its pitch's column, higher
   notes fly higher, the next beat of the drum beat or metronome bursts it, else it bursts 0.6 s after topping out;
-  gravity and burst size re-rolled every 4 bars) shown by `dots.c` (own task on core 1, bit-banged like check 4,
+  gravity and burst size re-rolled every 4 bars; the bottom row counts the beat, all 8 dots on beat 1, two sparks up
+  at each bar line, dark 2 s after the beat stops, the user's pick) shown by `dots.c` (own task on core 1, bit-banged like check 4,
   brightness 1, a frame sent only when it changed). `DOTS_IN_AT_TOP` / `DOTS_MIRROR` are guesses: the user hasn't
   said which end is up. In `docs/wiring.html`. Built, not flashed.
 - **8x8 LED matrix: gone** (2026-11-09, the user took it off the piano for good: too many wires). `ledmx.c` (two
