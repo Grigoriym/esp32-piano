@@ -223,8 +223,7 @@ header("knob", [["CLK", "D18", "knob"], ["DT", "D19", "knob"], ["SW", "D23", "kn
      : id === "pot6" ? "The metronome's tempo, 60-180 bpm (FROG turns it on and off; Metronome: volume is its loudness). Use a B10K."
      : id === "pot2" ? "The metronome's volume, held clicks follow it (until 2026-11-06: the newest loop layer)."
      : id === "pot3" ? "The live keys' fader: held notes follow it too (not the loop or the beat)."
-     : `Sets the loudness of ${what}.`, "Clockwise the wrong way? Swap the two ends.",
-     ...(id === "pot2" ? ["1 µF from the wiper to the left end (GND), stripe on GND (test, 2026-11-04)."] : [])]));
+     : `Sets the loudness of ${what}.`, "Clockwise the wrong way? Swap the two ends."]));
 
 // The ADS1115, its single row as printed. On the same I2C wires as the MCP23017 (D21/D22);
 // ADDR left open = 0x48 (checked 2026-11-09).
