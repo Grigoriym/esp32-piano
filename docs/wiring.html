@@ -99,11 +99,6 @@ li input:checked + span { color: var(--muted); text-decoration: line-through; }
     <div class="box"><svg id="pot2" viewBox="0 30 760 145" role="img" aria-label="Metronome: volume: ends to the rails, wiper to D33"></svg></div>
     <h2>LED strip (8 × WS2812), IN side</h2>
     <div class="box"><svg id="strip" viewBox="0 30 760 145" role="img" aria-label="The LED strip's IN side: S to TX2, V to 3V3, G to GND"></svg></div>
-    <h2>LED matrix (8×8) on two 74HC595s</h2>
-    <p>Chips drawn as their pins 1–16 in order (notch up: 1–8 down the left side, 9–16 up the right). Chip A is the one farther from the matrix; it gets the data. Matrix pins 1–8 are the row on the side that lit the corner LED in the first test (3V3 → 220 Ω → pin 9, pin 13 → GND). Checked 2026-11-07 (esp32-hw-checks, ONLY_CHECK 3).</p>
-    <div class="box"><svg id="mxa" viewBox="0 30 760 175" role="img" aria-label="74HC595 chip A: DS from D25, outputs to the matrix columns"></svg></div>
-    <div class="box"><svg id="mxb" viewBox="0 30 760 175" role="img" aria-label="74HC595 chip B: DS from chip A pin 9, outputs through 220 ohm to the matrix rows"></svg></div>
-    <div class="box"><svg id="mxm" viewBox="0 30 760 175" role="img" aria-label="LED matrix pins 1-16 and where each goes"></svg></div>
     <h2>Diode test (temporary)</h2>
     <div class="box"><svg id="diode" viewBox="0 30 760 130" role="img" aria-label="A 1N4148 between the toy's AB0 wire and the MCP23017's A0, stripe toward A0"></svg></div>
   </section>
@@ -128,8 +123,7 @@ const botRow = ["VIN","GND","D13","D12","D14","D27","D26","D25","D33","D32","D35
 const role = { "3V3": ["power", "+rail"], GND: ["gnd", "−rail"], D14: ["tft", "SCL"], D13: ["tft", "SDA"], D4: ["tft", "DC"], D15: ["tft", "CS"], D5: ["tft", "RES"],
   D21: ["i2c", "SDA"], D22: ["i2c", "SCL"],
   D18: ["knob", "CLK"], D19: ["knob", "DT"], D23: ["knob", "SW"],
-  D32: ["pot", "BEAT"], D33: ["pot", "CLICK"], D34: ["pot", "KEYS"], D35: ["pot", "FILTER"], VP: ["pot", "REVERB"], VN: ["pot", "TEMPO"], TX2: ["led", "LED"],
-  D25: ["mx", "DS"], D26: ["mx", "SH"], D27: ["mx", "ST"] };
+  D32: ["pot", "BEAT"], D33: ["pot", "CLICK"], D34: ["pot", "KEYS"], D35: ["pot", "FILTER"], VP: ["pot", "REVERB"], VN: ["pot", "TEMPO"], TX2: ["led", "LED"] };
 let svg = document.getElementById("board");
 const NS = "http://www.w3.org/2000/svg";
 const el = (name, attrs, text) => {
@@ -155,7 +149,7 @@ function row(names, y, labelY, tagY) {
 }
 row(topRow, 80, 106, 46);
 row(botRow, 170, 152, 214);
-el("text", { x: 34, y: 244, fill: "var(--muted)", "font-size": 11 }, "teal = MCP23017   gold = knob   green = screen   orange = pots   blue-violet = LEDs   amber = LED matrix   red = 3V3   blue = GND");
+el("text", { x: 34, y: 244, fill: "var(--muted)", "font-size": 11 }, "teal = MCP23017   gold = knob   green = screen   orange = pots   blue-violet = LEDs   red = 3V3   blue = GND");
 
 // The slot: 3 groups of 8 pads, EF7 first. AUD1 and AUD2 share one solder place.
 svg = document.getElementById("slot");
@@ -231,20 +225,6 @@ header("knob", [["CLK", "D18", "knob"], ["DT", "D19", "knob"], ["SW", "D23", "kn
 header("strip", [["S", "TX2", "led"], ["V", "+rail", "power"], ["G", "−rail", "gnd"]],
   ["The IN side's S, V, G; the OUT side (for chaining) stays empty.", "TX2 is on the top row, between RX2 and D5.",
    "V on 3V3, not 5 V: the data is 3.3 V; the firmware keeps", "the LEDs dim (full white would be ~480 mA)."]);
-
-// The LED matrix: chip A (columns, data from D25), chip B (rows, data from chip A's Q7'), the matrix.
-const MXA = { 1: "M3", 2: "M4", 3: "M10", 4: "M6", 5: "M11", 6: "M15", 7: "M16", 8: "−rail", 9: "B14", 10: "+rail",
-  11: "D26", 12: "D27", 13: "−rail", 14: "D25", 15: "M13", 16: "+rail" };
-const MXB = { 1: "R→M14", 2: "R→M8", 3: "R→M12", 4: "R→M1", 5: "R→M7", 6: "R→M2", 7: "R→M5", 8: "−rail", 9: null, 10: "+rail",
-  11: "A11", 12: "A12", 13: "−rail", 14: "A9", 15: "R→M9", 16: "+rail" };
-const MXM = { 1: "R←B4", 2: "R←B6", 3: "A1", 4: "A2", 5: "R←B7", 6: "A4", 7: "R←B5", 8: "R←B2", 9: "R←B15", 10: "A3",
-  11: "A5", 12: "R←B3", 13: "A15", 14: "R←B1", 15: "A6", 16: "A7" };
-const kindOf = (to) => !to ? "pin" : to === "−rail" ? "gnd" : to === "+rail" ? "power" : "mx";
-const mxPins = (map) => Array.from({ length: 16 }, (_, i) => [String(i + 1), map[i + 1], kindOf(map[i + 1])]);
-header("mxa", mxPins(MXA), ["Chip A (far from the matrix).", "M = matrix pin, B = chip B pin.", "No resistors on this chip.",
-  "Pin 9 → chip B pin 14 only: if chip B", "gets D25's data too, both chips show", "the same and a diagonal stays dark."]);
-header("mxb", mxPins(MXB), ["Chip B (near the matrix).", "R = through a 220 Ω resistor.", "A = chip A pin. Pin 9 stays empty."]);
-header("mxm", mxPins(MXM), ["The matrix, pins 1–16.", "R← = from chip B through 220 Ω.", "A = chip A pin (no resistor)."]);
 
 // Diode test: keys 1-8 through a 1N4148 in the AB0 wire. The row pulls current in,
 // so the stripe (cathode) faces the MCP23017.

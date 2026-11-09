@@ -271,15 +271,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   lines, tempo and bar:beat from its clicks (else from the kicks). Sounds sent before the server started are unknown
   (no name on the chip). Tested from a recorded stream in headless Firefox (call `resize()` and `draw()` before the
   screenshot, or it catches an empty frame); not yet seen by the user.
-- **8x8 LED matrix** (2026-11-07): `ledmx.c` drives it (two 74HC595s, DS D25 / SH_CP D26 / ST_CP D27, a 1 kHz
-  `esp_timer` shows one column at a time; `FLIP_ROWS`/`FLIP_COLS` if it sits the other way: which way is up isn't
-  confirmed by the user yet). `viz.c` (pure, host-tested) is what it shows: the user's pick "I" of
-  `docs/matrix-ideas.html` (9 animated previews; "A", falling notes alone, came first): notes of channels 1-6 fall
-  in the top 6 rows (column by pitch, 7 semitones a column from A1; sequenced notes at their own time), the bottom
-  2 rows count the beat or the metronome. The beat itself isn't drawn as notes. Wiring: `docs/wiring.html`
-  and `docs/matrix-check-wiring.html` (the step-by-step page used to wire it). The kit's tutorial is local:
-  `~/claude/esp32/00Freenove_Ultimate_Starter_Kit_for_ESP32-master/C/C_Tutorial.pdf` (schematics are images:
-  `pdftoppm -f <page> -l <page> -r 400 -png`, then crop; chapter 16.3 is pages 166-174).
+- **8x8 LED matrix: gone** (2026-11-09, the user took it off the piano for good: too many wires). `ledmx.c` (two
+  74HC595s on D25/D26/D27, 1 kHz timer), `viz.c` (the "Mix" picture: falling notes + beat count) and its test are in
+  git at `007f8a5`; D25/D26/D27 are free again. `docs/matrix-ideas.html` (9 picture ideas) stays. Likely successor:
+  the 32x8 MAX7219 board (Homebox, both passed `esp32-hw-checks` check 4 on 25/26/27, 2026-11-09), not decided.
 - `docs/how-scan-works.html`: animated explainer of the row-by-row scan and the ghost (local page).
 - `docs/wiring.html`: **the wiring doc**, every DevKit pin and what goes on it
   (local page, open in a browser; not published). Update it with every
@@ -315,9 +310,6 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   +100%. The bridge now holds HELLO until a `FLUID` client reads its port and for its first 3.5 s (the toy resends only
   after 3 s without HELLO). Check after a service start: the journal's `synth connected: saying HELLO` comes after
   `toy ... -> synth`, and the toy log shows `reverb N` after it.
-- **LED matrix lit everywhere but one diagonal = both 74HC595s get the same data** (2026-11-07, after moving the
-  wires from the test board to the piano): chip B's pin 14 must come from chip A's pin 9 only. The user fixed a
-  wire and it worked. The firmware was right: the same code passed on the test board.
 - **A burst of MIDI over WiFi lost its tail** (2026-11-08, the cable garbled so WiFi carried all): RESET's ~40
   messages x 2 copies filled lwIP's buffers, `sendto` failed (ENOMEM, unchecked) and the last ones never arrived, Hold's
   pedal-up among them (notes rang on after RESET; seen in `aseqdump`). The WiFi sender now retries 1 ms apart, up to 20
@@ -557,7 +549,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
-**2026-11-07: the 8x8 LED matrix and both 74HC595s passed** on the WROVER (`esp32-hw-checks` `ONLY_CHECK 3`: one LED walks all 64, all on, a smiley; the user saw all three). Wiring as the kit's chapter 16.3 schematic but on DS D25, SH_CP D26, ST_CP D27: `docs/matrix-check-wiring.html` (chip A = columns, gets DS; its pin 9 feeds chip B = rows through 220R; matrix pins 1-8 = the row on the side that lit pin 9 + pin 13's corner LED). Next: the visualizer on the piano.
+**2026-11-09:** the 8x8 matrix is off the piano and out of the code (built and checked, not yet flashed: the toy
+still runs the matrix firmware until the next flash). Next: the ADS1115 boards (5 in hand, Homebox entry exists):
+an `esp32-hw-checks` test first, then on the piano's I2C.
 
 **State 2026-11-08 (late, end of session):** the user asked what the toy is: a loop-based groovebox; a full song is
 performed from one loop by muting and fading layers. Built and flashed: the Layers screen (knob walks the layers, press
