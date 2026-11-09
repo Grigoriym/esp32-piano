@@ -35,3 +35,9 @@ in front, so they're what the song was played with, not read from it.
   From the log: layer 1 keys 114, filter 53, reverb 127; layers 2-3 keys/filter/reverb 127; the style button and
   layer programs weren't in the log (truncated at a service restart): saw lead and SLOW ROCK assumed from the
   130 bpm beat. Written out as `#8 Song #2` in `docs/riffs.html`. No mp3.
+- `2026-11-09-song-3`: "Song #3", four loop layers (channels 3-6) over SLOW ROCK's TECHNO beat at 130 bpm with the
+  metronome (channel 9), 4 passes, 3692 ms a pass, all identical. From the log: saw lead (81) on every layer, keys
+  fader 127; layer 1 Echo on, octave −1 (notes 21/24/28 = keys 1/3/5), filter 127, reverb 75; layer 2 filter 104,
+  reverb 75; layer 3 filter 127, reverb 75; layer 4 Echo on, octave +1 (69/72/76 = keys 15/17/19), filter 127, reverb
+  127. The Echo repeats are in the capture (velocity 35/22/14/8 after the pressed 55). Written out as `#9 Song #3` in
+  `docs/riffs.html`. No mp3.
