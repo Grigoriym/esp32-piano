@@ -220,10 +220,42 @@ static void dots_midi(const uint8_t *msg, size_t len, int64_t at_us)
         dots_note(msg[1], at_us);
 }
 
+/* The NRPN registers (99, 98: which generator; 38: the data LSB) FluidSynth holds per channel, as
+ * last sent from here: an effect pot's step resends only what changed (2026-11-09: 4 messages a
+ * channel a step, ~670 a second while a pot turned, put the WiFi queue over 1 s behind). Only the
+ * channels nothing sequenced sends NRPNs on (keys, DEMO, the chicks' copies): a timed NRPN to a loop
+ * layer sounds later than it's sent. Forgotten at link-up, when everything is sent again. */
+static int16_t nrpn_reg[16][3];
+
+static void nrpn_forget(void)
+{
+    for (size_t c = 0; c < 16; c++)
+        for (size_t r = 0; r < 3; r++) nrpn_reg[c][r] = -1;
+}
+
+static bool nrpn_cached(uint8_t ch)
+{
+    return ch == KEY_CH || ch == DEMO_CH || ch == FX_ECHO_CH || ch == FX_WIDE_CH || ch == FX_WIDE2_CH;
+}
+
+/* Sends msg unless it only repeats an NRPN register the synth already holds. */
+static void send_once(const uint8_t *msg, size_t len)
+{
+    uint8_t ch = msg[0] & 0x0f;
+    if (len == 3 && (msg[0] & 0xf0) == 0xb0 && nrpn_cached(ch)) {
+        int r = msg[1] == 99 ? 0 : msg[1] == 98 ? 1 : msg[1] == 38 ? 2 : -1;
+        if (r >= 0) {
+            if (nrpn_reg[ch][r] == msg[2]) return;
+            nrpn_reg[ch][r] = msg[2];
+        }
+    }
+    midi_link_send(msg, len);
+}
+
 static void send_midi(const uint8_t *msg, size_t len, const char *what, void *ctx)
 {
     if (len) {
-        midi_link_send(msg, len);
+        send_once(msg, len);
         dots_midi(msg, len, esp_timer_get_time());
     }
     /* The chicks' channels follow the keys' sound, volume, fader, filter, reverb and hold (fx.h). */
@@ -231,7 +263,7 @@ static void send_midi(const uint8_t *msg, size_t len, const char *what, void *ct
         static const uint8_t COPY[] = {FX_ECHO_CH, FX_WIDE_CH, FX_WIDE2_CH};
         for (size_t i = 0; i < sizeof(COPY); i++) {
             uint8_t m[3] = {(uint8_t)((msg[0] & 0xf0) | COPY[i]), msg[1], len > 2 ? msg[2] : 0};
-            midi_link_send(m, len);
+            send_once(m, len);
         }
     }
     if (what) printf("MIDI  %s%s\n", what, midi_link_connected() ? "" : " (not connected)");
@@ -385,6 +417,7 @@ static void pots_read(int64_t now)
     static bool was_connected;
     bool connected = midi_link_connected();
     if (connected && !was_connected) {
+        nrpn_forget(); /* the synth may have restarted: every register again */
         for (size_t i = 0; i < MIXER_POTS; i++)
             fx_due[i] = i != MIXER_BEAT && i != MIXER_METRO && i != MIXER_ECHO;
         if (metro.on) metro_setup(send_midi, NULL);
@@ -673,6 +706,7 @@ static void knob_events(void)
 
 void app_main(void)
 {
+    nrpn_forget();
     mcp_init();
     ESP_ERROR_CHECK(encoder_init());
     pots_init();

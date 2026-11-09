@@ -4,8 +4,8 @@
 #include <string.h>
 
 #include "driver/gpio.h"
+#include "driver/spi_master.h"
 #include "esp_random.h"
-#include "esp_rom_sys.h"
 #include "esp_timer.h"
 #include "fireworks.h"
 #include "freertos/FreeRTOS.h"
@@ -20,7 +20,8 @@
 #define DOTS_IN_AT_TOP 0 /* 1: the IN header's end is up */
 #define DOTS_MIRROR    0 /* 1: left and right swapped */
 #define FRAME_MS       20
-#define SETUP_EVERY    250 /* frames: the setup is sent again (a module that missed it gets another go) */
+#define SETUP_EVERY    250     /* frames: the setup is sent again (a module that missed it gets another go) */
+#define SPI_HZ         2000000 /* the MAX7219 takes 10 MHz; slow for 3.3 V data into a 5 V chip */
 
 typedef struct {
     int64_t at_us; /* a note; 0: a beat */
@@ -29,23 +30,20 @@ typedef struct {
 } dots_event_t;
 
 static QueueHandle_t events;
+static spi_device_handle_t spi;
 
-/* One register on every module: the last module's word goes out first. */
+/* One register on every module, in one SPI transaction (CS low around it): the last module's
+ * word goes out first. The SPI hardware shifts it (2026-11-09: bit-banged with 1 us delays it
+ * kept core 1 35-45% busy). */
 static void write_all(uint8_t reg, const uint8_t data[MODULES])
 {
-    gpio_set_level(CS, 0);
-    for (int m = MODULES - 1; m >= 0; m--) {
-        uint16_t v = (uint16_t)(reg << 8 | data[m]);
-        for (int i = 15; i >= 0; i--) {
-            gpio_set_level(DIN, (v >> i) & 1);
-            esp_rom_delay_us(1);
-            gpio_set_level(CLK, 1); /* sampled on the rising edge */
-            esp_rom_delay_us(1);
-            gpio_set_level(CLK, 0);
-        }
+    uint8_t buf[MODULES * 2];
+    for (int m = 0; m < MODULES; m++) {
+        buf[2 * (MODULES - 1 - m)] = reg;
+        buf[2 * (MODULES - 1 - m) + 1] = data[m];
     }
-    gpio_set_level(CS, 1);
-    esp_rom_delay_us(1);
+    spi_transaction_t t = {.length = sizeof(buf) * 8, .tx_buffer = buf};
+    spi_device_transmit(spi, &t);
 }
 
 static void write_same(uint8_t reg, uint8_t v)
@@ -115,11 +113,19 @@ static void dots_task(void *arg)
 
 esp_err_t dots_init(void)
 {
-    gpio_config_t io = {.pin_bit_mask = 1ULL << DIN | 1ULL << CLK | 1ULL << CS, .mode = GPIO_MODE_OUTPUT};
-    esp_err_t err = gpio_config(&io);
+    /* SPI3 (VSPI): the screen has SPI2. Mode 0: the MAX7219 samples on the rising edge. */
+    spi_bus_config_t bus = {.mosi_io_num = DIN,
+                            .miso_io_num = -1,
+                            .sclk_io_num = CLK,
+                            .quadwp_io_num = -1,
+                            .quadhd_io_num = -1,
+                            .max_transfer_sz = MODULES * 2};
+    esp_err_t err = spi_bus_initialize(SPI3_HOST, &bus, SPI_DMA_DISABLED);
     if (err != ESP_OK) return err;
-    gpio_set_level(CS, 1);
-    gpio_set_level(CLK, 0);
+    spi_device_interface_config_t dev = {
+        .clock_speed_hz = SPI_HZ, .mode = 0, .spics_io_num = CS, .queue_size = 1};
+    err = spi_bus_add_device(SPI3_HOST, &dev, &spi);
+    if (err != ESP_OK) return err;
     events = xQueueCreate(64, sizeof(dots_event_t));
     if (!events) return ESP_ERR_NO_MEM;
     if (xTaskCreatePinnedToCore(dots_task, "dots", 4096, NULL, 2, NULL, 1) != pdPASS) return ESP_ERR_NO_MEM;

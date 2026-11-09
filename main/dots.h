@@ -1,7 +1,7 @@
 /*
  * The 32x8 MAX7219 dot matrix (four chained 8x8 modules, Hailege 4-in-1), standing up:
- * 8 across, 32 tall. DIN D25, CLK D26, CS D27 (bit-banged, as esp32-hw-checks' check 4
- * that passed), VCC on VIN. Shows fireworks.c in its own task on core 1 (the screen's
+ * 8 across, 32 tall. DIN D25, CLK D26, CS D27 on SPI3 (esp32-hw-checks' check 4 bit-banged
+ * the same pins and passed), VCC on VIN. Shows fireworks.c in its own task on core 1 (the screen's
  * core; the key scan runs on core 0). The MAX7219s hold the picture: a frame is sent
  * only when it changed.
  *
