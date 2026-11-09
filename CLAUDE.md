@@ -325,6 +325,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   crashed on `PLAN[-1]` and never asked for another frame (one still picture, new on every reload). Firefox headless
   passed. Now `now = Math.max(now, t0)` and the next frame is requested first. A node run of the page script with a
   stubbed DOM and a first frame 8 ms early reproduced it.
+- **An NRPN goes out whole every time** (2026-11-09): FluidSynth resets its NRPN generator selection after each data
+  entry, so a 38/6 without 99/98 sets generator 0 (sample start). `3090806` cached 99/98 on the live channels: the filter
+  did nothing and the reverb's upper range silenced the keys (rendered: rms 2720 -> 1). Cache removed; the flood it
+  was meant to cut is back (the bridge no longer freezes on it).
 - **An effect pot turned fast froze the song** (2026-11-09, wobble to max): each step of an NRPN pot is 20 messages
   (keys + DEMO channels, copied to the 3 chick channels), every 30 ms while turning, each twice over WiFi; the WiFi
   queue fell over 1 s behind, and the bridge took each late WiFi packet for a toy restart (offset > 1 s) and dropped
