@@ -230,10 +230,12 @@ static size_t wanted(want_t *w, int64_t length)
             int64_t min = sounds < cap ? sounds : cap;
             w[n++] = (want_t){at, min - 5000, len + 5000, note, 55};
             unsigned v = 55;
-            for (int k = 1; k <= FX_ECHOES; k++) {
-                v = v * FX_ECHO_DECAY / 100;
+            for (int k = 1; k <= fx_echo_repeats(FX_ECHO_LEVEL); k++) {
+                v = v * (unsigned)fx_echo_decay(FX_ECHO_LEVEL) / 100;
                 int64_t t = on + k * ECHO_US;
                 if (t > CLOSE_MS * 1000LL || key_held(note, t)) continue; /* past the take, or over its key */
+                if (t >= length)
+                    continue; /* past the loop's end, after the first note's place: dropped (looper.h) */
                 w[n++] = (want_t){t, 0, INT64_MAX, note, (uint8_t)v};
             }
         }

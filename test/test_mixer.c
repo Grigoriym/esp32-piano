@@ -208,15 +208,19 @@ static void test_a_layer_keeps_the_effects_it_was_recorded_with(void)
     m.reverb = 127;
     m.keys = 30; /* pot 3, the live keys' fader */
     mixer_freeze_layer(&m, 1, midi_rec, &r);
-    TEST_ASSERT_EQUAL(9, r.n); /* the fader, filter, reverb, on the layer's own channel */
+    TEST_ASSERT_EQUAL(
+        21, r.n); /* the fader, filter, resonance, release, wobble, reverb, on the layer's own channel */
     TEST_ASSERT_EQUAL_HEX8(0xb0 | (LOOP_CH + 1), r.e[0].msg[0]);
     TEST_ASSERT_EQUAL(11, r.e[0].msg[1]);
     TEST_ASSERT_EQUAL(30, r.e[0].msg[2]);
     TEST_ASSERT_EQUAL_HEX8(0xb0 | (LOOP_CH + 1), r.e[1].msg[0]);
     TEST_ASSERT_EQUAL(8, r.e[2].msg[2]);
-    TEST_ASSERT_EQUAL(16, r.e[6].msg[2]);
-    TEST_ASSERT_EQUAL(8192 + MIXER_REVERB_SEND, r.e[8].msg[2] << 7 | r.e[7].msg[2]);
-    TEST_ASSERT_EQUAL_STRING("layer 2 keeps keys 30, filter 40, reverb 127", r.e[8].what);
+    TEST_ASSERT_EQUAL(9, r.e[6].msg[2]);
+    TEST_ASSERT_EQUAL(38, r.e[10].msg[2]);
+    TEST_ASSERT_EQUAL(6, r.e[14].msg[2]);
+    TEST_ASSERT_EQUAL(16, r.e[18].msg[2]);
+    TEST_ASSERT_EQUAL(8192 + MIXER_REVERB_SEND, r.e[20].msg[2] << 7 | r.e[19].msg[2]);
+    TEST_ASSERT_EQUAL(0, strncmp("layer 2 keeps keys 30, filter 40, reverb 127", r.e[20].what, 44));
 
     /* The pots move on: the live channels change, the layer doesn't. */
     memset(&r, 0, sizeof(r));
@@ -229,7 +233,7 @@ static void test_a_layer_keeps_the_effects_it_was_recorded_with(void)
     turn(MIXER_KEYS, 127, 1);
     mixer_send_layer_fx(&m, 1, midi_rec, &r); /* again, after a reconnect */
     TEST_ASSERT_EQUAL(30, r.e[0].msg[2]);
-    TEST_ASSERT_EQUAL_STRING("layer 2 keeps keys 30, filter 40, reverb 127", r.e[8].what);
+    TEST_ASSERT_EQUAL(0, strncmp("layer 2 keeps keys 30, filter 40, reverb 127", r.e[20].what, 44));
 }
 
 static void test_keys_pot_is_cc11_on_the_keys_channel(void)
@@ -253,6 +257,67 @@ static void test_metronome_pot_only_keeps_its_level(void)
     TEST_ASSERT_EQUAL(0, r.n);
 }
 
+/* The last NRPN on a channel: its generator (98) and its 14-bit offset from 8192. */
+static void last_nrpn(const midi_rec_t *r, uint8_t ch, int *gen, int *offset)
+{
+    int lsb = 0, msb = 0;
+    *gen = -1;
+    for (size_t i = 0; i < r->n; i++) {
+        const uint8_t *x = r->e[i].msg;
+        if (x[0] != (0xb0 | ch)) continue;
+        if (x[1] == 98) *gen = x[2];
+        if (x[1] == 38) lsb = x[2];
+        if (x[1] == 6) msb = x[2];
+    }
+    *offset = (msb << 7 | lsb) - 8192;
+}
+
+static void test_ads_pots_are_nrpn_offsets_on_their_generators(void)
+{
+    static midi_rec_t r;
+    int gen, off;
+    turn(MIXER_RES, 127, 0);
+    memset(&r, 0, sizeof(r));
+    mixer_send_fx(&m, MIXER_RES, midi_rec, &r);
+    last_nrpn(&r, 0, &gen, &off);
+    TEST_ASSERT_EQUAL(9, gen); /* initialFilterQ */
+    TEST_ASSERT_EQUAL(MIXER_RES_CB, off);
+    last_nrpn(&r, 1, &gen, &off); /* DEMO's channel too */
+    TEST_ASSERT_EQUAL(9, gen);
+
+    turn(MIXER_RELEASE, 0, 0);
+    memset(&r, 0, sizeof(r));
+    mixer_send_fx(&m, MIXER_RELEASE, midi_rec, &r);
+    last_nrpn(&r, 0, &gen, &off);
+    TEST_ASSERT_EQUAL(38, gen); /* releaseVolEnv: shortest at 0 */
+    TEST_ASSERT_EQUAL(-MIXER_RELEASE_TC, off);
+
+    turn(MIXER_WOBBLE, 127, 0);
+    memset(&r, 0, sizeof(r));
+    mixer_send_fx(&m, MIXER_WOBBLE, midi_rec, &r);
+    last_nrpn(&r, 0, &gen, &off);
+    TEST_ASSERT_EQUAL(6, gen); /* vibLfoToPitch */
+    TEST_ASSERT_EQUAL(MIXER_WOBBLE_STEPS, off);
+}
+
+static void test_echo_pot_sends_nothing(void)
+{
+    static midi_rec_t r;
+    turn(MIXER_ECHO, 0, 0);
+    TEST_ASSERT_EQUAL(0, m.echo);
+    memset(&r, 0, sizeof(r));
+    mixer_send_fx(&m, MIXER_ECHO, midi_rec, &r); /* fx.h's Echo reads it */
+    TEST_ASSERT_EQUAL(0, r.n);
+}
+
+static void test_ads_effects_start_neutral(void)
+{
+    TEST_ASSERT_EQUAL(0, m.res);
+    TEST_ASSERT_EQUAL(0, m.wobble);
+    TEST_ASSERT_EQUAL(64, m.release); /* the middle: the preset's own (offset ~0) */
+    TEST_ASSERT_EQUAL(64, m.echo);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -274,5 +339,8 @@ int main(void)
     RUN_TEST(test_keys_pot_is_cc11_on_the_keys_channel);
     RUN_TEST(test_metronome_pot_only_keeps_its_level);
     RUN_TEST(test_a_layer_keeps_the_effects_it_was_recorded_with);
+    RUN_TEST(test_ads_pots_are_nrpn_offsets_on_their_generators);
+    RUN_TEST(test_echo_pot_sends_nothing);
+    RUN_TEST(test_ads_effects_start_neutral);
     return UNITY_END();
 }

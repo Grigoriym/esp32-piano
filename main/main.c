@@ -15,7 +15,8 @@
  * The pure parts, host-tested (tools/test.sh): matrix.c (debounce, ghosts),
  * keymap.c (names, what each key and button plays), demo.c (DEMO button),
  * looper.c (RECORD / REPLAY), rhythm.c (SELECT: drum beats), mixer.c (the five
- * pots: beat, metronome volume, live keys, filter, reverb, metronome tempo), metronome.c
+ * pots: beat, metronome volume, live keys, filter, reverb, metronome tempo; on an ADS1115:
+ * resonance, echo, release, wobble), metronome.c
  * (FROG), leds.c (the LED strip).
  * MIDI goes out as UDP over WiFi to tools/piano_bridge.c (main/midi_link.h).
  *
@@ -25,7 +26,7 @@
  *   GHOST? <names>  the pressed set contains a rectangle; one of them may be fake
  *   MIDI  <what>   what was sent (or "(not connected)")
  *   KNOB  CW / CCW / PRESS
- *   POT   beat|click|keys|filter|reverb|metro <level>   a pot turned (0-127)
+ *   POT   beat|click|keys|filter|reverb|metro|resonance|echo|release|wobble <level>   a pot turned (0-127)
  * Changes are reported after DEBOUNCE equal scans in a row.
  *
  * The line-pair finder that mapped the grid is in git history (233c8c3).
@@ -77,6 +78,13 @@
 #define COL_GPIO  MCP_GPIOB
 /* CD0 carries no key or button: not wired. */
 
+/* The ADS1115 on the same bus (ADDR open: 0x48), pots 7-10 on A0-A3. One input converts while the
+ * next pot read comes round: single-shot, +-4.096 V (125 uV a count), 860 samples/s (1.2 ms). */
+#define ADS_ADDR   0x48
+#define ADS_CONFIG 0x01
+#define ADS_CONV   0x00
+#define ADS_FULL   25936 /* counts at a pot's top: 3242 mV on the 3V3 rail (measured 2026-11-09) */
+
 #define WIFI_TIMEOUT_MS 10000 /* boot waits this long, then scans anyway */
 #define SETTLE_US       50    /* pull-up (100k) against the toy's wiring */
 #define SCAN_PERIOD_MS  2
@@ -87,7 +95,7 @@
 #define LEDS_PERIOD_US  20000 /* the strip is redrawn this often (when it changed) */
 
 /* The pots' wipers on ADC1 (ADC2 doesn't work with WiFi on): every ADC1 pin a DevKit has. */
-static const adc_channel_t POT_CH[MIXER_POTS] = {
+static const adc_channel_t POT_CH[MIXER_ADC] = {
     [MIXER_BEAT] = ADC_CHANNEL_4,   /* D32 */
     [MIXER_CLICK] = ADC_CHANNEL_5,  /* D33 */
     [MIXER_KEYS] = ADC_CHANNEL_6,   /* D34 */
@@ -95,7 +103,8 @@ static const adc_channel_t POT_CH[MIXER_POTS] = {
     [MIXER_REVERB] = ADC_CHANNEL_0, /* VP (GPIO36) */
     [MIXER_METRO] = ADC_CHANNEL_3,  /* VN (GPIO39) */
 };
-static const char *const POT_NAME[MIXER_POTS] = {"beat", "click", "keys", "filter", "reverb", "metro"};
+static const char *const POT_NAME[MIXER_POTS] = {"beat",  "click",     "keys", "filter",  "reverb",
+                                                 "metro", "resonance", "echo", "release", "wobble"};
 
 static keymap_t keymap;
 static demo_t demo;
@@ -108,7 +117,9 @@ static fx_t fx;
 static take_t take; /* what the chicks play, as the looper records it */
 static adc_oneshot_unit_handle_t adc;
 
+static i2c_master_bus_handle_t i2c_bus;
 static i2c_master_dev_handle_t mcp;
+static i2c_master_dev_handle_t ads; /* NULL: not found at boot */
 
 static esp_err_t mcp_write(uint8_t reg, uint8_t v)
 {
@@ -126,14 +137,13 @@ static void mcp_init(void)
         .glitch_ignore_cnt = 7,
         .flags.enable_internal_pullup = true,
     };
-    i2c_master_bus_handle_t bus;
-    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_cfg, &bus));
+    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_cfg, &i2c_bus));
     i2c_device_config_t dev_cfg = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
         .device_address = MCP_ADDR,
         .scl_speed_hz = I2C_HZ,
     };
-    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus, &dev_cfg, &mcp));
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(i2c_bus, &dev_cfg, &mcp));
     /* Everything in with pull-ups first, then the row latches at 0. */
     esp_err_t err = mcp_write(MCP_IODIRA, 0xFF);
     if (err == ESP_OK) err = mcp_write(MCP_IODIRB, 0xFF);
@@ -259,8 +269,52 @@ static void send_key(const uint8_t *msg, size_t len, const char *what, void *ctx
     looper_capture(&looper, now, msg, len, keymap.program); /* drums */
 }
 
+static void ads_init(void)
+{
+    esp_err_t err = i2c_master_probe(i2c_bus, ADS_ADDR, 10);
+    i2c_device_config_t cfg = {
+        .dev_addr_length = I2C_ADDR_BIT_LEN_7, .device_address = ADS_ADDR, .scl_speed_hz = I2C_HZ};
+    if (err == ESP_OK) err = i2c_master_bus_add_device(i2c_bus, &cfg, &ads);
+    if (err != ESP_OK) ads = NULL;
+    printf("ads1115 at 0x%02x: %s\n", ADS_ADDR, esp_err_to_name(err));
+}
+
+/* The input converted since the last call, as 0..MIXER_RAW; starts the next. Returns its pot, -1: none. */
+static int ads_step(int *raw)
+{
+    static int ch = -1; /* converting */
+    static bool failed;
+    if (!ads) return -1;
+    int pot = -1;
+    esp_err_t err = ESP_OK;
+    if (ch >= 0) {
+        uint8_t reg = ADS_CONV;
+        uint8_t in[2];
+        err = i2c_master_transmit_receive(ads, &reg, 1, in, 2, 10);
+        if (err == ESP_OK) {
+            int32_t v = (int16_t)((in[0] << 8) | in[1]);
+            v = v < 0 ? 0 : v * MIXER_RAW / ADS_FULL;
+            *raw = v > MIXER_RAW ? MIXER_RAW : (int)v;
+            pot = MIXER_RES + ch;
+        }
+    }
+    int next = (ch + 1) % 4;
+    if (err == ESP_OK) {
+        uint16_t c =
+            (uint16_t)((1u << 15) | ((4u + (unsigned)next) << 12) | (1u << 9) | (1u << 8) | (7u << 5) | 3u);
+        uint8_t w[3] = {ADS_CONFIG, (uint8_t)(c >> 8), (uint8_t)(c & 0xff)};
+        err = i2c_master_transmit(ads, w, 3, 10);
+    }
+    if (err != ESP_OK && !failed) printf("ads1115: %s\n", esp_err_to_name(err));
+    if (err == ESP_OK && failed) printf("ads1115: back\n");
+    failed = err != ESP_OK;
+    ch = failed ? -1 : next;
+    return pot;
+}
+
 static void pots_init(void)
 {
+    ads_init();
     adc_oneshot_unit_init_cfg_t unit = {.unit_id = ADC_UNIT_1};
     if (adc_oneshot_new_unit(&unit, &adc) != ESP_OK) {
         printf("pots: no ADC\n");
@@ -268,15 +322,27 @@ static void pots_init(void)
         return;
     }
     adc_oneshot_chan_cfg_t ch = {.atten = ADC_ATTEN_DB_12, .bitwidth = ADC_BITWIDTH_12};
-    for (size_t i = 0; i < MIXER_POTS; i++) adc_oneshot_config_channel(adc, POT_CH[i], &ch);
+    for (size_t i = 0; i < MIXER_ADC; i++) adc_oneshot_config_channel(adc, POT_CH[i], &ch);
     mixer_init(&mixer);
+}
+
+static bool fx_due[MIXER_POTS];
+
+static void pot_reading(size_t i, int raw, int64_t now)
+{
+    if (!mixer_feed(&mixer, (mixer_pot_t)i, raw, now)) return;
+    printf("POT   %s %u\n", POT_NAME[i], (unsigned)mixer.pot[i]);
+    if (i != MIXER_BEAT && i != MIXER_METRO && i != MIXER_ECHO) fx_due[i] = true;
+    if (i == MIXER_METRO) metro_set_bpm(&metro, metro_bpm_for(mixer.metro));
 }
 
 static void pots_read(int64_t now)
 {
-    static bool fx_due[MIXER_POTS];
     if (!adc) return;
-    for (size_t i = 0; i < MIXER_POTS; i++) {
+    int ads_raw;
+    int ads_pot = ads_step(&ads_raw);
+    if (ads_pot >= 0) pot_reading((size_t)ads_pot, ads_raw, now);
+    for (size_t i = 0; i < MIXER_ADC; i++) {
         /* The mean of POT_READS readings: one oneshot read is noisy. */
         int sum = 0;
         int n = 0;
@@ -287,18 +353,14 @@ static void pots_read(int64_t now)
                 n++;
             }
         }
-        if (!n) continue;
-        if (mixer_feed(&mixer, (mixer_pot_t)i, sum / n, now)) {
-            printf("POT   %s %u\n", POT_NAME[i], (unsigned)mixer.pot[i]);
-            if (i != MIXER_BEAT && i != MIXER_METRO) fx_due[i] = true;
-            if (i == MIXER_METRO) metro_set_bpm(&metro, metro_bpm_for(mixer.metro));
-        }
+        if (n) pot_reading(i, sum / n, now);
     }
     /* A PC that just said HELLO (the bridge or FluidSynth restarted) gets the effects again. */
     static bool was_connected;
     bool connected = midi_link_connected();
     if (connected && !was_connected) {
-        for (size_t i = 0; i < MIXER_POTS; i++) fx_due[i] = i != MIXER_BEAT && i != MIXER_METRO;
+        for (size_t i = 0; i < MIXER_POTS; i++)
+            fx_due[i] = i != MIXER_BEAT && i != MIXER_METRO && i != MIXER_ECHO;
         if (metro.on) metro_setup(send_midi, NULL);
         fx_setup(send_midi, NULL);
         uint8_t program[2] = {0xc0 | KEY_CH, keymap.program}; /* copied to the chicks' channels */
@@ -348,12 +410,7 @@ static void leds_update(int64_t now)
             s.pot = (int)i;
         }
     }
-    if (s.pot == MIXER_BEAT) s.level = mixer.beat;
-    if (s.pot == MIXER_KEYS) s.level = mixer.keys;
-    if (s.pot == MIXER_FILTER) s.level = mixer.filter;
-    if (s.pot == MIXER_REVERB) s.level = mixer.reverb;
-    if (s.pot == MIXER_METRO) s.level = mixer.metro;
-    if (s.pot == MIXER_CLICK) s.level = mixer.click;
+    if (s.pot >= 0) s.level = mixer.pot[s.pot];
     leds_t c;
     leds_draw(&s, c);
     if (drawn && memcmp(c, last, sizeof(c)) == 0) return;
@@ -538,6 +595,7 @@ static void on_cell(size_t r, size_t c, bool down, void *ctx)
 static void fx_run(int64_t now)
 {
     fx.filter = mixer.filter;
+    fx.echo = mixer.echo;
     fx_tick(&fx, now, send_fx, NULL);
     if (fx.restore) { /* a Rise or Tape ended: the pots' filter again, and each layer's */
         fx.restore = false;

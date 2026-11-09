@@ -53,7 +53,18 @@ void fx_init(fx_t *f)
 {
     memset(f, 0, sizeof(*f));
     f->filter = 127;
+    f->echo = FX_ECHO_LEVEL;
     f->arp_note = -1;
+}
+
+int fx_echo_repeats(uint8_t level)
+{
+    return 1 + level * (FX_ECHO_MAX - 1) / 127;
+}
+
+int fx_echo_decay(uint8_t level)
+{
+    return 40 + level * 50 / 127;
 }
 
 const char *fx_name(fx_kind_t kind)
@@ -119,7 +130,8 @@ static void note_off(fx_t *f, uint8_t n, int64_t now, midi_send_fn send, void *c
             note(send, ctx, FX_WIDE2_CH, false, m, 0);
         }
         if (get_bit(f->echoed, n)) {
-            for (int k = 1; k <= FX_ECHOES; k++) queue(f, now + k * d, 0x80 | FX_ECHO_CH, m, 0, send, ctx);
+            for (int k = 1; k <= fx_echo_repeats(f->echo); k++)
+                queue(f, now + k * d, 0x80 | FX_ECHO_CH, m, 0, send, ctx);
         }
     }
     set_bit(f->sounding, n, false);
@@ -148,8 +160,8 @@ static void note_on(fx_t *f, uint8_t n, uint8_t vel, int64_t now, midi_send_fn s
         }
         if (!f->on[FX_ECHO]) continue;
         unsigned v = vel;
-        for (int k = 1; k <= FX_ECHOES; k++) {
-            v = v * FX_ECHO_DECAY / 100;
+        for (int k = 1; k <= fx_echo_repeats(f->echo); k++) {
+            v = v * (unsigned)fx_echo_decay(f->echo) / 100;
             queue(f, now + k * d, 0x90 | FX_ECHO_CH, m, (uint8_t)(v ? v : 1), send, ctx);
         }
     }
@@ -361,6 +373,7 @@ void fx_tick(fx_t *f, int64_t now_us, midi_send_fn send, void *ctx)
 void fx_reset(fx_t *f, midi_send_fn send, void *ctx)
 {
     uint8_t filter = f->filter;
+    uint8_t echo = f->echo;
     bool ramp = f->on[FX_RISE] || f->on[FX_TAPE];
     for (size_t i = 0; i < sizeof(COPY_CH); i++) {
         midi3(send, ctx, (uint8_t)(0xb0 | COPY_CH[i]), 123, 0, NULL);
@@ -371,5 +384,6 @@ void fx_reset(fx_t *f, midi_send_fn send, void *ctx)
     midi3(send, ctx, 0xb0 | KEY_CH, 64, 0, "chicks: all off");
     fx_init(f);
     f->filter = filter;
+    f->echo = echo;
     f->restore = ramp;
 }

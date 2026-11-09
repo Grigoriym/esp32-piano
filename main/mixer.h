@@ -13,7 +13,14 @@
  * Pot 4 is a filter (127 open, 0 dark), pot 5 the reverb (0 dry), on the live
  * keys and DEMO. A loop layer keeps pot 3's fader, the filter and the reverb it was recorded with
  * (frozen onto its channel when it's added; the user: "we shouldn't touch the
- * recordings", 2026-11-06). The drums stay as they are. FluidSynth 2.3
+ * recordings", 2026-11-06). The drums stay as they are.
+ *
+ * Pots 7-10 are on an ADS1115 (I2C, 2026-11-09), effects on the live keys and DEMO like the filter
+ * and reverb, frozen onto a loop layer the same way: resonance (initialFilterQ, 0 to MIXER_RES_CB;
+ * rendered: a peak at the cutoff, quieter as it rises), echo (no MIDI: fx.h's Echo amount), release
+ * (releaseVolEnv, -/+MIXER_RELEASE_TC with the preset's own in the middle; rendered on the saw lead:
+ * 60 ms to 1.9 s) and wobble (vibLfoToPitch, 0 to MIXER_WOBBLE_STEPS steps of 2 cents; rendered: the swing
+ * grows from the preset's ~47 cents to ~140). Their moves during a take aren't recorded (pots 3-5's are). FluidSynth 2.3
  * ignores CC74 (no default modulator, rendered 2026-11-06), so the filter is
  * an SF2 NRPN that offsets the cutoff generator on any SoundFont: 0 to
  * MIXER_FILTER_CENTS. The reverb is the same kind of NRPN on reverbEffectsSend
@@ -32,7 +39,8 @@
 #include "metronome.h"
 #include "midi_out.h"
 
-#define MIXER_POTS  6
+#define MIXER_POTS  10
+#define MIXER_ADC   6    /* pots 1-6 on the ESP32's ADC1; 7-10 on the ADS1115 */
 #define MIXER_RAW   4095 /* the ADC's full scale */
 #define MIXER_LEVEL 127
 #define MIXER_TURN  3 /* levels a pot must move to count as turned (the LED bar): one-level hops are noise */
@@ -43,10 +51,24 @@
 #define MIXER_WAKE      2
 #define MIXER_FILTER_CENTS \
     (-4800) /* the cutoff at pot 4's 0; further down FluidR3's saw lead turns bright again (rendered) */
-#define MIXER_REVERB_SEND 1000 /* 100%: FluidSynth clamps the sum to 0-100% */
-#define MIXER_FX_LIVE     2    /* the pots' channels: 1 and 2 (0-1), the keys and DEMO */
+#define MIXER_REVERB_SEND  1000 /* 100%: FluidSynth clamps the sum to 0-100% */
+#define MIXER_RES_CB       400  /* resonance at the top: 40 dB */
+#define MIXER_RELEASE_TC   2400 /* release at either end: x/÷ ~4 (timecents) */
+#define MIXER_WOBBLE_STEPS 50   /* vibrato depth at the top, in NRPN steps (2 cents each) */
+#define MIXER_FX_LIVE      2    /* the pots' channels: 1 and 2 (0-1), the keys and DEMO */
 
-typedef enum { MIXER_BEAT, MIXER_CLICK, MIXER_KEYS, MIXER_FILTER, MIXER_REVERB, MIXER_METRO } mixer_pot_t;
+typedef enum {
+    MIXER_BEAT,
+    MIXER_CLICK,
+    MIXER_KEYS,
+    MIXER_FILTER,
+    MIXER_REVERB,
+    MIXER_METRO,
+    MIXER_RES, /* ADS1115 A0 */
+    MIXER_ECHO,
+    MIXER_RELEASE,
+    MIXER_WOBBLE, /* A3 */
+} mixer_pot_t;
 
 typedef struct {
     int32_t filt[MIXER_POTS]; /* smoothed reading, x16 */
@@ -55,9 +77,10 @@ typedef struct {
     int64_t moved_us[MIXER_POTS];   /* when it was last turned; 0: not since boot */
     int64_t changed_us[MIXER_POTS]; /* when its level last changed */
     uint8_t rest[MIXER_POTS];       /* level at the last turn: moved_us needs MIXER_TURN from it */
-    uint8_t beat, click, keys, filter, reverb, metro;
+    uint8_t beat, click, keys, filter, reverb, metro, res, echo, release, wobble;
     uint8_t layer_filter[LOOPER_LAYERS], layer_reverb[LOOPER_LAYERS]; /* frozen when added */
     uint8_t layer_keys[LOOPER_LAYERS];                                /* pot 3's fader, frozen the same way */
+    uint8_t layer_res[LOOPER_LAYERS], layer_release[LOOPER_LAYERS], layer_wobble[LOOPER_LAYERS];
 } mixer_t;
 
 void mixer_init(mixer_t *m);
@@ -72,7 +95,7 @@ uint8_t mixer_scale(uint8_t velocity, uint8_t level);
  * the length to send: 0 for a note on at level 0, which is left out. */
 size_t mixer_apply(const uint8_t *msg, size_t len, uint8_t level, uint8_t *out);
 
-/* Sends pot 2's, 3's, 4's or 5's setting to the live channels (what: for the log, once). */
+/* Sends pot 2's, 3's, 4's, 5's, resonance's, release's or wobble's setting to the live channels (what: for the log, once). */
 void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx);
 
 /* The filter at level (0-127, as pot 4) on one channel: the chicks' Rise and Tape (fx.h). */

@@ -99,11 +99,11 @@ li input:checked + span { color: var(--muted); text-decoration: line-through; }
     <div class="box"><svg id="pot2" viewBox="0 30 760 145" role="img" aria-label="Metronome: volume: ends to the rails, wiper to D33"></svg></div>
     <h2>ADS1115</h2>
     <div class="box"><svg id="ads" viewBox="0 30 760 145" role="img" aria-label="The ADS1115 board's row and where each pin goes"></svg></div>
-    <h2>Layer pots (4), on the ADS1115</h2>
-    <div class="box"><svg id="lpot1" viewBox="0 30 760 145" role="img" aria-label="Layer 1: ends to the rails, wiper to the ADS1115's A0"></svg></div>
-    <div class="box"><svg id="lpot2" viewBox="0 30 760 145" role="img" aria-label="Layer 2: ends to the rails, wiper to the ADS1115's A1"></svg></div>
-    <div class="box"><svg id="lpot3" viewBox="0 30 760 145" role="img" aria-label="Layer 3: ends to the rails, wiper to the ADS1115's A2"></svg></div>
-    <div class="box"><svg id="lpot4" viewBox="0 30 760 145" role="img" aria-label="Layer 4: ends to the rails, wiper to the ADS1115's A3"></svg></div>
+    <h2>Effect pots (4), on the ADS1115</h2>
+    <div class="box"><svg id="lpot1" viewBox="0 30 760 145" role="img" aria-label="Resonance: ends to the rails, wiper to the ADS1115's A0"></svg></div>
+    <div class="box"><svg id="lpot2" viewBox="0 30 760 145" role="img" aria-label="Echo: ends to the rails, wiper to the ADS1115's A1"></svg></div>
+    <div class="box"><svg id="lpot3" viewBox="0 30 760 145" role="img" aria-label="Release: ends to the rails, wiper to the ADS1115's A2"></svg></div>
+    <div class="box"><svg id="lpot4" viewBox="0 30 760 145" role="img" aria-label="Wobble: ends to the rails, wiper to the ADS1115's A3"></svg></div>
     <h2>LED strip (8 × WS2812), IN side</h2>
     <div class="box"><svg id="strip" viewBox="0 30 760 145" role="img" aria-label="The LED strip's IN side: S to TX2, V to 3V3, G to GND"></svg></div>
     <h2>Diode test (temporary)</h2>
@@ -231,13 +231,13 @@ header("knob", [["CLK", "D18", "knob"], ["DT", "D19", "knob"], ["SW", "D23", "kn
 // The ADS1115, its single row as printed. On the same I2C wires as the MCP23017 (D21/D22);
 // ADDR left open = 0x48 (checked 2026-11-09).
 header("ads", [["VDD", "+rail", "power"], ["GND", "−rail", "gnd"], ["SCL", "D22", "i2c"], ["SDA", "D21", "i2c"],
-  ["ADDR", null], ["ALRT", null], ["A0", "layer 1", "pot"], ["A1", "layer 2", "pot"], ["A2", "layer 3", "pot"], ["A3", "layer 4", "pot"]],
+  ["ADDR", null], ["ALRT", null], ["A0", "resonance", "pot"], ["A1", "echo", "pot"], ["A2", "release", "pot"], ["A3", "wobble", "pot"]],
   ["SCL and SDA share D22 and D21 with the MCP23017.", "VDD on 3V3, not 5 V."]);
 
-// The layer pots: wiper to the ADS1115, ends to the rails like the other pots.
-[1, 2, 3, 4].forEach((n) =>
-  header(`lpot${n}`, [["left end", "−rail", "gnd"], ["wiper", `ADS A${n - 1}`, "pot"], ["right end", "+rail", "power"]],
-    [`Layer ${n}. Use a B10K.`]));
+// The effect pots: wiper to the ADS1115, ends to the rails like the other pots.
+["Resonance", "Echo", "Release", "Wobble"].forEach((name, i) =>
+  header(`lpot${i + 1}`, [["left end", "−rail", "gnd"], ["wiper", `ADS A${i}`, "pot"], ["right end", "+rail", "power"]],
+    [`${name}. Use a B10K.`, "Clockwise the wrong way? Swap the two ends."]));
 
 // The LED strip's IN side (the OUT side chains more strips: leave it empty).
 header("strip", [["S", "TX2", "led"], ["V", "+rail", "power"], ["G", "−rail", "gnd"]],

@@ -123,7 +123,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   metronome's volume since 2026-11-06 (CC11 on its channel; before, the newest loop layer's level with a pick-up
   after an undo, the user: "too much, I can rerecord"; layers now play as recorded); pot 3 is the live keys' fader since 2026-11-06, CC11 on channel 1 (a held note follows it; velocity didn't move held notes and the growl ignores velocity). The
   looper records unscaled. VOLUME +/- stays the master (CC7). Serial: `POT   beat|layer|keys|filter|reverb N`.
-  Pots 4-5 (2026-11-06, wired and flashed): filter on D35, reverb on VP, on the live channels 1-2 (keys, DEMO); a loop
+  Pots 7-10 (2026-11-09) on the ADS1115: see Next step. Pots 4-5 (2026-11-06, wired and flashed): filter on D35, reverb on VP, on the live channels 1-2 (keys, DEMO); a loop
   layer keeps the filter and reverb it was recorded with (`mixer_freeze_layer` when `n_layers` grows, onto its own
   channel; the user: "we shouldn't touch the recordings"). Since 2026-11-07 a layer also records the moves of pots 3-5 (keys fader, filter, reverb) made during its take (`looper_pot`, stored as CC 102+pot, played as CC11/NRPN on its channel, the take's starting value first; the user: a reverb turned while recording was lost). Not the drums,
   sent at most every 30 ms and again when the PC link comes up. FluidSynth 2.3.4 ignores CC74 (rendered: no change),
@@ -552,8 +552,11 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 **2026-11-09:** the 8x8 matrix is off the piano and out of the code (built and checked, not yet flashed: the toy
 still runs the matrix firmware until the next flash). ADS1115: one board passed `esp32-hw-checks` check 5 (0x48,
 A0-A3 each 0-3242 mV); the other 4 not checked one by one (the user). In `docs/wiring.html` since 2026-11-09: on
-D21/D22 beside the MCP23017 (ADDR open = 0x48), VDD 3V3, A0-A3 = layer 1-4 pots (B10K). Next: the user wires it,
-then the firmware (one fader per layer).
+D21/D22 beside the MCP23017 (ADDR open = 0x48), VDD 3V3, A0-A3 = 4 effect pots (B10K, the user's pick over layer
+faders: "just add what you suggested, we will improve/change afterwards"): resonance, echo, release, wobble
+(`mixer.h`, `fx.h`; `main.c` reads one input per pot read, single-shot). Built, checks pass, not flashed, not
+heard. Render-checked first: release 60 ms-1.9 s on the saw lead, Q peaks at the cutoff but drops the level (filter
+-2400 cents + Q 480 cB: rms 5183 -> 703), vibrato swing 47 -> 285 cents. Their moves during a take aren't recorded.
 
 **State 2026-11-08 (late, end of session):** the user asked what the toy is: a loop-based groovebox; a full song is
 performed from one loop by muting and fading layers. Built and flashed: the Layers screen (knob walks the layers, press

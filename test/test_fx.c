@@ -83,15 +83,30 @@ static void test_echo_repeats_softer_a_dotted_eighth_apart(void)
     key(false, 60, 100000);
     tick(0, 299000);
     TEST_ASSERT_EQUAL(0, ons(FX_ECHO_CH, 60)); /* the first comes 3 16ths later */
-    tick(300000, 1000000);
-    TEST_ASSERT_EQUAL(FX_ECHOES, ons(FX_ECHO_CH, 60));
-    TEST_ASSERT_EQUAL(FX_ECHOES, offs(FX_ECHO_CH, 60));
+    tick(300000, 4000000);
+    TEST_ASSERT_EQUAL(fx_echo_repeats(FX_ECHO_LEVEL), ons(FX_ECHO_CH, 60));
+    TEST_ASSERT_EQUAL(fx_echo_repeats(FX_ECHO_LEVEL), offs(FX_ECHO_CH, 60));
     int last = 55;
     for (size_t i = 0; i < rec.n; i++) {
         if (rec.e[i].msg[0] != (0x90 | FX_ECHO_CH)) continue;
         TEST_ASSERT_LESS_THAN(last, rec.e[i].msg[2]);
         last = rec.e[i].msg[2];
     }
+}
+
+static void test_the_echo_pot_sets_how_many_repeats_and_how_soft(void)
+{
+    TEST_ASSERT_EQUAL(1, fx_echo_repeats(0));
+    TEST_ASSERT_EQUAL(FX_ECHO_MAX, fx_echo_repeats(127));
+    TEST_ASSERT_EQUAL(40, fx_echo_decay(0));
+    TEST_ASSERT_EQUAL(90, fx_echo_decay(127));
+    f.echo = 127;
+    press(FX_ECHO, 0);
+    key(true, 60, 0);
+    key(false, 60, 100000);
+    tick(0, 4000000);
+    TEST_ASSERT_EQUAL(FX_ECHO_MAX, ons(FX_ECHO_CH, 60));
+    TEST_ASSERT_EQUAL(FX_ECHO_MAX, offs(FX_ECHO_CH, 60));
 }
 
 static void test_wide_plays_two_copies_and_off_ends_them(void)
@@ -218,6 +233,7 @@ int main(void)
     RUN_TEST(test_without_effects_a_key_plays_as_is);
     RUN_TEST(test_octave_adds_the_note_above_and_ends_it);
     RUN_TEST(test_echo_repeats_softer_a_dotted_eighth_apart);
+    RUN_TEST(test_the_echo_pot_sets_how_many_repeats_and_how_soft);
     RUN_TEST(test_wide_plays_two_copies_and_off_ends_them);
     RUN_TEST(test_setup_detunes_the_wide_channels_either_way);
     RUN_TEST(test_hold_is_sustain_on_and_off);
