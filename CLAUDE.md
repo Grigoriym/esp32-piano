@@ -271,6 +271,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   lines, tempo and bar:beat from its clicks (else from the kicks). Sounds sent before the server started are unknown
   (no name on the chip). Tested from a recorded stream in headless Firefox (call `resize()` and `draw()` before the
   screenshot, or it catches an empty frame); not yet seen by the user.
+- **32x8 matrix, a random visualizer** (2026-11-09, the user's idea, "like the old Windows Player"): the MAX7219
+  board on D25/D26/D27 (VCC on VIN). `docs/matrix-random.html` previews 8 music-reacting scenes (A Spectrum, B Ripples,
+  C Starfield, D Fireworks, E Life, F Wave, G Plasma, H Rain), each with random settings re-rolled each time it comes
+  up, and the rotation: a random scene every 4 bars on the bar line. The user picks the scenes there; no firmware yet.
 - **8x8 LED matrix: gone** (2026-11-09, the user took it off the piano for good: too many wires). `ledmx.c` (two
   74HC595s on D25/D26/D27, 1 kHz timer), `viz.c` (the "Mix" picture: falling notes + beat count) and its test are in
   git at `007f8a5`; D25/D26/D27 are free again. `docs/matrix-ideas.html` (9 picture ideas) stays. Likely successor:
