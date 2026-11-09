@@ -117,7 +117,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   the beat's bar as steps with a running column, its first two drums, the player's
   presses green within 30 ms of a step or orange, an early/late meter); main feeds it
   the beat grid and key presses.
-  `mixer.c` (pure, 2026-11-04): the 3 pots (ADC1, read every 10 ms, smoothed, hysteresis
+  `mixer.c` (pure, 2026-11-04; 10 pots since 2026-11-09, 8 of them on two ADS1115s, see Next step): the 3 pots (ADC1, read every 10 ms, smoothed, hysteresis
   tested against +-20 counts; each read is the mean of 8; a pot left alone 0.5 s needs 2 levels to move again (`MIXER_WAKE`: the tempo flipped 130/131 by itself and when other pots turned, 2026-11-06); the LED bar only for a move of 3 levels
   or an end, `MIXER_TURN`: a key press tipped pot 3 a level and lit the bar white, 2026-11-05) scale note-on velocities: pot 1 the beat (level 0 drops the note on); pot 2 is the
   metronome's volume since 2026-11-06 (CC11 on its channel; before, the newest loop layer's level with a pick-up
@@ -133,7 +133,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   diff"): FluidSynth's default room left the tail ~57 dB under the note, CC91 adds only 20%, and the saw lead has its
   own send, so CC91 0 wasn't dry. `pc_synth.sh` sets the room: room-size 1.0, damp 0, level 1, width 1 (the user's
   pick C of three rendered rooms, 2026-11-06). LED bar per pot: 1 green, 2 pink (click
-  volume), 3 white, 4 blue (filter), 5 violet (reverb), 6 warm white (click tempo). VN (ADC1 ch 3) is the last free ADC1 pin. An unwired ADC pin floats: wire before flashing.
+  volume), 3 white, 4 blue (filter), 5 violet (reverb), 6 warm white (click tempo); 7-10 orange, teal, lime, magenta (resonance, echo, release, wobble). Only D33 and VN
+  are ADC pots since 2026-11-09 (D32, D34, D35, VP free). An unwired ADC pin floats: wire before flashing.
   **Pot names (2026-11-06, the user grouped them on the box):** three sections of two, Volume (beat = pot 1, keys = pot 3),
   Effects (filter = 4, reverb = 5), Metronome (tempo = 6, volume = 2). Docs for the player use these names, not
   numbers; the numbers stay the code's and wiring's order (pin, `mixer_pot_t`).
@@ -255,7 +256,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `docs/riffs-audio/`; rerun after changing a piece or those) or "page synth" (WebAudio
   saw + a made-up kit; the user liked that beat better than the toy's, 2026-11-03).
   Rendering #1 at `pc_synth.sh`'s gain 1.0 peaks ~9 dB over full scale (the script uses
-  0.3); whether the live toy clips too isn't checked.
+  0.3). The live gain is 1.0 too: a keys riff over a techno beat rendered at it clips 0.01-0.04% of samples
+  (2026-11-09, up to max reverb): not the cause of anything heard so far.
 - `tools/gen_cat_sf2.py` + `tools/sounds/` (free recordings, see its README; the
   table `CATS` lists them): ROCK's program 19 was a cat (off the button since 2026-11-05, ROCK is dubstep; the file and entry stay), NEW AGE's 88 a deeper
   Siamese (2026-10-31; ~0.9 s at F3, a ~0.15 s blip at C6). `pc_synth.sh` builds `build-host/cat.sf2` and
@@ -281,7 +283,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   gravity and burst size re-rolled every 4 bars; the bottom row counts the beat, all 8 dots on beat 1, two sparks up
   at each bar line, dark 2 s after the beat stops, the user's pick) shown by `dots.c` (own task on core 1, bit-banged like check 4,
   brightness 1, a frame sent only when it changed). `DOTS_IN_AT_TOP` / `DOTS_MIRROR` are guesses: the user hasn't
-  said which end is up. In `docs/wiring.html`. Built, not flashed.
+  said which end is up. In `docs/wiring.html`. Flashed; on SPI3 since `3090806` (bit-banged it kept core 1 35-45% busy).
 - **8x8 LED matrix: gone** (2026-11-09, the user took it off the piano for good: too many wires). `ledmx.c` (two
   74HC595s on D25/D26/D27, 1 kHz timer), `viz.c` (the "Mix" picture: falling notes + beat count) and its test are in
   git at `007f8a5`; D25/D26/D27 are free again. `docs/matrix-ideas.html` (9 picture ideas) stays. Likely successor:
@@ -294,7 +296,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `ABn` → `An`), the 10 kΩ pull-ups gone, all keys checked by the user. Screen (TFT 1.69",
   HSPI: SCL D14, SDA D13, CS D15, RES D5, DC D4, BLK open) works, shows
   `ui.c` (sound, volume, octave, beat, loop, DEMO, PC link); the user checked
-  it. Knob: CLK D18, DT D19, SW D23, + on 3V3. Pots: wipers on D32 (beat), D33 (metronome volume; the newest loop layer until 2026-11-06), D34 (live keys), D35 (filter), VP (reverb), VN (metronome tempo), all ADC1 (2026-11-06); LED strip data on TX2 (GPIO17), V on 3V3. The amp is off the wiring doc (2026-11-04, not used; it was planned on D26/D25/D27).
+  it. Knob: CLK D18, DT D19, SW D23, + on 3V3. Pots (2026-11-09): metronome volume on D33 and tempo on VN (ADC1); beat, keys, filter, reverb on ADS1115 #2 (0x49) A0-A3; resonance, echo, release, wobble on #1 (0x48) A0-A3, both on D21/D22; dot matrix DIN D25, CLK D26, CS D27, VCC on VIN; LED strip data on TX2 (GPIO17), V on 3V3. The amp is off the wiring doc (2026-11-04, not used; it was planned on D26/D25/D27).
 - The BLE-MIDI version (NimBLE, `ble_midi.c`) is in git at `923500c`.
 - **The four checks** (from mukklet, `FIRMWARE_PLAYBOOK.md`): `tools/test.sh`
   (host tests in `test/`, gcc + ASan/UBSan, Unity from `$IDF_PATH`),
@@ -315,6 +317,14 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - Firmware: ESP-IDF in C, like the siblings. No Arduino.
 
 ### Traps found here
+- **Matrix reacts but no sound = check the audio sink first** (2026-11-09): the synth got every note, PipeWire sent
+  FluidSynth to the G733 headset (the default sink) and that sink wasn't running. `pw-top -b -n 2` (FluidSynth's sink at
+  rate 0 = nothing plays), `pw-link -l | grep -A2 -i fluid`, then `timeout 20 aseqdump -p 128:0` for what arrives.
+- **Page animations: test in Brave, or fake an early first frame** (2026-11-09): Chromium's first
+  `requestAnimationFrame` time can be before a `performance.now()` taken at load; the matrix pages computed step -1,
+  crashed on `PLAN[-1]` and never asked for another frame (one still picture, new on every reload). Firefox headless
+  passed. Now `now = Math.max(now, t0)` and the next frame is requested first. A node run of the page script with a
+  stubbed DOM and a first frame 8 ms early reproduced it.
 - **An effect pot turned fast froze the song** (2026-11-09, wobble to max): each step of an NRPN pot is 20 messages
   (keys + DEMO channels, copied to the 3 chick channels), every 30 ms while turning, each twice over WiFi; the WiFi
   queue fell over 1 s behind, and the bridge took each late WiFi packet for a toy restart (offset > 1 s) and dropped
@@ -566,18 +576,34 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
-**2026-11-09:** the 8x8 matrix is off the piano and out of the code (built and checked, not yet flashed: the toy
-still runs the matrix firmware until the next flash). ADS1115: one board passed `esp32-hw-checks` check 5 (0x48,
+**State 2026-11-09 (end of session):** flashed `3090806`: 10 pots (2 ADS1115s, 4 new effects), the 32x8 matrix with
+fireworks + bottom-row beat counter on SPI3, NRPN registers not resent on the live channels. Bridge fixed (late WiFi
+packets were read as toy restarts and froze the song). Old 8x8 matrix removed. **Open, for next time** (the user: "we
+will fix it next time"):
+- **No sound at the end**: FluidSynth was routed to the G733 headset, whose sink wasn't running (pw-top rate 0); 161
+  notes reached the synth in 20 s. Ask: headset on, or move the stream to the analog speakers (Traps).
+- **The toy restarted by itself at 20:17** (~10 min after the flash; bridge: `toy clock went back 610 s`); after it the
+  cable was garbled, so the reset reason wasn't read. Restart the service, read `reset reason:` (9 = brownout: the
+  matrix on VIN?).
+- **Reverb at max buries the keys under a beat** (rendered: dry keys 2 dB over their own wash alone, 1.2 dB under the
+  rest with the techno beat). Audition waiting: `build-host/audition/reverb/` A +100% (now) / B +60% / C +35% / D +15%
+  as the pot's top; the user picks, then cap `MIXER_REVERB_SEND`'s top or the room.
+- **Load test after the CPU fixes not done**: before them, core 1 36-49% with the matrix animating (bit-banged), core
+  0 up to 91% and ~1300 `SCAN stalled` while an effect pot turned. Beat on, keys, a pot turning 20 s, then compare STATS.
+- **Matrix orientation unconfirmed**: do rockets rise? The user thinks module 3 is upside down: maybe seated turned
+  in its socket (they're removable), else `dots.c`'s mapping. `DOTS_IN_AT_TOP` / `DOTS_MIRROR`.
+- Offered, not answered: the cheat sheet's Buttons section in tiles like Knobs and Chicks.
+
+**2026-11-09:** the 8x8 matrix is off the piano and out of the code (flashed 2026-11-09). ADS1115: one board passed `esp32-hw-checks` check 5 (0x48,
 A0-A3 each 0-3242 mV); the other 4 not checked one by one (the user). In `docs/wiring.html` since 2026-11-09: on
 D21/D22 beside the MCP23017 (ADDR open = 0x48), VDD 3V3, A0-A3 = 4 effect pots (B10K, the user's pick over layer
 faders: "just add what you suggested, we will improve/change afterwards"): resonance, echo, release, wobble
-(`mixer.h`, `fx.h`; `main.c` reads one input per pot read, single-shot). Built, checks pass, not flashed, not
-heard. Render-checked first: release 60 ms-1.9 s on the saw lead, Q peaks at the cutoff but drops the level (filter
+(`mixer.h`, `fx.h`; `main.c` reads one input per pot read, single-shot). Flashed; the user tried wobble at max (the freeze, Traps). Render-checked first: release 60 ms-1.9 s on the saw lead, Q peaks at the cutoff but drops the level (filter
 -2400 cents + Q 480 cB: rms 5183 -> 703), vibrato swing 47 -> 285 cents. Their moves during a take aren't recorded.
 A second ADS1115 (#2, ADDR on VDD = 0x49, one of the 4 boards not checked one by one) takes beat, keys, filter and
 reverb (A0-A3, the user's ask, 2026-11-09); only the metronome's two pots stay on ADC1 (D33, VN); D32, D34, D35, VP
 are free. `main.c` steps both boards every 2 ms (`ADS_PERIOD_US`), one input each: a pot every ~8 ms at best, slower
-when a scan pass is long. Built, checks pass, not flashed. If #2 misreads: run `esp32-hw-checks` check 5 on it alone on
+when a scan pass is long. Flashed, both boards answer at boot. If #2 misreads: run `esp32-hw-checks` check 5 on it alone on
 the bus (the check reads the first board it finds at 0x48-0x4B).
 
 **State 2026-11-08 (late, end of session):** the user asked what the toy is: a loop-based groovebox; a full song is
@@ -838,7 +864,7 @@ Open items:
   the canvas several times a second (a pitch-range fix alone didn't change it). Still offered, not answered: the
   "Chicco Piano" menu entry also opening the page.
 - FluidSynth renders #1 at `pc_synth.sh`'s gain 1.0 ~9 dB over full scale; whether the
-  live output clips too isn't checked (`render_riffs.py` uses 0.3).
+  live output clips: 0.01-0.04% of samples with keys + beat (2026-11-09 render), negligible.
 - **Fixed 2026-11-06 (a style button no longer touches a playing beat): a style switch while a loop plays moved the
   beat off the loop** (seen in a capture, the user noticed it too): DISCO (124) then SLOW ROCK (130) during Song #1, each switching at the beat's own bar line, left the beat and
   the metronome 86 ms (3/4 of a 16th) after the loop's start; a layer recorded then (layer 4) is on the beat, the older
