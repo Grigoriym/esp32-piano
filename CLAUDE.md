@@ -557,6 +557,11 @@ faders: "just add what you suggested, we will improve/change afterwards"): reson
 (`mixer.h`, `fx.h`; `main.c` reads one input per pot read, single-shot). Built, checks pass, not flashed, not
 heard. Render-checked first: release 60 ms-1.9 s on the saw lead, Q peaks at the cutoff but drops the level (filter
 -2400 cents + Q 480 cB: rms 5183 -> 703), vibrato swing 47 -> 285 cents. Their moves during a take aren't recorded.
+A second ADS1115 (#2, ADDR on VDD = 0x49, one of the 4 boards not checked one by one) takes beat, keys, filter and
+reverb (A0-A3, the user's ask, 2026-11-09); only the metronome's two pots stay on ADC1 (D33, VN); D32, D34, D35, VP
+are free. `main.c` steps both boards every 2 ms (`ADS_PERIOD_US`), one input each: a pot every ~8 ms at best, slower
+when a scan pass is long. Built, checks pass, not flashed. If #2 misreads: run `esp32-hw-checks` check 5 on it (it
+scans 0x48 only; set its ADDR open for the check).
 
 **State 2026-11-08 (late, end of session):** the user asked what the toy is: a loop-based groovebox; a full song is
 performed from one loop by muting and fading layers. Built and flashed: the Layers screen (knob walks the layers, press

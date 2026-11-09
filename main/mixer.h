@@ -15,7 +15,7 @@
  * (frozen onto its channel when it's added; the user: "we shouldn't touch the
  * recordings", 2026-11-06). The drums stay as they are.
  *
- * Pots 7-10 are on an ADS1115 (I2C, 2026-11-09), effects on the live keys and DEMO like the filter
+ * Pots 7-10 (2026-11-09) are effects on the live keys and DEMO like the filter
  * and reverb, frozen onto a loop layer the same way: resonance (initialFilterQ, 0 to MIXER_RES_CB;
  * rendered: a peak at the cutoff, quieter as it rises), echo (no MIDI: fx.h's Echo amount), release
  * (releaseVolEnv, -/+MIXER_RELEASE_TC with the preset's own in the middle; rendered on the saw lead:
@@ -40,7 +40,6 @@
 #include "midi_out.h"
 
 #define MIXER_POTS  10
-#define MIXER_ADC   6    /* pots 1-6 on the ESP32's ADC1; 7-10 on the ADS1115 */
 #define MIXER_RAW   4095 /* the ADC's full scale */
 #define MIXER_LEVEL 127
 #define MIXER_TURN  3 /* levels a pot must move to count as turned (the LED bar): one-level hops are noise */
