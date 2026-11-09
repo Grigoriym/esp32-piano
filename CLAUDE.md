@@ -315,6 +315,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - Firmware: ESP-IDF in C, like the siblings. No Arduino.
 
 ### Traps found here
+- **An effect pot turned fast froze the song** (2026-11-09, wobble to max): each step of an NRPN pot is 20 messages
+  (keys + DEMO channels, copied to the 3 chick channels), every 30 ms while turning, each twice over WiFi; the WiFi
+  queue fell over 1 s behind, and the bridge took each late WiFi packet for a toy restart (offset > 1 s) and dropped
+  its clock sync, 806 times in 13 s, so the beat and loop froze. The bridge now resets only when the toy's clock goes
+  back over 10 s (a real restart). The flood itself is still there (core 0 up to 91%, `SCAN stalled` ~1300 times);
+  the dot matrix task added ~35-45% on core 1 (was 2-5%).
 - **Settings sent before FluidSynth was routed were lost** (2026-11-08, the user: layers sounded wetter than played):
   the bridge said HELLO ~1 s before `pc_synth.sh` connected it to the synth, the toy's link-up burst (reverb, filter,
   bend range, programs) went nowhere, so live keys played with the preset's reverb and each new layer with the pot's

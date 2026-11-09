@@ -47,10 +47,13 @@
 #define PENDING        512     /* delayed messages waiting */
 #define SAMPLES        128     /* clock samples kept */
 #define WINDOW_US      5000000 /* clock offset: the fastest packet of the last 5 s (clocks drift) */
-#define RESET_US       1000000 /* an offset this far off: the toy restarted */
-#define SLOW_KEY_US    30000   /* a live key this much slower than the fastest packets is logged */
-#define LATE_KEPT      16      /* late messages whose other copy is watched for */
-#define STALL_US       20000   /* the bridge's own loop held up this long is logged */
+/* The toy's clock this far behind the newest send time: it restarted (its clock starts again at 0).
+ * Not a late packet's offset: 2026-11-09 a WiFi queue ~1 s behind (an effect pot's NRPN flood) was
+ * read as a restart 806 times in 13 s, each one dropping the clock sync, and the song froze. */
+#define RESET_US    10000000
+#define SLOW_KEY_US 30000 /* a live key this much slower than the fastest packets is logged */
+#define LATE_KEPT   16    /* late messages whose other copy is watched for */
+#define STALL_US    20000 /* the bridge's own loop held up this long is logged */
 
 static double now_s(void)
 {
@@ -83,18 +86,20 @@ static int64_t clock_offset(int64_t now)
     return best;
 }
 
-/* A packet sent at raw (toy us) arrived now: returns its send time in our clock. */
+/* A packet sent at raw (toy us) arrived now: returns its send time in our clock. Every copy is a
+ * sample; an older one (a late copy, the other path ahead of it) doesn't move the reference. */
 static int64_t clock_map(uint32_t raw, int64_t now)
 {
-    int64_t sent = clk.n ? clk.last_sent + (int32_t)(raw - clk.last_raw) : raw;
-    int64_t off = clock_offset(now);
-    if (clk.n && off != INT64_MAX && llabs(now - sent - off) > RESET_US) {
-        printf("toy clock jumped: restarted?\n");
+    int32_t step = (int32_t)(raw - clk.last_raw);
+    if (clk.n && step < -RESET_US) {
+        printf("toy clock went back %d s: restarted\n", -step / 1000000);
         clk.n = 0;
-        sent = raw;
     }
-    clk.last_raw = raw;
-    clk.last_sent = sent;
+    int64_t sent = clk.n ? clk.last_sent + step : raw;
+    if (!clk.n || step >= 0) {
+        clk.last_raw = raw;
+        clk.last_sent = sent;
+    }
     clk.at[clk.next] = now;
     clk.d[clk.next] = now - sent;
     clk.next = (clk.next + 1) % SAMPLES;
