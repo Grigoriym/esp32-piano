@@ -18,36 +18,38 @@
   #now { color:var(--mute); font-variant-numeric:tabular-nums; }
   .player { background:var(--card); border:2px solid var(--acc); border-radius:10px; padding:12px; margin-bottom:18px; }
   .player .what { color:var(--mute); font-size:14px; margin-top:6px; min-height:1.4em; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 520px), 1fr)); gap:14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap:14px; }
+  .row { display:flex; gap:14px; align-items:flex-start; }
+  .row > div { flex:1; min-width:0; }
   .card { background:var(--card); border:2px solid var(--line); border-radius:10px; padding:12px; cursor:pointer; user-select:none; }
   .card.on { border-color:var(--acc); }
   .card h2 { display:flex; justify-content:space-between; gap:8px; }
   .card h2 .pick { color:var(--acc); font-size:15px; white-space:nowrap; }
   .card p { margin:8px 0 0; color:var(--mute); font-size:14px; }
   .card .roll { font-size:13px; color:var(--mute); margin-top:4px; min-height:1.3em; }
-  canvas { display:block; width:100%; aspect-ratio:4 / 1; border-radius:8px; background:#0b0b0c; }
+  canvas { display:block; height:400px; aspect-ratio:1 / 4; border-radius:8px; background:#0b0b0c; flex:none; }
+  #rot { height:520px; }
   #picked { margin-top:16px; font-size:18px; }
 </style>
 </head>
 <body>
 <main>
-<h1>Random visualizer for the 32×8 matrix</h1>
+<h1>Random visualizer for the 8×32 matrix, standing up</h1>
 <div class="sub">Every scene reacts to the same made-up song: the beat at 124 bpm and a 2-bar loop with layers added one by one (bass, chords, hook), then live keys.
-Keys <b>A S D F G H J K L</b> on your keyboard play live notes too. Red, on or off per dot, one brightness for the whole matrix, like the real MAX7219.
+Keys <b>A S D F G H J K L</b> on your keyboard play live notes too. Red, on or off per dot, one brightness for the whole matrix, like the real MAX7219. Standing up: 8 dots across, 32 tall; low keys at the bottom.
 Each card re-rolls its random settings every 4 bars. Click the scenes you want in the rotation.</div>
 <div class="bar"><button id="pp">Pause</button><span id="now"></span></div>
 
 <div class="player">
   <h2>The rotation: a random scene every 4 bars, on the bar line</h2>
-  <canvas id="rot" width="1024" height="256"></canvas>
-  <div class="what" id="rotwhat"></div>
+  <div class="row"><canvas id="rot" width="160" height="640"></canvas><div><div class="what" id="rotwhat"></div></div></div>
 </div>
 
 <div class="grid" id="grid"></div>
 <div id="picked"></div>
 </main>
 <script>
-const W = 32, H = 8;
+const W = 8, H = 32; // standing up: 8 dots across, 32 tall
 const BPM = 124, STEP_MS = 60000 / BPM / 4, LOOP = 32; // 16ths, 2-bar loop
 const ROTATE_BARS = 4;
 
@@ -66,63 +68,70 @@ const blank = () => Array.from({length:H}, () => new Uint8Array(W));
 const set = (g, x, y) => { x = Math.round(x); y = Math.round(y); if (x >= 0 && x < W && y >= 0 && y < H) g[y][x] = 1; };
 const held = new Map(); // key -> steps left
 
-// ---- the scenes. make(roll) -> {roll: text, onNote, onDrum, onStep, tick(dt), draw(g) -> brightness 0-1}
+// ---- the scenes. make() -> {roll: text, onNote, onDrum, onStep, tick(dt), draw(g) -> brightness 0-1}
+// Keys along the height: key 1 at the bottom, key 32 at the top; or in 8 bands of 4 keys across.
+const along = k => H - k;                  // the row of key k
+const band = k => Math.floor((k - 1) / 4);  // the column of key k's band
 const SCENES = [
-{id:'A', title:'Spectrum', desc:'32 bars, one per key: a note kicks its bar up (neighbours a bit), it sinks back. Sometimes mirrored from the middle, upside down, or with a peak dot that hangs on.',
+{id:'A', title:'Spectrum', desc:'Like an equaliser: a note kicks its bar, neighbours a bit, and it sinks back. Either 32 short bars, one per key (low keys at the bottom) growing sideways, or 8 tall bars, one per 4 keys, rising up. Sometimes mirrored, sometimes with a peak dot that hangs on.',
  make(){
-  const mirror = Math.random() < 0.4, flip = Math.random() < 0.3, peaks = Math.random() < 0.5, fall = rnd(10, 22);
-  const lv = new Float32Array(W), pk = new Float32Array(W);
-  const colOf = k => mirror ? [Math.floor(W/2 - k/2), Math.floor(W/2 - 1 + k/2)] : [k - 1];
-  return { roll: `${mirror ? 'mirrored' : 'left to right'}, ${flip ? 'from the top' : 'from the bottom'}${peaks ? ', peak dots' : ''}`,
-    onNote(k, len, layer){ const h = layer === 'live' || layer === 2 ? 8 : layer === 0 ? 7 : 5;
-      for (const c of colOf(k)) for (let d = -2; d <= 2; d++) { const x = c + d; if (x >= 0 && x < W) lv[x] = Math.max(lv[x], h - Math.abs(d) * 2); } },
-    tick(dt){ for (let x = 0; x < W; x++) { lv[x] = Math.max(0, lv[x] - fall * dt); pk[x] = Math.max(lv[x], pk[x] - 3 * dt); } },
-    draw(g){ for (let x = 0; x < W; x++) { const h = Math.round(lv[x]);
-      for (let i = 0; i < h; i++) set(g, x, flip ? i : H - 1 - i);
-      if (peaks && pk[x] >= 1) { const p = Math.min(H - 1, Math.round(pk[x])); set(g, x, flip ? p : H - 1 - p); } } return 1; } };
+  const tall = Math.random() < 0.5, mirror = Math.random() < 0.4, peaks = Math.random() < 0.5;
+  const n = tall ? W : H, top = tall ? H : W, fall = tall ? rnd(35, 70) : rnd(10, 20);
+  const lv = new Float32Array(n), pk = new Float32Array(n);
+  return { roll: `${tall ? '8 tall bars rising' : '32 bars growing sideways'}${mirror ? ', mirrored from the middle' : ''}${peaks ? ', peak dots' : ''}`,
+    onNote(k, len, layer){ const f = layer === 'live' || layer === 2 ? 1 : layer === 0 ? 0.85 : 0.6;
+      const at = tall ? band(k) : along(k), spread = tall ? 1 : 2;
+      for (let d = -spread; d <= spread; d++) { const i = at + d; if (i >= 0 && i < n) lv[i] = Math.max(lv[i], top * f * (1 - Math.abs(d) * (tall ? 0.35 : 0.3))); } },
+    tick(dt){ for (let i = 0; i < n; i++) { lv[i] = Math.max(0, lv[i] - fall * dt); pk[i] = Math.max(lv[i], pk[i] - fall * 0.2 * dt); } },
+    draw(g){ for (let i = 0; i < n; i++) {
+      const len = Math.round(mirror ? lv[i] / 2 : lv[i]), p = Math.min(top - 1, Math.round(mirror ? pk[i] / 2 : pk[i]));
+      const put = j => { if (tall) { if (mirror) { set(g, i, H/2 - 1 - j); set(g, i, H/2 + j); } else set(g, i, H - 1 - j); }
+                         else { if (mirror) { set(g, W/2 - 1 - j, i); set(g, W/2 + j, i); } else set(g, j, i); } };
+      for (let j = 0; j < len; j++) put(j);
+      if (peaks && p >= 1) put(p); } return 1; } };
  }},
-{id:'B', title:'Ripples', desc:'Each note drops a stone at its key\'s place: a ring spreads out and fades. Settings: speed, round or wide rings, rings or filled discs.',
+{id:'B', title:'Ripples', desc:'Each note drops a stone at its key\'s height: a ring spreads out and fades. Settings: speed, round or tall rings, rings or filled discs.',
  make(){
-  const speed = rnd(10, 24), stretch = pick([1, 1.6, 2.5]), filled = Math.random() < 0.3;
+  const speed = rnd(10, 24), stretch = pick([1, 1.8, 3]), filled = Math.random() < 0.3;
   let rings = [];
-  return { roll: `${speed < 16 ? 'slow' : 'fast'}, ${stretch === 1 ? 'round' : 'wide'} ${filled ? 'discs' : 'rings'}`,
-    onNote(k){ rings.push({x:k - 1, y:rnd(2, 5), r:0}); if (rings.length > 14) rings.shift(); },
-    tick(dt){ for (const r of rings) r.r += speed * dt; rings = rings.filter(r => r.r < 12); },
+  return { roll: `${speed < 16 ? 'slow' : 'fast'}, ${stretch === 1 ? 'round' : 'tall'} ${filled ? 'discs' : 'rings'}`,
+    onNote(k){ rings.push({x:rnd(1.5, 5.5), y:along(k), r:0}); if (rings.length > 14) rings.shift(); },
+    tick(dt){ for (const r of rings) r.r += speed * dt; rings = rings.filter(r => r.r < 14); },
     draw(g){ for (const r of rings) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      const d = Math.hypot((x - r.x) / stretch, y - r.y);
+      const d = Math.hypot(x - r.x, (y - r.y) / stretch);
       if (filled ? d < r.r && d > r.r - 2.5 : Math.abs(d - r.r) < 0.55) set(g, x, y); } return 1; } };
  }},
-{id:'C', title:'Starfield', desc:'Flying through stars, at the tempo; each kick is a jump to warp speed. Settings: where the centre is, flying in or out, how many stars.',
+{id:'C', title:'Starfield', desc:'Flying through stars, at the tempo; each kick is a jump to warp speed. Settings: where the centre is (middle, higher, lower), flying in or out, how many stars.',
  make(){
-  const n = Math.floor(rnd(14, 34)), cx = pick([W/2, W/3, 2*W/3]), out = Math.random() < 0.75;
+  const n = Math.floor(rnd(14, 34)), cy = pick([H/2, H/3, 2*H/3]), out = Math.random() < 0.75;
   let boost = 0; const stars = Array.from({length:n}, () => ({a:rnd(0, 7), z:rnd(0.05, 1)}));
-  return { roll: `${n} stars, ${out ? 'flying in' : 'falling back'}, centre ${cx === W/2 ? 'middle' : cx < W/2 ? 'left' : 'right'}`,
+  return { roll: `${n} stars, ${out ? 'flying in' : 'falling back'}, centre ${cy === H/2 ? 'in the middle' : cy < H/2 ? 'higher' : 'lower'}`,
     onDrum(d){ if (d === 'kick') boost = 1; },
     tick(dt){ const v = (0.35 + 2.2 * boost) * dt * (out ? 1 : -1); boost = Math.max(0, boost - dt * 3);
       for (const s of stars) { s.z = s.z * (1 + v * 2) + (out ? 0.01 : -0.01) * dt; if (s.z > 1.2 || s.z < 0.03) { s.z = out ? rnd(0.04, 0.15) : rnd(0.9, 1.1); s.a = rnd(0, 7); } } },
-    draw(g){ for (const s of stars) { const r = s.z * 26; set(g, cx + Math.cos(s.a) * r * 1.3, H/2 - 0.5 + Math.sin(s.a) * r * 0.45);
-      if (boost > 0.3) { const r2 = r * 0.8; set(g, cx + Math.cos(s.a) * r2 * 1.3, H/2 - 0.5 + Math.sin(s.a) * r2 * 0.45); } } return 1; } };
+    draw(g){ for (const s of stars) { const r = s.z * 26; set(g, W/2 - 0.5 + Math.cos(s.a) * r * 0.45, cy + Math.sin(s.a) * r * 1.3);
+      if (boost > 0.3) { const r2 = r * 0.8; set(g, W/2 - 0.5 + Math.cos(s.a) * r2 * 0.45, cy + Math.sin(s.a) * r2 * 1.3); } } return 1; } };
  }},
-{id:'D', title:'Fireworks', desc:'A note launches a rocket from its key\'s place; on the next beat it bursts and the sparks fall. Settings: gravity, how big the bursts are.',
+{id:'D', title:'Fireworks', desc:'A note launches a rocket from the bottom, in its key\'s band; higher keys fly higher. On the next beat it bursts and the sparks fall. Settings: gravity, how big the bursts are.',
  make(){
-  const grav = rnd(8, 20), size = Math.floor(rnd(6, 14));
+  const grav = rnd(18, 40), size = Math.floor(rnd(6, 14));
   let rockets = [], sparks = [];
-  return { roll: `${grav < 14 ? 'floaty' : 'heavy'} sparks, ${size < 10 ? 'small' : 'big'} bursts`,
-    onNote(k, len, layer){ if (layer === 1 && Math.random() < 0.6) return; if (rockets.length < 6) rockets.push({x:k - 1, y:H - 1, vy:-rnd(14, 22)}); },
+  return { roll: `${grav < 28 ? 'floaty' : 'heavy'} sparks, ${size < 10 ? 'small' : 'big'} bursts`,
+    onNote(k, len, layer){ if (layer === 1 && Math.random() < 0.6) return; if (rockets.length < 5) rockets.push({x:band(k), y:H - 1, top:along(k) * 0.7 + 1}); },
     onStep(s){ if (s % 4) return; for (const r of rockets) for (let i = 0; i < size; i++) { const a = rnd(0, 7), v = rnd(4, 12);
-      sparks.push({x:r.x, y:r.y, vx:Math.cos(a) * v * 1.4, vy:Math.sin(a) * v * 0.7, life:rnd(0.5, 1.1)}); } rockets = []; },
-    tick(dt){ for (const r of rockets) { r.y = Math.max(1, r.y + r.vy * dt); r.vy *= 0.94; }
+      sparks.push({x:r.x, y:r.y, vx:Math.cos(a) * v * 0.5, vy:Math.sin(a) * v, life:rnd(0.6, 1.3)}); } rockets = []; },
+    tick(dt){ for (const r of rockets) r.y = Math.max(r.top, r.y - 45 * dt);
       for (const s of sparks) { s.x += s.vx * dt; s.y += s.vy * dt; s.vy += grav * dt; s.life -= dt; } sparks = sparks.filter(s => s.life > 0 && s.y < H + 1); },
-    draw(g){ for (const r of rockets) set(g, r.x, r.y); for (const s of sparks) set(g, s.x, s.y); return 1; } };
+    draw(g){ for (const r of rockets) { set(g, r.x, r.y); set(g, r.x, r.y + 1); } for (const s of sparks) set(g, s.x, s.y); return 1; } };
  }},
-{id:'E', title:'Life', desc:'Conway\'s Game of Life: cells are born and die by their neighbours, one generation every 8th or 16th; each note plants cells at its key\'s place, a kick on an empty board seeds it.',
+{id:'E', title:'Life', desc:'Conway\'s Game of Life: cells are born and die by their neighbours, one generation every 8th or 16th; each note plants cells at its key\'s height, a kick on an empty board seeds it.',
  make(){
   const every = pick([1, 2]), high = Math.random() < 0.4; // HighLife: also born with 6
   let g0 = blank();
-  const seed = (x) => { for (let i = 0; i < 4; i++) { const xx = (x + Math.floor(rnd(-2, 3)) + W) % W, yy = Math.floor(rnd(0, H)); g0[yy][xx] = 1; } };
+  const seed = (y) => { for (let i = 0; i < 4; i++) { const yy = (y + Math.floor(rnd(-2, 3)) + H) % H, xx = Math.floor(rnd(0, W)); g0[yy][xx] = 1; } };
   return { roll: `a generation every ${every === 1 ? '16th' : '8th'}, ${high ? 'HighLife rules' : 'classic rules'}`,
-    onNote(k){ seed(k - 1); },
-    onDrum(d){ if (d === 'kick' && g0.every(r => r.every(v => !v))) for (let i = 0; i < 6; i++) seed(Math.floor(rnd(0, W))); },
+    onNote(k){ seed(along(k)); },
+    onDrum(d){ if (d === 'kick' && g0.every(r => r.every(v => !v))) for (let i = 0; i < 6; i++) seed(Math.floor(rnd(0, H))); },
     onStep(s){ if (s % every) return; const n = blank();
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let c = 0;
         for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (dx || dy) c += g0[(y + dy + H) % H][(x + dx + W) % W];
@@ -130,42 +139,42 @@ const SCENES = [
       g0 = n; },
     draw(g){ for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (g0[y][x]) g[y][x] = 1; return 1; } };
  }},
-{id:'F', title:'Wave', desc:'A waveform scrolling across: louder playing makes it taller, a lower note makes it wider. Settings: line or filled, one wave or two mirrored, which way it scrolls.',
+{id:'F', title:'Wave', desc:'A waveform running up or down the matrix: louder playing makes it swing wider, a lower note stretches it. Settings: line or filled, one wave or two mirrored, which way it runs.',
  make(){
   const filled = Math.random() < 0.4, two = Math.random() < 0.35, dir = pick([1, -1]);
   let amp = 0.5, low = 12, ph = 0;
-  return { roll: `${filled ? 'filled' : 'a line'}${two ? ', two mirrored' : ''}, scrolling ${dir > 0 ? 'left' : 'right'}`,
+  return { roll: `${filled ? 'filled' : 'a line'}${two ? ', two mirrored' : ''}, running ${dir > 0 ? 'up' : 'down'}`,
     onNote(k, len, layer){ amp = Math.min(3.6, amp + (layer === 'live' ? 1.4 : 0.7)); low = Math.min(low * 0.7 + k * 0.3, 30); },
     tick(dt){ amp = Math.max(0.4, amp - dt * 2.2); ph += dt * 9 * dir; },
-    draw(g){ const per = 3 + low / 3;
-      for (let x = 0; x < W; x++) { const v = Math.sin(x / per * 2 + ph) * amp;
-        const ys = two ? [v, -v] : [v];
-        for (const yv of ys) { const y = H/2 - 0.5 - yv;
-          if (filled) { const a = Math.min(y, H/2 - 0.5), b = Math.max(y, H/2 - 0.5); for (let yy = Math.round(a); yy <= Math.round(b); yy++) set(g, x, yy); }
+    draw(g){ const per = 3 + low / 3, mid = W/2 - 0.5;
+      for (let y = 0; y < H; y++) { const v = Math.sin(y / per * 2 + ph) * amp;
+        for (const xv of two ? [v, -v] : [v]) { const x = mid + xv;
+          if (filled) { const a = Math.min(x, mid), b = Math.max(x, mid); for (let xx = Math.round(a); xx <= Math.round(b); xx++) set(g, xx, y); }
           else set(g, x, y); } } return 1; } };
  }},
-{id:'G', title:'Plasma', desc:'A slowly flowing pattern (overlapping waves, dithered into on/off dots); the whole matrix pulses brighter on every beat. Settings: the wave sizes and speeds.',
+{id:'G', title:'Plasma', desc:'A slowly flowing pattern (overlapping waves, dithered into on/off dots); the whole matrix pulses brighter on every kick. Settings: the wave sizes and speeds.',
  make(){
-  const a = rnd(0.15, 0.5), b = rnd(0.4, 1.1), c = rnd(0.1, 0.35), sp = rnd(0.6, 1.6);
+  const a = rnd(0.12, 0.4), b = rnd(0.4, 1.1), c = rnd(0.1, 0.35), sp = rnd(0.6, 1.6);
   let t = 0, pulse = 0;
   const BAYER = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
   return { roll: `waves ${a.toFixed(2)} / ${b.toFixed(2)} / ${c.toFixed(2)}, speed ${sp.toFixed(1)}`,
     onDrum(d){ if (d === 'kick') pulse = 1; },
     tick(dt){ t += dt * sp; pulse = Math.max(0, pulse - dt * 4); },
     draw(g){ for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      const v = (Math.sin(x * a + t) + Math.sin(y * b - t * 1.3) + Math.sin((x + y) * c + t * 0.7) + 3) / 6;
+      const v = (Math.sin(y * a + t) + Math.sin(x * b - t * 1.3) + Math.sin((x + y) * c + t * 0.7) + 3) / 6;
       if (v * 16 > BAYER[y % 4][x % 4] + 2) g[y][x] = 1; }
       return 0.55 + 0.45 * pulse; } };
  }},
-{id:'H', title:'Rain', desc:'Falling notes, the old 8×8 picture four times wider: each key drops a streak in its own column, long notes leave long streaks. Settings: falling down, rising up, or sliding in from the side.',
+{id:'H', title:'Rain', desc:'Falling notes, the old 8×8 picture four times taller: each key drops a streak in its band\'s column, long notes leave long streaks. Settings: falling down, rising up, or both ways out from the middle.',
  make(){
-  const way = pick(['down', 'down', 'up', 'side']), speed = rnd(14, 26);
+  const way = pick(['down', 'down', 'up', 'split']), speed = rnd(18, 32);
   let drops = [];
-  return { roll: `${way === 'side' ? 'sliding in from the right' : way === 'up' ? 'rising' : 'falling'}, ${speed < 20 ? 'slow' : 'fast'}`,
-    onNote(k, len){ drops.push({k:k - 1, p:0, len:Math.min(way === 'side' ? 8 : 4, 1 + len)}); },
-    tick(dt){ for (const d of drops) d.p += speed * dt * (way === 'side' ? 1.6 : 1); drops = drops.filter(d => d.p - d.len < (way === 'side' ? W : H)); },
+  return { roll: `${way === 'split' ? 'out from the middle' : way === 'up' ? 'rising' : 'falling'}, ${speed < 25 ? 'slow' : 'fast'}`,
+    onNote(k, len){ drops.push({x:band(k), p:0, len:Math.min(6, 1 + len)}); },
+    tick(dt){ for (const d of drops) d.p += speed * dt; drops = drops.filter(d => d.p - d.len < (way === 'split' ? H / 2 : H)); },
     draw(g){ for (const d of drops) for (let i = 0; i < d.len; i++) { const p = Math.floor(d.p) - i; if (p < 0) continue;
-      if (way === 'down') set(g, d.k, p); else if (way === 'up') set(g, d.k, H - 1 - p); else set(g, W - 1 - p, Math.floor(d.k / 4)); } return 1; } };
+      if (way === 'down') set(g, d.x, p); else if (way === 'up') set(g, d.x, H - 1 - p);
+      else { set(g, d.x, H/2 - 1 - p); set(g, d.x, H/2 + p); } } return 1; } };
  }},
 ];
 
@@ -179,7 +188,7 @@ try { picked = new Set(JSON.parse(localStorage.getItem('mtxrandpick') || '[]'));
 const grid = document.getElementById('grid');
 for (const s of SCENES) {
   const c = document.createElement('div'); c.className = 'card' + (picked.has(s.id) ? ' on' : '');
-  c.innerHTML = `<h2><span>${s.id}. ${s.title}</span><span class="pick">${picked.has(s.id) ? '✓ in the rotation' : ''}</span></h2><canvas width="1024" height="256"></canvas><div class="roll"></div><p>${s.desc}</p>`;
+  c.innerHTML = `<h2><span>${s.id}. ${s.title}</span><span class="pick">${picked.has(s.id) ? '✓ in the rotation' : ''}</span></h2><div class="row"><canvas width="160" height="640"></canvas><div><div class="roll"></div><p>${s.desc}</p></div></div>`;
   c.onclick = () => { picked.has(s.id) ? picked.delete(s.id) : picked.add(s.id);
     c.classList.toggle('on'); c.querySelector('.pick').textContent = picked.has(s.id) ? '✓ in the rotation' : '';
     try { localStorage.setItem('mtxrandpick', JSON.stringify([...picked])); } catch (e) {} showPicked(); };

@@ -272,7 +272,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (no name on the chip). Tested from a recorded stream in headless Firefox (call `resize()` and `draw()` before the
   screenshot, or it catches an empty frame); not yet seen by the user.
 - **32x8 matrix, a random visualizer** (2026-11-09, the user's idea, "like the old Windows Player"): the MAX7219
-  board on D25/D26/D27 (VCC on VIN). `docs/matrix-random.html` previews 8 music-reacting scenes (A Spectrum, B Ripples,
+  board on D25/D26/D27 (VCC on VIN), mounted standing up: 8 across, 32 tall (the user; which end is up and where
+  the IN header sits: not told yet). `docs/matrix-random.html` previews, upright, 8 music-reacting scenes (A Spectrum, B Ripples,
   C Starfield, D Fireworks, E Life, F Wave, G Plasma, H Rain), each with random settings re-rolled each time it comes
   up, and the rotation: a random scene every 4 bars on the bar line. The user picks the scenes there; no firmware yet.
 - **8x8 LED matrix: gone** (2026-11-09, the user took it off the piano for good: too many wires). `ledmx.c` (two
