@@ -97,6 +97,13 @@ li input:checked + span { color: var(--muted); text-decoration: line-through; }
     <h3>Metronome</h3>
     <div class="box"><svg id="pot6" viewBox="0 30 760 145" role="img" aria-label="Metronome: tempo: ends to the rails, wiper to VN"></svg></div>
     <div class="box"><svg id="pot2" viewBox="0 30 760 145" role="img" aria-label="Metronome: volume: ends to the rails, wiper to D33"></svg></div>
+    <h2>ADS1115</h2>
+    <div class="box"><svg id="ads" viewBox="0 30 760 145" role="img" aria-label="The ADS1115 board's row and where each pin goes"></svg></div>
+    <h2>Layer pots (4), on the ADS1115</h2>
+    <div class="box"><svg id="lpot1" viewBox="0 30 760 145" role="img" aria-label="Layer 1: ends to the rails, wiper to the ADS1115's A0"></svg></div>
+    <div class="box"><svg id="lpot2" viewBox="0 30 760 145" role="img" aria-label="Layer 2: ends to the rails, wiper to the ADS1115's A1"></svg></div>
+    <div class="box"><svg id="lpot3" viewBox="0 30 760 145" role="img" aria-label="Layer 3: ends to the rails, wiper to the ADS1115's A2"></svg></div>
+    <div class="box"><svg id="lpot4" viewBox="0 30 760 145" role="img" aria-label="Layer 4: ends to the rails, wiper to the ADS1115's A3"></svg></div>
     <h2>LED strip (8 × WS2812), IN side</h2>
     <div class="box"><svg id="strip" viewBox="0 30 760 145" role="img" aria-label="The LED strip's IN side: S to TX2, V to 3V3, G to GND"></svg></div>
     <h2>Diode test (temporary)</h2>
@@ -149,7 +156,7 @@ function row(names, y, labelY, tagY) {
 }
 row(topRow, 80, 106, 46);
 row(botRow, 170, 152, 214);
-el("text", { x: 34, y: 244, fill: "var(--muted)", "font-size": 11 }, "teal = MCP23017   gold = knob   green = screen   orange = pots   blue-violet = LEDs   red = 3V3   blue = GND");
+el("text", { x: 34, y: 244, fill: "var(--muted)", "font-size": 11 }, "teal = MCP23017 + ADS1115   gold = knob   green = screen   orange = pots   blue-violet = LEDs   red = 3V3   blue = GND");
 
 // The slot: 3 groups of 8 pads, EF7 first. AUD1 and AUD2 share one solder place.
 svg = document.getElementById("slot");
@@ -220,6 +227,17 @@ header("knob", [["CLK", "D18", "knob"], ["DT", "D19", "knob"], ["SW", "D23", "kn
      : id === "pot3" ? "The live keys' fader: held notes follow it too (not the loop or the beat)."
      : `Sets the loudness of ${what}.`, "Clockwise the wrong way? Swap the two ends.",
      ...(id === "pot2" ? ["1 µF from the wiper to the left end (GND), stripe on GND (test, 2026-11-04)."] : [])]));
+
+// The ADS1115, its single row as printed. On the same I2C wires as the MCP23017 (D21/D22);
+// ADDR left open = 0x48 (checked 2026-11-09).
+header("ads", [["VDD", "+rail", "power"], ["GND", "−rail", "gnd"], ["SCL", "D22", "i2c"], ["SDA", "D21", "i2c"],
+  ["ADDR", null], ["ALRT", null], ["A0", "layer 1", "pot"], ["A1", "layer 2", "pot"], ["A2", "layer 3", "pot"], ["A3", "layer 4", "pot"]],
+  ["SCL and SDA share D22 and D21 with the MCP23017.", "VDD on 3V3, not 5 V."]);
+
+// The layer pots: wiper to the ADS1115, ends to the rails like the other pots.
+[1, 2, 3, 4].forEach((n) =>
+  header(`lpot${n}`, [["left end", "−rail", "gnd"], ["wiper", `ADS A${n - 1}`, "pot"], ["right end", "+rail", "power"]],
+    [`Layer ${n}. Use a B10K.`]));
 
 // The LED strip's IN side (the OUT side chains more strips: leave it empty).
 header("strip", [["S", "TX2", "led"], ["V", "+rail", "power"], ["G", "−rail", "gnd"]],

@@ -551,7 +551,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 ## Next step
 **2026-11-09:** the 8x8 matrix is off the piano and out of the code (built and checked, not yet flashed: the toy
 still runs the matrix firmware until the next flash). ADS1115: one board passed `esp32-hw-checks` check 5 (0x48,
-A0-A3 each 0-3242 mV); the other 4 not checked one by one (the user). Next: the ADS1115 on the piano's I2C.
+A0-A3 each 0-3242 mV); the other 4 not checked one by one (the user). In `docs/wiring.html` since 2026-11-09: on
+D21/D22 beside the MCP23017 (ADDR open = 0x48), VDD 3V3, A0-A3 = layer 1-4 pots (B10K). Next: the user wires it,
+then the firmware (one fader per layer).
 
 **State 2026-11-08 (late, end of session):** the user asked what the toy is: a loop-based groovebox; a full song is
 performed from one loop by muting and fading layers. Built and flashed: the Layers screen (knob walks the layers, press
