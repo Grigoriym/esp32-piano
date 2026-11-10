@@ -208,9 +208,9 @@ static void test_a_layer_keeps_the_effects_it_was_recorded_with(void)
     m.reverb = 127;
     m.keys = 30; /* pot 3, the live keys' fader */
     mixer_freeze_layer(&m, 1, midi_rec, &r);
-    TEST_ASSERT_EQUAL(45,
-                      r.n); /* the fader, the pluck's envelope (5), filter, pluck, release, tremolo, attack,
-                                   reverb, on the layer's own channel */
+    /* the fader, the pluck's envelope (5 NRPNs), filter, pluck, release, tremolo, glide (3 CCs), reverb,
+     * on the layer's own channel */
+    TEST_ASSERT_EQUAL(44, r.n);
     TEST_ASSERT_EQUAL_HEX8(0xb0 | (LOOP_CH + 1), r.e[0].msg[0]);
     TEST_ASSERT_EQUAL(11, r.e[0].msg[1]);
     TEST_ASSERT_EQUAL(30, r.e[0].msg[2]);
@@ -220,10 +220,10 @@ static void test_a_layer_keeps_the_effects_it_was_recorded_with(void)
     TEST_ASSERT_EQUAL(11, r.e[26].msg[2]);
     TEST_ASSERT_EQUAL(38, r.e[30].msg[2]);
     TEST_ASSERT_EQUAL(13, r.e[34].msg[2]);
-    TEST_ASSERT_EQUAL(34, r.e[38].msg[2]);
-    TEST_ASSERT_EQUAL(16, r.e[42].msg[2]);
-    TEST_ASSERT_EQUAL(8192 + MIXER_REVERB_SEND, r.e[44].msg[2] << 7 | r.e[43].msg[2]);
-    TEST_ASSERT_EQUAL(0, strncmp("layer 2 keeps keys 30, filter 40, reverb 127", r.e[44].what, 44));
+    TEST_ASSERT_EQUAL(65, r.e[39].msg[1]);
+    TEST_ASSERT_EQUAL(16, r.e[41].msg[2]);
+    TEST_ASSERT_EQUAL(8192 + MIXER_REVERB_SEND, r.e[43].msg[2] << 7 | r.e[42].msg[2]);
+    TEST_ASSERT_EQUAL(0, strncmp("layer 2 keeps keys 30, filter 40, reverb 127", r.e[43].what, 44));
 
     /* The pots move on: the live channels change, the layer doesn't. */
     memset(&r, 0, sizeof(r));
@@ -236,7 +236,7 @@ static void test_a_layer_keeps_the_effects_it_was_recorded_with(void)
     turn(MIXER_KEYS, 127, 1);
     mixer_send_layer_fx(&m, 1, midi_rec, &r); /* again, after a reconnect */
     TEST_ASSERT_EQUAL(30, r.e[0].msg[2]);
-    TEST_ASSERT_EQUAL(0, strncmp("layer 2 keeps keys 30, filter 40, reverb 127", r.e[44].what, 44));
+    TEST_ASSERT_EQUAL(0, strncmp("layer 2 keeps keys 30, filter 40, reverb 127", r.e[43].what, 44));
 }
 
 static void test_keys_pot_is_cc11_on_the_keys_channel(void)
@@ -293,14 +293,19 @@ static void test_ads_pots_are_nrpn_offsets_on_their_generators(void)
 {
     static midi_rec_t r;
     int gen, off;
-    turn(MIXER_ATTACK, 127, 0);
+    turn(MIXER_GLIDE, 127, 0);
     memset(&r, 0, sizeof(r));
-    mixer_send_fx(&m, MIXER_ATTACK, midi_rec, &r);
-    last_nrpn(&r, 0, &gen, &off);
-    TEST_ASSERT_EQUAL(34, gen); /* attackVolEnv */
-    TEST_ASSERT_EQUAL(MIXER_ATTACK_STEPS, off);
-    last_nrpn(&r, 1, &gen, &off); /* DEMO's channel too */
-    TEST_ASSERT_EQUAL(34, gen);
+    mixer_send_fx(&m, MIXER_GLIDE, midi_rec, &r);
+    TEST_ASSERT_EQUAL(3 * MIXER_FX_LIVE, r.n); /* portamento time (CC5, CC37) and on (CC65), keys and DEMO */
+    TEST_ASSERT_EQUAL(5, r.e[0].msg[1]);
+    TEST_ASSERT_EQUAL(MIXER_GLIDE_MS, r.e[0].msg[2] << 7 | r.e[1].msg[2]);
+    TEST_ASSERT_EQUAL(65, r.e[2].msg[1]);
+    TEST_ASSERT_EQUAL(127, r.e[2].msg[2]);
+    TEST_ASSERT_EQUAL_HEX8(0xb1, r.e[5].msg[0]);
+    turn(MIXER_GLIDE, 0, 1);
+    memset(&r, 0, sizeof(r));
+    mixer_send_fx(&m, MIXER_GLIDE, midi_rec, &r);
+    TEST_ASSERT_EQUAL(0, r.e[2].msg[2]); /* off */
 
     turn(MIXER_RELEASE, 0, 0);
     memset(&r, 0, sizeof(r));
@@ -365,7 +370,7 @@ static void test_ads_effects_start_neutral(void)
     TEST_ASSERT_EQUAL(0, m.pluck);
     TEST_ASSERT_EQUAL(0, m.tremolo);
     TEST_ASSERT_EQUAL(64, m.release); /* the middle: the preset's own (offset ~0) */
-    TEST_ASSERT_EQUAL(0, m.attack);
+    TEST_ASSERT_EQUAL(0, m.glide);
 }
 
 int main(void)

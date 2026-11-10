@@ -18,7 +18,7 @@ void mixer_init(mixer_t *m)
     m->pot[MIXER_PLUCK] = m->rest[MIXER_PLUCK] = 0;
     m->shape_sent = -1;
     m->pot[MIXER_TREMOLO] = m->rest[MIXER_TREMOLO] = 0;
-    m->pot[MIXER_ATTACK] = m->rest[MIXER_ATTACK] = 0;
+    m->pot[MIXER_GLIDE] = m->rest[MIXER_GLIDE] = 0;
     m->pot[MIXER_RELEASE] = m->rest[MIXER_RELEASE] = m->release = 64;
     for (size_t i = 0; i < LOOPER_LAYERS; i++) m->layer_release[i] = 64;
 }
@@ -42,7 +42,7 @@ static void apply(mixer_t *m, mixer_pot_t pot)
         case MIXER_METRO: m->metro = v; break;
         case MIXER_CLICK: m->click = v; break;
         case MIXER_PLUCK: m->pluck = v; break;
-        case MIXER_ATTACK: m->attack = v; break;
+        case MIXER_GLIDE: m->glide = v; break;
         case MIXER_RELEASE: m->release = v; break;
         case MIXER_TREMOLO: m->tremolo = v; break;
     }
@@ -149,16 +149,21 @@ static int tremolo_offset(uint8_t level)
     return level * MIXER_TREMOLO_STEPS / MIXER_LEVEL; /* modLfoToVolume: 1 cB a step */
 }
 
-static int attack_offset(uint8_t level)
+/* Glide: portamento on (CC65) with its time in ms (CC5 MSB, CC37 LSB); level 0 off. pc_synth.sh
+ * sets FluidSynth's portamento mode to each note: its default glides only between overlapping notes. */
+static void send_glide(uint8_t ch, uint8_t level, const char *what, midi_send_fn send, void *ctx)
 {
-    return level * MIXER_ATTACK_STEPS / MIXER_LEVEL; /* attackVolEnv: 2 timecents a step */
+    unsigned ms = (unsigned)level * MIXER_GLIDE_MS / MIXER_LEVEL;
+    uint8_t st = (uint8_t)(0xb0 | ch);
+    const uint8_t msgs[3][3] = {
+        {st, 5, (uint8_t)(ms >> 7)}, {st, 37, (uint8_t)(ms & 0x7f)}, {st, 65, level ? 127 : 0}};
+    for (int i = 0; i < 3; i++) send(msgs[i], 3, i == 2 ? what : NULL, ctx);
 }
 
 #define GEN_FILTER  8
 #define GEN_PLUCK   11 /* modEnvToFilterFc */
 #define GEN_TREMOLO 13
 #define GEN_REVERB  16
-#define GEN_ATTACK  34
 #define GEN_RELEASE 38
 
 /* The pluck's filter envelope (delay, attack, hold: none; decay ~200 ms; sustain 0),
@@ -181,10 +186,6 @@ static bool nrpn_of(mixer_pot_t pot, uint8_t level, uint8_t *gen, int *offset)
         case MIXER_RELEASE:
             *gen = GEN_RELEASE;
             *offset = release_offset(level);
-            return true;
-        case MIXER_ATTACK:
-            *gen = GEN_ATTACK;
-            *offset = attack_offset(level);
             return true;
         case MIXER_TREMOLO:
             *gen = GEN_TREMOLO;
@@ -242,9 +243,14 @@ void mixer_send_fx(mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx)
         offset = reverb_offset(m->reverb);
         snprintf(what, sizeof(what), "reverb %u (send %+d.%d%%)", (unsigned)m->reverb, offset / 10,
                  (offset < 0 ? -offset : offset) % 10);
-    } else if (pot == MIXER_ATTACK || pot == MIXER_RELEASE || pot == MIXER_TREMOLO) {
-        static const char *const NAME[] = {
-            [MIXER_ATTACK] = "attack", [MIXER_RELEASE] = "release", [MIXER_TREMOLO] = "tremolo"};
+    } else if (pot == MIXER_GLIDE) {
+        snprintf(what, sizeof(what), "glide %u (%u ms)", (unsigned)m->glide,
+                 (unsigned)m->glide * MIXER_GLIDE_MS / MIXER_LEVEL);
+        for (uint8_t ch = 0; ch < MIXER_FX_LIVE; ch++)
+            send_glide(ch, m->glide, ch == 0 ? what : NULL, send, ctx);
+        return;
+    } else if (pot == MIXER_RELEASE || pot == MIXER_TREMOLO) {
+        static const char *const NAME[] = {[MIXER_RELEASE] = "release", [MIXER_TREMOLO] = "tremolo"};
         uint8_t level = m->pot[pot];
         nrpn_of(pot, level, &gen, &offset);
         snprintf(what, sizeof(what), "%s %u (%+d)", NAME[pot], (unsigned)level, offset);
@@ -267,11 +273,11 @@ void mixer_send_layer_fx(const mixer_t *m, size_t layer, midi_send_fn send, void
     if (layer >= LOOPER_LAYERS) return;
     char what[112];
     snprintf(what, sizeof(what),
-             "layer %u keeps keys %u, filter %u, reverb %u, pluck %u, release %u, tremolo %u, attack %u",
+             "layer %u keeps keys %u, filter %u, reverb %u, pluck %u, release %u, tremolo %u, glide %u",
              (unsigned)layer + 1, (unsigned)m->layer_keys[layer], (unsigned)m->layer_filter[layer],
              (unsigned)m->layer_reverb[layer], (unsigned)m->layer_pluck[layer],
              (unsigned)m->layer_release[layer], (unsigned)m->layer_tremolo[layer],
-             (unsigned)m->layer_attack[layer]);
+             (unsigned)m->layer_glide[layer]);
     uint8_t ch = (uint8_t)(LOOP_CH + layer);
     uint8_t pluck = m->layer_pluck[layer];
     /* Pot 3's fader as it was (CC11 on the keys' channel isn't in the recording). */
@@ -282,7 +288,7 @@ void mixer_send_layer_fx(const mixer_t *m, size_t layer, midi_send_fn send, void
     send_nrpn(ch, GEN_PLUCK, pluck_steps(pluck), NULL, send, ctx);
     send_nrpn(ch, GEN_RELEASE, release_offset(m->layer_release[layer]), NULL, send, ctx);
     send_nrpn(ch, GEN_TREMOLO, tremolo_offset(m->layer_tremolo[layer]), NULL, send, ctx);
-    send_nrpn(ch, GEN_ATTACK, attack_offset(m->layer_attack[layer]), NULL, send, ctx);
+    send_glide(ch, m->layer_glide[layer], NULL, send, ctx);
     send_nrpn(ch, GEN_REVERB, reverb_offset(m->layer_reverb[layer]), what, send, ctx);
 }
 
@@ -295,6 +301,6 @@ void mixer_freeze_layer(mixer_t *m, size_t layer, midi_send_fn send, void *ctx)
     m->layer_pluck[layer] = m->pluck;
     m->layer_release[layer] = m->release;
     m->layer_tremolo[layer] = m->tremolo;
-    m->layer_attack[layer] = m->attack;
+    m->layer_glide[layer] = m->glide;
     mixer_send_layer_fx(m, layer, send, ctx);
 }

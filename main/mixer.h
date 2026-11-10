@@ -23,9 +23,10 @@
  * (releaseVolEnv, -/+MIXER_RELEASE_TC with the preset's own in the middle; rendered on the saw lead:
  * 60 ms to 1.9 s), tremolo (modLfoToVolume, 0 to MIXER_TREMOLO_STEPS cB at FluidSynth's default ~8 Hz LFO;
  * rendered on the saw lead: the level swing grows from its own ~17 dB to ~30 dB at 240, ~45 dB at 480, nearly a
- * chop; it replaced a vibrato, vibLfoToPitch, the user didn't like it, 2026-11-09) and attack (2026-11-10, was a
- * detune: attackVolEnv, 0 to MIXER_ATTACK_STEPS; rendered on the electric piano: 1 ms at 0, ~0.3 s at 5000, ~2 s at
- * 7000, past ~5500 a note is cut before it's full; the growl ~2 s at 5000). Their moves during a take aren't recorded (pots 3-5's are). FluidSynth 2.3
+ * chop; it replaced a vibrato, vibLfoToPitch, the user didn't like it, 2026-11-09) and glide (2026-11-10: portamento,
+ * CC65 + CC5/CC37, 0 off to MIXER_GLIDE_MS; FluidSynth glides separate notes only in its each-note mode, which
+ * pc_synth.sh sets; rendered: at 300 ms A3 -> A2 slides over ~250 ms. It was a detune, then for a day an attack
+ * (attackVolEnv): the user heard nothing on the low half, and the top silenced short notes). Their moves during a take aren't recorded (pots 3-5's are). FluidSynth 2.3
  * ignores CC74 (no default modulator, rendered 2026-11-06), so the filter is
  * an SF2 NRPN that offsets the cutoff generator on any SoundFont: 0 to
  * MIXER_FILTER_CENTS. The reverb is the same kind of NRPN on reverbEffectsSend
@@ -59,9 +60,8 @@
 #define MIXER_PLUCK_CENTS   7200 /* pluck at the top: the cutoff closes 6 octaves */
 #define MIXER_RELEASE_TC    2400 /* release at either end: x/÷ ~4 (timecents) */
 #define MIXER_TREMOLO_STEPS 480  /* tremolo depth at the top, in cB (NRPN steps of 1 cB) */
-#define MIXER_ATTACK_STEPS \
-    5500                /* attack at the top: ~0.3 s on the piano, ~2 s on the growl (2 timecents a step) */
-#define MIXER_FX_LIVE 2 /* the pots' channels: 1 and 2 (0-1), the keys and DEMO */
+#define MIXER_GLIDE_MS      500  /* glide at the top: half a second from the last note to the new one */
+#define MIXER_FX_LIVE       2    /* the pots' channels: 1 and 2 (0-1), the keys and DEMO */
 
 typedef enum {
     MIXER_BEAT,
@@ -71,7 +71,7 @@ typedef enum {
     MIXER_REVERB,
     MIXER_METRO,
     MIXER_PLUCK, /* ADS1115 A0 */
-    MIXER_ATTACK,
+    MIXER_GLIDE,
     MIXER_RELEASE,
     MIXER_TREMOLO, /* A3 */
 } mixer_pot_t;
@@ -83,12 +83,12 @@ typedef struct {
     int64_t moved_us[MIXER_POTS];   /* when it was last turned; 0: not since boot */
     int64_t changed_us[MIXER_POTS]; /* when its level last changed */
     uint8_t rest[MIXER_POTS];       /* level at the last turn: moved_us needs MIXER_TURN from it */
-    uint8_t beat, click, keys, filter, reverb, metro, pluck, attack, release, tremolo;
+    uint8_t beat, click, keys, filter, reverb, metro, pluck, glide, release, tremolo;
     int8_t shape_sent; /* the live channels' pluck envelope: 1 on, 0 off, -1 unknown (resend) */
     uint8_t layer_filter[LOOPER_LAYERS], layer_reverb[LOOPER_LAYERS]; /* frozen when added */
     uint8_t layer_keys[LOOPER_LAYERS];                                /* pot 3's fader, frozen the same way */
     uint8_t layer_pluck[LOOPER_LAYERS], layer_release[LOOPER_LAYERS], layer_tremolo[LOOPER_LAYERS],
-        layer_attack[LOOPER_LAYERS];
+        layer_glide[LOOPER_LAYERS];
 } mixer_t;
 
 void mixer_init(mixer_t *m);
@@ -103,7 +103,7 @@ uint8_t mixer_scale(uint8_t velocity, uint8_t level);
  * the length to send: 0 for a note on at level 0, which is left out. */
 size_t mixer_apply(const uint8_t *msg, size_t len, uint8_t level, uint8_t *out);
 
-/* Sends pot 2's, 3's, 4's, 5's, pluck's, attack's, release's or tremolo's setting to the live channels (what: for the log, once). */
+/* Sends pot 2's, 3's, 4's, 5's, pluck's, glide's, release's or tremolo's setting to the live channels (what: for the log, once). */
 void mixer_send_fx(mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx);
 
 /* The filter at level (0-127, as pot 4) on one channel, lowered by a pluck (its level): the chicks' Rise and Tape (fx.h). */

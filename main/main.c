@@ -16,7 +16,7 @@
  * keymap.c (names, what each key and button plays), demo.c (DEMO button),
  * looper.c (RECORD / REPLAY), rhythm.c (SELECT: drum beats), mixer.c (the five
  * pots: the metronome's volume and tempo on ADC1; on ADS1115 #2 beat, live keys, filter, reverb;
- * on #1 pluck, attack, release, tremolo), metronome.c
+ * on #1 pluck, glide, release, tremolo), metronome.c
  * (FROG), leds.c (the LED strip), fireworks.c (the 32x8 dot matrix, shown by dots.c).
  * MIDI goes out as UDP over WiFi to tools/piano_bridge.c (main/midi_link.h).
  *
@@ -26,7 +26,7 @@
  *   GHOST? <names>  the pressed set contains a rectangle; one of them may be fake
  *   MIDI  <what>   what was sent (or "(not connected)")
  *   KNOB  CW / CCW / PRESS
- *   POT   beat|click|keys|filter|reverb|metro|pluck|attack|release|tremolo <level>   a pot turned (0-127)
+ *   POT   beat|click|keys|filter|reverb|metro|pluck|glide|release|tremolo <level>   a pot turned (0-127)
  * Changes are reported after DEBOUNCE equal scans in a row.
  *
  * The line-pair finder that mapped the grid is in git history (233c8c3).
@@ -109,11 +109,11 @@ static const struct {
 };
 /* Each ADS1115's A0-A3. */
 static const mixer_pot_t ADS_POT[ADS_N][4] = {
-    {MIXER_PLUCK, MIXER_ATTACK, MIXER_RELEASE, MIXER_TREMOLO},
+    {MIXER_PLUCK, MIXER_GLIDE, MIXER_RELEASE, MIXER_TREMOLO},
     {MIXER_BEAT, MIXER_KEYS, MIXER_FILTER, MIXER_REVERB},
 };
-static const char *const POT_NAME[MIXER_POTS] = {"beat",  "click", "keys",   "filter",  "reverb",
-                                                 "metro", "pluck", "attack", "release", "tremolo"};
+static const char *const POT_NAME[MIXER_POTS] = {"beat",  "click", "keys",  "filter",  "reverb",
+                                                 "metro", "pluck", "glide", "release", "tremolo"};
 
 static keymap_t keymap;
 static demo_t demo;

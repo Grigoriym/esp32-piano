@@ -90,7 +90,7 @@ li input:checked + span { color: var(--muted); text-decoration: line-through; }
     <h2>ADS1115 #1 (0x48): more effects</h2>
     <div class="box"><svg id="ads" viewBox="0 30 760 145" role="img" aria-label="ADS1115 number 1: its row and where each pin goes"></svg></div>
     <div class="box"><svg id="lpot1" viewBox="0 30 760 145" role="img" aria-label="A0, pluck: ends to the rails, wiper to ADS1115 #1 A0"></svg></div>
-    <div class="box"><svg id="lpot2" viewBox="0 30 760 145" role="img" aria-label="A1, attack: ends to the rails, wiper to ADS1115 #1 A1"></svg></div>
+    <div class="box"><svg id="lpot2" viewBox="0 30 760 145" role="img" aria-label="A1, glide: ends to the rails, wiper to ADS1115 #1 A1"></svg></div>
     <div class="box"><svg id="lpot3" viewBox="0 30 760 145" role="img" aria-label="A2, release: ends to the rails, wiper to ADS1115 #1 A2"></svg></div>
     <div class="box"><svg id="lpot4" viewBox="0 30 760 145" role="img" aria-label="A3, tremolo: ends to the rails, wiper to ADS1115 #1 A3"></svg></div>
     <h2>ADS1115 #2 (0x49): volume and effects</h2>
@@ -231,14 +231,14 @@ header("knob", [["CLK", "D18", "knob"], ["DT", "D19", "knob"], ["SW", "D23", "kn
 // The ADS1115, its single row as printed. On the same I2C wires as the MCP23017 (D21/D22);
 // ADDR left open = 0x48 (checked 2026-11-09).
 header("ads", [["VDD", "+rail", "power"], ["GND", "−rail", "gnd"], ["SCL", "D22", "i2c"], ["SDA", "D21", "i2c"],
-  ["ADDR", null], ["ALRT", null], ["A0", "pluck", "pot"], ["A1", "attack", "pot"], ["A2", "release", "pot"], ["A3", "tremolo", "pot"]],
+  ["ADDR", null], ["ALRT", null], ["A0", "pluck", "pot"], ["A1", "glide", "pot"], ["A2", "release", "pot"], ["A3", "tremolo", "pot"]],
   ["ADDR empty. SCL and SDA share D22 and D21", "with the MCP23017 and #2. VDD on 3V3, not 5 V."]);
 header("ads2", [["VDD", "+rail", "power"], ["GND", "−rail", "gnd"], ["SCL", "D22", "i2c"], ["SDA", "D21", "i2c"],
   ["ADDR", "+rail", "power"], ["ALRT", null], ["A0", "beat", "pot"], ["A1", "keys", "pot"], ["A2", "filter", "pot"], ["A3", "reverb", "pot"]],
   ["ADDR to 3V3: that makes it 0x49.", "Same SCL, SDA, VDD, GND as #1."]);
 
 // The effect pots: wiper to the ADS1115, ends to the rails like the other pots.
-["Pluck", "Attack", "Release", "Tremolo"].forEach((name, i) =>
+["Pluck", "Glide", "Release", "Tremolo"].forEach((name, i) =>
   header(`lpot${i + 1}`, [["left end", "−rail", "gnd"], ["wiper", `#1 A${i}`, "pot"], ["right end", "+rail", "power"]],
     [`A${i}: ${name}. Use a B10K.`, "Clockwise the wrong way? Swap the two ends."]));
 

@@ -37,6 +37,7 @@ fi
 fluidsynth -a pipewire -m alsa_seq -g 1.0 -is \
     -o audio.period-size=256 -o audio.periods=2 -o midi.autoconnect=0 \
     -o synth.reverb.room-size=1.0 -o synth.reverb.damp=0.0 -o synth.reverb.level=1.0 -o synth.reverb.width=1 \
+    -f tools/fluidsynth.cmd \
     "$SF2" "$CAT" "$KIT" "$GROWL" >/dev/null 2>&1 &
 SYNTH=$!
 build-host/piano_bridge chicco-piano.local "$CABLE" &
