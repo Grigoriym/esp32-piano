@@ -435,28 +435,32 @@ const PIECES = [
   },  {
     name: '#10 Song #4',
     button: 'SLOW ROCK', beat: 'TECHNO',
-    about: 'Your own song (2026-11-10), the first with the new Pluck and Glide knobs: four loop layers over the techno beat with the metronome on, saved from what the toy played (songs/2026-11-10-song-4.mid, ten passes, all the same). A two-bar loop: a plucked bass on 1, 3, 5 an octave down, a long pad note on 10 that glides up to 12, a plucked figure high up on 22, 24, 25 in bar 1 whose echoes fill bar 2, and a tremolo figure at the top of the keyboard. The Pluck melody and the High figure were recorded with the chick Echo (1) on, so the loop plays their echoes; the notes below are only the keys you pressed, and this page\'s synth plays them without the echoes, the pluck, the glide or the tremolo. Every layer is the saw lead.',
+    about: 'Your own song (2026-11-10), the first with the new Pluck and Glide knobs: four loop layers over the techno beat with the metronome on, saved from what the toy played (songs/2026-11-10-song-4.mid, ten passes, all the same). A two-bar loop: a plucked bass on 1, 3, 5 an octave down, a long pad note on 10 that glides up to 12, a plucked figure high up on 22, 24, 25 in bar 1 whose echoes fill bar 2, and a tremolo figure at the top of the keyboard. The Pluck melody and the High figure were recorded with the chick Echo (1) on, so the loop plays their echoes; the notes below are only the keys you pressed. "As the toy plays it" has each layer\'s echoes, pluck, glide, tremolo and reverb, rendered from the knob levels in the toy\'s log; the page synth plays only the notes. Every layer is the saw lead.',
     bpm: 130,
     bars: 4,
     chords: ['Am', 'Am', 'Am', 'Am'],
     layers: [
       {
         name: 'Bass', color: 'bass', hand: 'left hand, octave down (TEMPO − once)', octave: -1,
+        fx: { keys: 127, filter: 127, reverb: 127, pluck: 59, release: 107 },
         tip: 'Layer 1, Echo off, Effects: Pluck a little left of the middle, Release about three quarters right, Reverb all the way up, Filter all the way right. Bar 1: key 1 on the red click (a beat and a half), 3 on the "+" of beat 2, 1 on beat 3, 5 on beat 4 (a beat and a half). Bar 2: 3 on the "+" of beat 1, 1 on the "+" of beat 2, 3 on beat 3, 1 on beat 4.',
         notes: '0:1/6 6:3/2 8:1/4 12:5/6 18:3/4 22:1/2 24:3/4 28:1/4 32:1/6 38:3/2 40:1/4 44:5/6 50:3/4 54:1/2 56:3/4 60:1/4',
       },
       {
         name: 'Glide pad', color: 'chords', hand: 'right hand, octave back up (TEMPO + once)',
+        fx: { keys: 127, filter: 127, reverb: 127, pluck: 85, release: 107, glide: 110 },
         tip: 'Layer 2, Effects: Glide most of the way right, Pluck about two thirds right. Key 10 on the red click, held; press 12 on beat 4 just before letting 10 go, so it slides up, and hold 12 through bar 2.',
         notes: '0:10/13 12:12/20 32:10/13 44:12/20',
       },
       {
         name: 'Pluck melody', color: 'hook', hand: 'right hand, high',
+        fx: { keys: 122, filter: 127, reverb: 57, pluck: 127, release: 107, echo: true },
         tip: 'Layer 3, chick Echo (1) on, Effects: Glide back to 0, Pluck all the way right, Reverb a little left of the middle, Volume: keys a hair below the top. Bar 1 only: key 24 on the red click, 22 on beat 2, 25 on the "+" of beat 2, 24 on the "+" of beat 3, 22 on beat 4. Leave bar 2 to the echoes.',
         notes: '0:24/2 4:22/1 6:25/2 10:24/2 12:22/2 32:24/2 36:22/1 38:25/2 42:24/2 44:22/2',
       },
       {
         name: 'High', color: 'arp', hand: 'right hand, the top keys',
+        fx: { keys: 127, filter: 127, reverb: 127, release: 107, tremolo: 58, echo: true },
         tip: 'Layer 4, Echo on, Effects: Pluck back to 0, Tremolo a little left of the middle, Reverb all the way up, keys back to the top. Short presses. Bar 1: key 32 on the red click, 31 on beat 4. Bar 2: 27 on the "+" of beat 2, 29 on beat 3, 31 on beat 4.',
         notes: '0:32/1 12:31/2 22:27/1 24:29/1 28:31/1 32:32/1 44:31/2 54:27/1 56:29/1 60:31/1',
       },

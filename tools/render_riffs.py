@@ -7,6 +7,12 @@ main/keymap.{c,h}: what the toy
 plays in EDM mode. Each piece gives <slug>-all.mp3 and one file per layer, two
 passes of the piece each, in docs/riffs-audio/ (gitignored). Run after changing a
 piece, a song's beat or the EDM velocities. Needs node, fluidsynth, ffmpeg.
+
+A layer with `fx` (the toy's pot levels it was recorded with, 0-127: keys, filter, reverb,
+pluck, glide, release, tremolo; `echo: true` for the Echo chick) plays on its own channel
+with what main/mixer.c's mixer_send_layer_fx sends for those levels, and Echo's repeats as
+main/fx.c makes them; FluidSynth gets pc_synth.sh's reverb room and tools/fluidsynth.cmd
+(glide on every note), as live. A layer without `fx` plays as before: no effects.
 """
 import json
 import os
@@ -67,6 +73,69 @@ def keys_setup(button):
 MINOR = [0, 2, 3, 5, 7, 8, 10]
 
 
+def cdiv(a, b):
+    """C's integer division (truncates toward zero), as the firmware computes."""
+    q = abs(a) // abs(b)
+    return q if (a >= 0) == (b > 0) else -q
+
+
+def consts(path, names):
+    src = (ROOT / path).read_text()
+    return {n: int(re.search(r"#define " + n + r"\s*\\?\s*\(?(-?\d+)", src)[1]) for n in names}
+
+
+MIX = consts("main/mixer.h", ["MIXER_FILTER_CENTS", "MIXER_REVERB_SEND", "MIXER_PLUCK_CENTS", "MIXER_RELEASE_TC",
+                              "MIXER_TREMOLO_STEPS", "MIXER_GLIDE_MS"])
+FX = consts("main/fx.h", ["FX_ECHO_MAX", "FX_ECHO_LEVEL", "FX_ECHO_STEPS"])
+PLUCK_SHAPE = [-6000, -6000, -6000, 4607, 1000]  # main/mixer.c send_shape: generators 25-29
+
+
+def nrpn(ch, gen, offset):
+    v = 8192 + offset
+    return [bytes([0xB0 | ch, 99, 120]), bytes([0xB0 | ch, 98, gen]), bytes([0xB0 | ch, 38, v & 0x7F]),
+            bytes([0xB0 | ch, 6, v >> 7])]
+
+
+def layer_fx(ch, fx):
+    """What main/mixer.c's mixer_send_layer_fx sends for a layer's levels."""
+    lv = lambda k, d: fx.get(k, d)
+    filt, pluck = lv("filter", 127), lv("pluck", 0)
+    pluck_steps = cdiv(cdiv(pluck * MIX["MIXER_PLUCK_CENTS"], 127), 2)
+    cutoff = cdiv(cdiv((127 - filt) * MIX["MIXER_FILTER_CENTS"], 127), 2) - pluck_steps
+    glide_ms = cdiv(lv("glide", 0) * MIX["MIXER_GLIDE_MS"], 127)
+    out = [bytes([0xB0 | ch, 11, lv("keys", 127)])]
+    for i, off in enumerate(PLUCK_SHAPE):
+        out += nrpn(ch, 25 + i, off if pluck else 0)
+    out += nrpn(ch, 8, cutoff) + nrpn(ch, 11, pluck_steps)
+    out += nrpn(ch, 38, cdiv((2 * lv("release", 64) - 127) * MIX["MIXER_RELEASE_TC"], 127))
+    out += nrpn(ch, 13, cdiv(lv("tremolo", 0) * MIX["MIXER_TREMOLO_STEPS"], 127))
+    out += [bytes([0xB0 | ch, 5, glide_ms >> 7]), bytes([0xB0 | ch, 37, glide_ms & 0x7F]),
+            bytes([0xB0 | ch, 65, 127 if lv("glide", 0) else 0])]
+    out += nrpn(ch, 16, cdiv((2 * lv("reverb", 0) - 127) * MIX["MIXER_REVERB_SEND"], 127))
+    return out
+
+
+def echo_repeats(vel):
+    """Echo's repeats of a note at vel (main/fx.c, the Echo level fixed at FX_ECHO_LEVEL): (k, velocity)."""
+    level = FX["FX_ECHO_LEVEL"]
+    n = 1 + cdiv(level * (FX["FX_ECHO_MAX"] - 1), 127)
+    decay = 40 + cdiv(level * 50, 127)
+    out = []
+    for k in range(1, n + 1):
+        vel = vel * decay // 100
+        out.append((k, vel or 1))
+    return out
+
+
+def synth_options():
+    """pc_synth.sh's reverb room (-o synth.reverb.*) and its -f command file, so the clips sound as live."""
+    src = (ROOT / "tools/pc_synth.sh").read_text()
+    args = []
+    for opt in re.findall(r"-o (synth\.reverb\.[\w-]+=[\d.]+)", src):
+        args += ["-o", opt]
+    return args + ["-f", str(ROOT / "tools/fluidsynth.cmd")]
+
+
 def var_len(n):
     out = [n & 0x7F]
     n >>= 7
@@ -102,8 +171,16 @@ def render(piece, layers, beat, keys, pads, path):
             if hit != ".":
                 ev.append((s, 2, bytes([0x99, note, dacc if hit == "X" else dvel])))
                 ev.append((s + 1, 1, bytes([0x89, note, 0])))
+    for i, layer in enumerate(layers):
+        if "fx" in layer:  # its own channel (not 9, the drums), with what the toy sends it
+            ch = i + 1 if i + 1 < 9 else i + 2
+            layer["_ch"] = ch
+            ev.append((0, 0, bytes([0xC0 | ch, program])))
+            ev += [(0, 0, m) for m in layer_fx(ch, layer["fx"])]
     for p in range(PASSES):
         for layer in layers:
+            ch = layer.get("_ch", 0)
+            fx = layer.get("fx", {})
             for tok in layer.get("pads", "").split():  # chick pads: drums, as the toy sends them
                 step, rest = tok.split(":")
                 pad = pads[rest.split("/")[0]]["note"]
@@ -116,13 +193,18 @@ def render(piece, layers, beat, keys, pads, path):
                 for k in map(int, ks.split("+")):
                     note = root + 12 * ((k - 1) // 7 + layer.get("octave", 0)) + MINOR[(k - 1) % 7]
                     on = int(step) + p * bar_steps
-                    ev.append((on, 2, bytes([0x90, note, kvel])))
-                    ev.append((on + int(length), 1, bytes([0x80, note, 0])))
+                    ev.append((on, 2, bytes([0x90 | ch, note, kvel])))
+                    ev.append((on + int(length), 1, bytes([0x80 | ch, note, 0])))
+                    if fx.get("echo"):
+                        for k, v in echo_repeats(kvel):
+                            at = on + k * FX["FX_ECHO_STEPS"]
+                            ev.append((at, 2, bytes([0x90 | ch, note, v])))
+                            ev.append((at + int(length), 1, bytes([0x80 | ch, note, 0])))
     ev = [e for e in ev if e[0] <= total]
     with tempfile.TemporaryDirectory() as d:
         mid, raw = pathlib.Path(d, "x.mid"), pathlib.Path(d, "x.wav")
         mid.write_bytes(midi_file(bpm, total, ev))
-        subprocess.run(["fluidsynth", "-ni", "-g", "0.3", "-r", str(RATE), "-F", str(raw), SF2, str(KIT), str(GROWL), str(mid)],
+        subprocess.run(["fluidsynth", "-ni", "-g", "0.3", "-r", str(RATE), *synth_options(), "-F", str(raw), SF2, str(KIT), str(GROWL), str(mid)],
                        check=True, capture_output=True)
         # Exactly the piece's length, so the loop and the page's playhead line up.
         frames = round(total * 60 / bpm / 4 * RATE)
