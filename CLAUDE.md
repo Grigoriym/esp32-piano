@@ -133,7 +133,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   diff"): FluidSynth's default room left the tail ~57 dB under the note, CC91 adds only 20%, and the saw lead has its
   own send, so CC91 0 wasn't dry. `pc_synth.sh` sets the room: room-size 1.0, damp 0, level 1, width 1 (the user's
   pick C of three rendered rooms, 2026-11-06). LED bar per pot: 1 green, 2 pink (click
-  volume), 3 white, 4 blue (filter), 5 violet (reverb), 6 warm white (click tempo); 7-10 orange, teal, lime, magenta (resonance, detune, release, tremolo). Only D33 and VN
+  volume), 3 white, 4 blue (filter), 5 violet (reverb), 6 warm white (click tempo); 7-10 orange, teal, lime, magenta (pluck, attack, release, tremolo). Only D33 and VN
   are ADC pots since 2026-11-09 (D32, D34, D35, VP free). An unwired ADC pin floats: wire before flashing.
   **Pot names (2026-11-06, the user grouped them on the box):** three sections of two, Volume (beat = pot 1, keys = pot 3),
   Effects (filter = 4, reverb = 5), Metronome (tempo = 6, volume = 2). Docs for the player use these names, not
@@ -298,7 +298,7 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `ABn` → `An`), the 10 kΩ pull-ups gone, all keys checked by the user. Screen (TFT 1.69",
   HSPI: SCL D14, SDA D13, CS D15, RES D5, DC D4, BLK open) works, shows
   `ui.c` (sound, volume, octave, beat, loop, DEMO, PC link); the user checked
-  it. Knob: CLK D18, DT D19, SW D23, + on 3V3. Pots (2026-11-09): metronome volume on D33 and tempo on VN (ADC1); beat, keys, filter, reverb on ADS1115 #2 (0x49) A0-A3; resonance, detune, release, tremolo on #1 (0x48) A0-A3, both on D21/D22; dot matrix DIN D25, CLK D26, CS D27, VCC on VIN; LED strip data on TX2 (GPIO17), V on 3V3. The amp is off the wiring doc (2026-11-04, not used; it was planned on D26/D25/D27).
+  it. Knob: CLK D18, DT D19, SW D23, + on 3V3. Pots (2026-11-09): metronome volume on D33 and tempo on VN (ADC1); beat, keys, filter, reverb on ADS1115 #2 (0x49) A0-A3; pluck, attack, release, tremolo on #1 (0x48) A0-A3, both on D21/D22; dot matrix DIN D25, CLK D26, CS D27, VCC on VIN; LED strip data on TX2 (GPIO17), V on 3V3. The amp is off the wiring doc (2026-11-04, not used; it was planned on D26/D25/D27).
 - The BLE-MIDI version (NimBLE, `ble_midi.c`) is in git at `923500c`.
 - **The four checks** (from mukklet, `FIRMWARE_PLAYBOOK.md`): `tools/test.sh`
   (host tests in `test/`, gcc + ASan/UBSan, Unity from `$IDF_PATH`),
@@ -584,6 +584,14 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
+**State 2026-11-10:** two effect pots changed (the user's picks from a list): Resonance -> **Pluck** (each note starts
+at the Filter's cutoff and closes up to 7200 cents in ~200 ms: gen 8 lowered, modEnvToFilterFc opens it back, the
+filter envelope's shape on gens 25-29, sent only when the pluck turns on/off; the Filter pot, a layer's recorded filter
+moves and Rise/Tape all carry the pluck in gen 8), Detune -> **Attack** (attackVolEnv, 0 to 5500 steps). Rendered
+first: on the saw lead the pluck needed the envelope's attack forced to 0 (its preset has a slow one); the electric
+piano barely plucks (dark already); attack 1 ms -> ~0.3 s (piano) / ~2 s (growl) at the top. Both kept per layer.
+Not yet heard by the user.
+
 **State 2026-11-09 (late, end of session):** flashed `69913f0`. Fixed: the NRPN cache from `3090806` (filter dead,
 reverb's top silent; Traps). The 4th effect pot is a tremolo (was vibrato "wobble", the user disliked it), the 2nd is
 Detune (fineTune 0 to -50 cents, kept per layer; was the Echo chick's amount, Echo now fixed at 4 repeats): both the
@@ -613,7 +621,7 @@ will fix it next time"):
 **2026-11-09:** the 8x8 matrix is off the piano and out of the code (flashed 2026-11-09). ADS1115: one board passed `esp32-hw-checks` check 5 (0x48,
 A0-A3 each 0-3242 mV); the other 4 not checked one by one (the user). In `docs/wiring.html` since 2026-11-09: on
 D21/D22 beside the MCP23017 (ADDR open = 0x48), VDD 3V3, A0-A3 = 4 effect pots (B10K, the user's pick over layer
-faders: "just add what you suggested, we will improve/change afterwards"): resonance, detune (was the Echo chick's amount until 2026-11-09), release, tremolo (a vibrato "wobble" until 2026-11-09, the user didn't like it)
+faders: "just add what you suggested, we will improve/change afterwards"): pluck (a resonance until 2026-11-10), attack (a detune until 2026-11-10, before that the Echo chick's amount), release, tremolo (a vibrato "wobble" until 2026-11-09, the user didn't like it)
 (`mixer.h`, `fx.h`; `main.c` reads one input per pot read, single-shot). Flashed; the user tried wobble at max (the freeze, Traps). Render-checked first: release 60 ms-1.9 s on the saw lead, Q peaks at the cutoff but drops the level (filter
 -2400 cents + Q 480 cB: rms 5183 -> 703), tremolo level swing 17 -> 45 dB, detune -24/-49 cents at 25/50. Their moves during a take aren't recorded.
 A second ADS1115 (#2, ADDR on VDD = 0x49, one of the 4 boards not checked one by one) takes beat, keys, filter and

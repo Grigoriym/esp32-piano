@@ -208,21 +208,22 @@ static void test_a_layer_keeps_the_effects_it_was_recorded_with(void)
     m.reverb = 127;
     m.keys = 30; /* pot 3, the live keys' fader */
     mixer_freeze_layer(&m, 1, midi_rec, &r);
-    TEST_ASSERT_EQUAL(
-        25,
-        r.n); /* the fader, filter, resonance, release, tremolo, detune, reverb, on the layer's own channel */
+    TEST_ASSERT_EQUAL(45,
+                      r.n); /* the fader, the pluck's envelope (5), filter, pluck, release, tremolo, attack,
+                                   reverb, on the layer's own channel */
     TEST_ASSERT_EQUAL_HEX8(0xb0 | (LOOP_CH + 1), r.e[0].msg[0]);
     TEST_ASSERT_EQUAL(11, r.e[0].msg[1]);
     TEST_ASSERT_EQUAL(30, r.e[0].msg[2]);
     TEST_ASSERT_EQUAL_HEX8(0xb0 | (LOOP_CH + 1), r.e[1].msg[0]);
-    TEST_ASSERT_EQUAL(8, r.e[2].msg[2]);
-    TEST_ASSERT_EQUAL(9, r.e[6].msg[2]);
-    TEST_ASSERT_EQUAL(38, r.e[10].msg[2]);
-    TEST_ASSERT_EQUAL(13, r.e[14].msg[2]);
-    TEST_ASSERT_EQUAL(52, r.e[18].msg[2]);
-    TEST_ASSERT_EQUAL(16, r.e[22].msg[2]);
-    TEST_ASSERT_EQUAL(8192 + MIXER_REVERB_SEND, r.e[24].msg[2] << 7 | r.e[23].msg[2]);
-    TEST_ASSERT_EQUAL(0, strncmp("layer 2 keeps keys 30, filter 40, reverb 127", r.e[24].what, 44));
+    TEST_ASSERT_EQUAL(25, r.e[2].msg[2]);
+    TEST_ASSERT_EQUAL(8, r.e[22].msg[2]);
+    TEST_ASSERT_EQUAL(11, r.e[26].msg[2]);
+    TEST_ASSERT_EQUAL(38, r.e[30].msg[2]);
+    TEST_ASSERT_EQUAL(13, r.e[34].msg[2]);
+    TEST_ASSERT_EQUAL(34, r.e[38].msg[2]);
+    TEST_ASSERT_EQUAL(16, r.e[42].msg[2]);
+    TEST_ASSERT_EQUAL(8192 + MIXER_REVERB_SEND, r.e[44].msg[2] << 7 | r.e[43].msg[2]);
+    TEST_ASSERT_EQUAL(0, strncmp("layer 2 keeps keys 30, filter 40, reverb 127", r.e[44].what, 44));
 
     /* The pots move on: the live channels change, the layer doesn't. */
     memset(&r, 0, sizeof(r));
@@ -235,7 +236,7 @@ static void test_a_layer_keeps_the_effects_it_was_recorded_with(void)
     turn(MIXER_KEYS, 127, 1);
     mixer_send_layer_fx(&m, 1, midi_rec, &r); /* again, after a reconnect */
     TEST_ASSERT_EQUAL(30, r.e[0].msg[2]);
-    TEST_ASSERT_EQUAL(0, strncmp("layer 2 keeps keys 30, filter 40, reverb 127", r.e[24].what, 44));
+    TEST_ASSERT_EQUAL(0, strncmp("layer 2 keeps keys 30, filter 40, reverb 127", r.e[44].what, 44));
 }
 
 static void test_keys_pot_is_cc11_on_the_keys_channel(void)
@@ -274,18 +275,32 @@ static void last_nrpn(const midi_rec_t *r, uint8_t ch, int *gen, int *offset)
     *offset = (msb << 7 | lsb) - 8192;
 }
 
+/* The offset of the last NRPN for a generator on a channel; -99999 if none. */
+static int gen_offset(const midi_rec_t *r, uint8_t ch, int gen)
+{
+    int cur = -1, lsb = 0, found = -99999;
+    for (size_t i = 0; i < r->n; i++) {
+        const uint8_t *x = r->e[i].msg;
+        if (x[0] != (0xb0 | ch)) continue;
+        if (x[1] == 98) cur = x[2];
+        if (x[1] == 38) lsb = x[2];
+        if (x[1] == 6 && cur == gen) found = (x[2] << 7 | lsb) - 8192;
+    }
+    return found;
+}
+
 static void test_ads_pots_are_nrpn_offsets_on_their_generators(void)
 {
     static midi_rec_t r;
     int gen, off;
-    turn(MIXER_RES, 127, 0);
+    turn(MIXER_ATTACK, 127, 0);
     memset(&r, 0, sizeof(r));
-    mixer_send_fx(&m, MIXER_RES, midi_rec, &r);
+    mixer_send_fx(&m, MIXER_ATTACK, midi_rec, &r);
     last_nrpn(&r, 0, &gen, &off);
-    TEST_ASSERT_EQUAL(9, gen); /* initialFilterQ */
-    TEST_ASSERT_EQUAL(MIXER_RES_CB, off);
+    TEST_ASSERT_EQUAL(34, gen); /* attackVolEnv */
+    TEST_ASSERT_EQUAL(MIXER_ATTACK_STEPS, off);
     last_nrpn(&r, 1, &gen, &off); /* DEMO's channel too */
-    TEST_ASSERT_EQUAL(9, gen);
+    TEST_ASSERT_EQUAL(34, gen);
 
     turn(MIXER_RELEASE, 0, 0);
     memset(&r, 0, sizeof(r));
@@ -302,25 +317,55 @@ static void test_ads_pots_are_nrpn_offsets_on_their_generators(void)
     TEST_ASSERT_EQUAL(MIXER_TREMOLO_STEPS, off);
 }
 
-static void test_detune_pot_sends_fine_tune_flat(void)
+static void test_pluck_lowers_the_cutoff_and_opens_it_back_with_the_envelope(void)
 {
     static midi_rec_t r;
-    int gen, off;
-    turn(MIXER_DETUNE, 127, 0);
-    TEST_ASSERT_EQUAL(127, m.detune);
+    turn(MIXER_PLUCK, 127, 0);
+    TEST_ASSERT_EQUAL(127, m.pluck);
+    mixer_send_fx(&m, MIXER_PLUCK, midi_rec, &r);
+    for (uint8_t ch = 0; ch < MIXER_FX_LIVE; ch++) {
+        TEST_ASSERT_EQUAL(-MIXER_PLUCK_CENTS / 2, gen_offset(&r, ch, 8)); /* filter open, lowered */
+        TEST_ASSERT_EQUAL(MIXER_PLUCK_CENTS / 2, gen_offset(&r, ch, 11)); /* modEnvToFilterFc opens it back */
+        TEST_ASSERT_EQUAL(4607, gen_offset(&r, ch, 28));                  /* decay ~200 ms */
+        TEST_ASSERT_EQUAL(1000, gen_offset(&r, ch, 29));                  /* sustain 0 */
+    }
+    /* The envelope only when the pluck turns on or off. */
     memset(&r, 0, sizeof(r));
-    mixer_send_fx(&m, MIXER_DETUNE, midi_rec, &r);
-    last_nrpn(&r, 0, &gen, &off);
-    TEST_ASSERT_EQUAL(52, gen); /* fineTune */
-    TEST_ASSERT_EQUAL(-MIXER_DETUNE_CENTS, off);
+    turn(MIXER_PLUCK, 64, 1);
+    mixer_send_fx(&m, MIXER_PLUCK, midi_rec, &r);
+    TEST_ASSERT_EQUAL(-99999, gen_offset(&r, 0, 28));
+    TEST_ASSERT_EQUAL(8 * MIXER_FX_LIVE, r.n);
+    memset(&r, 0, sizeof(r));
+    turn(MIXER_PLUCK, 0, 2);
+    mixer_send_fx(&m, MIXER_PLUCK, midi_rec, &r);
+    TEST_ASSERT_EQUAL(0, gen_offset(&r, 0, 28)); /* off: the preset's own envelope */
+    TEST_ASSERT_EQUAL(0, gen_offset(&r, 0, 8));
+    TEST_ASSERT_EQUAL(0, gen_offset(&r, 0, 11));
+}
+
+static void test_the_filter_pot_keeps_the_pluck(void)
+{
+    static midi_rec_t r;
+    turn(MIXER_PLUCK, 127, 0);
+    m.filter = 0;
+    mixer_send_fx(&m, MIXER_FILTER, midi_rec, &r);
+    TEST_ASSERT_EQUAL((MIXER_FILTER_CENTS - MIXER_PLUCK_CENTS) / 2, gen_offset(&r, 1, 8));
+
+    /* A layer's recorded filter move, with the layer's pluck. */
+    memset(&r, 0, sizeof(r));
+    mixer_send_pot_to(5, MIXER_FILTER, 127, 127, midi_rec, &r);
+    TEST_ASSERT_EQUAL(-MIXER_PLUCK_CENTS / 2, gen_offset(&r, 5, 8));
+    memset(&r, 0, sizeof(r));
+    mixer_send_filter_to(0, 127, 0, midi_rec, &r);
+    TEST_ASSERT_EQUAL(0, gen_offset(&r, 0, 8));
 }
 
 static void test_ads_effects_start_neutral(void)
 {
-    TEST_ASSERT_EQUAL(0, m.res);
+    TEST_ASSERT_EQUAL(0, m.pluck);
     TEST_ASSERT_EQUAL(0, m.tremolo);
     TEST_ASSERT_EQUAL(64, m.release); /* the middle: the preset's own (offset ~0) */
-    TEST_ASSERT_EQUAL(0, m.detune);
+    TEST_ASSERT_EQUAL(0, m.attack);
 }
 
 int main(void)
@@ -345,7 +390,8 @@ int main(void)
     RUN_TEST(test_metronome_pot_only_keeps_its_level);
     RUN_TEST(test_a_layer_keeps_the_effects_it_was_recorded_with);
     RUN_TEST(test_ads_pots_are_nrpn_offsets_on_their_generators);
-    RUN_TEST(test_detune_pot_sends_fine_tune_flat);
+    RUN_TEST(test_pluck_lowers_the_cutoff_and_opens_it_back_with_the_envelope);
+    RUN_TEST(test_the_filter_pot_keeps_the_pluck);
     RUN_TEST(test_ads_effects_start_neutral);
     return UNITY_END();
 }

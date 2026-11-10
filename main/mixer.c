@@ -15,9 +15,10 @@ void mixer_init(mixer_t *m)
     for (size_t i = 0; i < LOOPER_LAYERS; i++) m->layer_filter[i] = m->layer_keys[i] = MIXER_LEVEL;
     for (size_t i = 0; i < MIXER_POTS; i++) m->pot[i] = m->rest[i] = MIXER_LEVEL;
     m->pot[MIXER_REVERB] = m->rest[MIXER_REVERB] = 0;
-    m->pot[MIXER_RES] = m->rest[MIXER_RES] = 0;
+    m->pot[MIXER_PLUCK] = m->rest[MIXER_PLUCK] = 0;
+    m->shape_sent = -1;
     m->pot[MIXER_TREMOLO] = m->rest[MIXER_TREMOLO] = 0;
-    m->pot[MIXER_DETUNE] = m->rest[MIXER_DETUNE] = 0;
+    m->pot[MIXER_ATTACK] = m->rest[MIXER_ATTACK] = 0;
     m->pot[MIXER_RELEASE] = m->rest[MIXER_RELEASE] = m->release = 64;
     for (size_t i = 0; i < LOOPER_LAYERS; i++) m->layer_release[i] = 64;
 }
@@ -40,8 +41,8 @@ static void apply(mixer_t *m, mixer_pot_t pot)
         case MIXER_REVERB: m->reverb = v; break;
         case MIXER_METRO: m->metro = v; break;
         case MIXER_CLICK: m->click = v; break;
-        case MIXER_RES: m->res = v; break;
-        case MIXER_DETUNE: m->detune = v; break;
+        case MIXER_PLUCK: m->pluck = v; break;
+        case MIXER_ATTACK: m->attack = v; break;
         case MIXER_RELEASE: m->release = v; break;
         case MIXER_TREMOLO: m->tremolo = v; break;
     }
@@ -124,9 +125,18 @@ static int reverb_offset(uint8_t level)
     return (2 * level - MIXER_LEVEL) * MIXER_REVERB_SEND / MIXER_LEVEL; /* reverbEffectsSend: 0.1% a step */
 }
 
-static int res_offset(uint8_t level)
+/* Pluck: gen 8 lowered by the depth, the filter envelope opening it back to the
+ * filter pot's cutoff at once and closing in ~200 ms. */
+static int pluck_steps(uint8_t level)
 {
-    return level * MIXER_RES_CB / MIXER_LEVEL; /* initialFilterQ: 1 cB a step */
+    return level * MIXER_PLUCK_CENTS / MIXER_LEVEL
+           / 2; /* initialFilterFc, modEnvToFilterFc: 2 cents a step */
+}
+
+/* What gen 8 gets: the filter pot's cutoff lowered by the pluck's depth. */
+static int cutoff_offset(uint8_t filter, uint8_t pluck)
+{
+    return filter_offset(filter) - pluck_steps(pluck);
 }
 
 static int release_offset(uint8_t level)
@@ -139,41 +149,42 @@ static int tremolo_offset(uint8_t level)
     return level * MIXER_TREMOLO_STEPS / MIXER_LEVEL; /* modLfoToVolume: 1 cB a step */
 }
 
-static int detune_offset(uint8_t level)
+static int attack_offset(uint8_t level)
 {
-    return -(level * MIXER_DETUNE_CENTS / MIXER_LEVEL); /* fineTune: 1 cent a step, flat */
+    return level * MIXER_ATTACK_STEPS / MIXER_LEVEL; /* attackVolEnv: 2 timecents a step */
 }
 
 #define GEN_FILTER  8
-#define GEN_RES     9
-#define GEN_REVERB  16
+#define GEN_PLUCK   11 /* modEnvToFilterFc */
 #define GEN_TREMOLO 13
-#define GEN_DETUNE  52
+#define GEN_REVERB  16
+#define GEN_ATTACK  34
 #define GEN_RELEASE 38
 
-/* The NRPN pots: their generator and offset at a level; false for the others. */
+/* The pluck's filter envelope (delay, attack, hold: none; decay ~200 ms; sustain 0),
+ * as offsets on generators 25-29. Off (all 0) leaves the preset's own: FluidR3's saw
+ * lead has a slow one of its own, which kept a pluck dark (rendered 2026-11-10). */
+static void send_shape(uint8_t ch, bool on, midi_send_fn send, void *ctx)
+{
+    static const int SHAPE[5] = {-6000, -6000, -6000, 4607, 1000};
+    for (int i = 0; i < 5; i++) send_nrpn(ch, (uint8_t)(25 + i), on ? SHAPE[i] : 0, NULL, send, ctx);
+}
+
+/* The NRPN pots but the filter and pluck: their generator and offset at a level; false for the others. */
 static bool nrpn_of(mixer_pot_t pot, uint8_t level, uint8_t *gen, int *offset)
 {
     switch (pot) {
-        case MIXER_FILTER:
-            *gen = GEN_FILTER;
-            *offset = filter_offset(level);
-            return true;
         case MIXER_REVERB:
             *gen = GEN_REVERB;
             *offset = reverb_offset(level);
-            return true;
-        case MIXER_RES:
-            *gen = GEN_RES;
-            *offset = res_offset(level);
             return true;
         case MIXER_RELEASE:
             *gen = GEN_RELEASE;
             *offset = release_offset(level);
             return true;
-        case MIXER_DETUNE:
-            *gen = GEN_DETUNE;
-            *offset = detune_offset(level);
+        case MIXER_ATTACK:
+            *gen = GEN_ATTACK;
+            *offset = attack_offset(level);
             return true;
         case MIXER_TREMOLO:
             *gen = GEN_TREMOLO;
@@ -183,16 +194,21 @@ static bool nrpn_of(mixer_pot_t pot, uint8_t level, uint8_t *gen, int *offset)
     }
 }
 
-void mixer_send_filter_to(uint8_t ch, uint8_t level, midi_send_fn send, void *ctx)
+void mixer_send_filter_to(uint8_t ch, uint8_t level, uint8_t pluck, midi_send_fn send, void *ctx)
 {
-    send_nrpn(ch, GEN_FILTER, filter_offset(level), NULL, send, ctx);
+    send_nrpn(ch, GEN_FILTER, cutoff_offset(level, pluck), NULL, send, ctx);
 }
 
-void mixer_send_pot_to(uint8_t ch, mixer_pot_t pot, uint8_t level, midi_send_fn send, void *ctx)
+void mixer_send_pot_to(uint8_t ch, mixer_pot_t pot, uint8_t level, uint8_t pluck, midi_send_fn send,
+                       void *ctx)
 {
     if (pot == MIXER_KEYS) {
         uint8_t cc[3] = {(uint8_t)(0xb0 | ch), 11, level};
         send(cc, 3, NULL, ctx);
+        return;
+    }
+    if (pot == MIXER_FILTER) {
+        mixer_send_filter_to(ch, level, pluck, send, ctx);
         return;
     }
     uint8_t gen;
@@ -200,25 +216,35 @@ void mixer_send_pot_to(uint8_t ch, mixer_pot_t pot, uint8_t level, midi_send_fn 
     if (nrpn_of(pot, level, &gen, &offset)) send_nrpn(ch, gen, offset, NULL, send, ctx);
 }
 
-void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx)
+void mixer_send_fx(mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx)
 {
     char what[40];
     uint8_t gen;
     int offset;
     if (pot == MIXER_FILTER) {
         gen = GEN_FILTER;
-        offset = filter_offset(m->filter);
-        snprintf(what, sizeof(what), "filter %u (%d cents)", (unsigned)m->filter, offset * 2);
+        offset = cutoff_offset(m->filter, m->pluck);
+        snprintf(what, sizeof(what), "filter %u (%d cents)", (unsigned)m->filter,
+                 filter_offset(m->filter) * 2);
+    } else if (pot == MIXER_PLUCK) {
+        bool on = m->pluck > 0;
+        bool shape = m->shape_sent != (on ? 1 : 0); /* only when it turns on or off: the flood */
+        m->shape_sent = on ? 1 : 0;
+        snprintf(what, sizeof(what), "pluck %u (%d cents)", (unsigned)m->pluck, pluck_steps(m->pluck) * 2);
+        for (uint8_t ch = 0; ch < MIXER_FX_LIVE; ch++) {
+            if (shape) send_shape(ch, on, send, ctx);
+            send_nrpn(ch, GEN_FILTER, cutoff_offset(m->filter, m->pluck), NULL, send, ctx);
+            send_nrpn(ch, GEN_PLUCK, pluck_steps(m->pluck), ch == 0 ? what : NULL, send, ctx);
+        }
+        return;
     } else if (pot == MIXER_REVERB) {
         gen = GEN_REVERB;
         offset = reverb_offset(m->reverb);
         snprintf(what, sizeof(what), "reverb %u (send %+d.%d%%)", (unsigned)m->reverb, offset / 10,
                  (offset < 0 ? -offset : offset) % 10);
-    } else if (pot == MIXER_RES || pot == MIXER_DETUNE || pot == MIXER_RELEASE || pot == MIXER_TREMOLO) {
-        static const char *const NAME[] = {[MIXER_RES] = "resonance",
-                                           [MIXER_DETUNE] = "detune",
-                                           [MIXER_RELEASE] = "release",
-                                           [MIXER_TREMOLO] = "tremolo"};
+    } else if (pot == MIXER_ATTACK || pot == MIXER_RELEASE || pot == MIXER_TREMOLO) {
+        static const char *const NAME[] = {
+            [MIXER_ATTACK] = "attack", [MIXER_RELEASE] = "release", [MIXER_TREMOLO] = "tremolo"};
         uint8_t level = m->pot[pot];
         nrpn_of(pot, level, &gen, &offset);
         snprintf(what, sizeof(what), "%s %u (%+d)", NAME[pot], (unsigned)level, offset);
@@ -241,20 +267,22 @@ void mixer_send_layer_fx(const mixer_t *m, size_t layer, midi_send_fn send, void
     if (layer >= LOOPER_LAYERS) return;
     char what[112];
     snprintf(what, sizeof(what),
-             "layer %u keeps keys %u, filter %u, reverb %u, resonance %u, release %u, tremolo %u, detune %u",
+             "layer %u keeps keys %u, filter %u, reverb %u, pluck %u, release %u, tremolo %u, attack %u",
              (unsigned)layer + 1, (unsigned)m->layer_keys[layer], (unsigned)m->layer_filter[layer],
-             (unsigned)m->layer_reverb[layer], (unsigned)m->layer_res[layer],
+             (unsigned)m->layer_reverb[layer], (unsigned)m->layer_pluck[layer],
              (unsigned)m->layer_release[layer], (unsigned)m->layer_tremolo[layer],
-             (unsigned)m->layer_detune[layer]);
+             (unsigned)m->layer_attack[layer]);
     uint8_t ch = (uint8_t)(LOOP_CH + layer);
+    uint8_t pluck = m->layer_pluck[layer];
     /* Pot 3's fader as it was (CC11 on the keys' channel isn't in the recording). */
     uint8_t cc[3] = {(uint8_t)(0xb0 | ch), 11, m->layer_keys[layer]};
     send(cc, 3, NULL, ctx);
-    send_nrpn(ch, GEN_FILTER, filter_offset(m->layer_filter[layer]), NULL, send, ctx);
-    send_nrpn(ch, GEN_RES, res_offset(m->layer_res[layer]), NULL, send, ctx);
+    send_shape(ch, pluck > 0, send, ctx);
+    send_nrpn(ch, GEN_FILTER, cutoff_offset(m->layer_filter[layer], pluck), NULL, send, ctx);
+    send_nrpn(ch, GEN_PLUCK, pluck_steps(pluck), NULL, send, ctx);
     send_nrpn(ch, GEN_RELEASE, release_offset(m->layer_release[layer]), NULL, send, ctx);
     send_nrpn(ch, GEN_TREMOLO, tremolo_offset(m->layer_tremolo[layer]), NULL, send, ctx);
-    send_nrpn(ch, GEN_DETUNE, detune_offset(m->layer_detune[layer]), NULL, send, ctx);
+    send_nrpn(ch, GEN_ATTACK, attack_offset(m->layer_attack[layer]), NULL, send, ctx);
     send_nrpn(ch, GEN_REVERB, reverb_offset(m->layer_reverb[layer]), what, send, ctx);
 }
 
@@ -264,9 +292,9 @@ void mixer_freeze_layer(mixer_t *m, size_t layer, midi_send_fn send, void *ctx)
     m->layer_filter[layer] = m->filter;
     m->layer_reverb[layer] = m->reverb;
     m->layer_keys[layer] = m->keys;
-    m->layer_res[layer] = m->res;
+    m->layer_pluck[layer] = m->pluck;
     m->layer_release[layer] = m->release;
     m->layer_tremolo[layer] = m->tremolo;
-    m->layer_detune[layer] = m->detune;
+    m->layer_attack[layer] = m->attack;
     mixer_send_layer_fx(m, layer, send, ctx);
 }

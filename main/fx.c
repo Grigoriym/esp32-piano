@@ -261,7 +261,7 @@ static void ramp_send(fx_t *f, int64_t now, midi_send_fn send, void *ctx)
         bend(send, ctx, KEY_CH, -depth);
         for (uint8_t ch = LOOP_CH; ch < LOOP_CH + LOOP_CHANNELS; ch++) bend(send, ctx, ch, -depth);
     }
-    mixer_send_filter_to(KEY_CH, level, send, ctx); /* main.c copies it to the effect channels */
+    mixer_send_filter_to(KEY_CH, level, f->pluck, send, ctx); /* main.c copies it to the effect channels */
     f->ramp_sent_us = now;
 }
 

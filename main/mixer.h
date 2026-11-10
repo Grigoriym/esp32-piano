@@ -16,13 +16,16 @@
  * recordings", 2026-11-06). The drums stay as they are.
  *
  * Pots 7-10 (2026-11-09) are effects on the live keys and DEMO like the filter
- * and reverb, frozen onto a loop layer the same way: resonance (initialFilterQ, 0 to MIXER_RES_CB;
- * rendered: a peak at the cutoff, quieter as it rises), detune (fineTune, 0 to -MIXER_DETUNE_CENTS cents; rendered: -24 cents at 25, -49 at 50;
- * it replaced the Echo chick's amount, 2026-11-09, the user's pick), release
+ * and reverb, frozen onto a loop layer the same way: pluck (2026-11-10, was a resonance: each note starts at the
+ * filter pot's cutoff and closes by up to MIXER_PLUCK_CENTS in ~200 ms; gen 8 lowered by the depth, modEnvToFilterFc
+ * opening it back, the filter envelope's shape on gens 25-29; rendered on the saw lead at 4800 cents: ~2400 Hz to
+ * ~300 Hz within 350 ms; the electric piano, dark already, barely changes), release
  * (releaseVolEnv, -/+MIXER_RELEASE_TC with the preset's own in the middle; rendered on the saw lead:
- * 60 ms to 1.9 s) and tremolo (modLfoToVolume, 0 to MIXER_TREMOLO_STEPS cB at FluidSynth's default ~8 Hz LFO;
+ * 60 ms to 1.9 s), tremolo (modLfoToVolume, 0 to MIXER_TREMOLO_STEPS cB at FluidSynth's default ~8 Hz LFO;
  * rendered on the saw lead: the level swing grows from its own ~17 dB to ~30 dB at 240, ~45 dB at 480, nearly a
- * chop; it replaced a vibrato, vibLfoToPitch, the user didn't like it, 2026-11-09). Their moves during a take aren't recorded (pots 3-5's are). FluidSynth 2.3
+ * chop; it replaced a vibrato, vibLfoToPitch, the user didn't like it, 2026-11-09) and attack (2026-11-10, was a
+ * detune: attackVolEnv, 0 to MIXER_ATTACK_STEPS; rendered on the electric piano: 1 ms at 0, ~0.3 s at 5000, ~2 s at
+ * 7000, past ~5500 a note is cut before it's full; the growl ~2 s at 5000). Their moves during a take aren't recorded (pots 3-5's are). FluidSynth 2.3
  * ignores CC74 (no default modulator, rendered 2026-11-06), so the filter is
  * an SF2 NRPN that offsets the cutoff generator on any SoundFont: 0 to
  * MIXER_FILTER_CENTS. The reverb is the same kind of NRPN on reverbEffectsSend
@@ -53,11 +56,12 @@
 #define MIXER_FILTER_CENTS \
     (-4800) /* the cutoff at pot 4's 0; further down FluidR3's saw lead turns bright again (rendered) */
 #define MIXER_REVERB_SEND   1000 /* 100%: FluidSynth clamps the sum to 0-100% */
-#define MIXER_RES_CB        400  /* resonance at the top: 40 dB */
+#define MIXER_PLUCK_CENTS   7200 /* pluck at the top: the cutoff closes 6 octaves */
 #define MIXER_RELEASE_TC    2400 /* release at either end: x/÷ ~4 (timecents) */
 #define MIXER_TREMOLO_STEPS 480  /* tremolo depth at the top, in cB (NRPN steps of 1 cB) */
-#define MIXER_DETUNE_CENTS  50   /* detune at the top: a quarter tone flat (NRPN steps of 1 cent) */
-#define MIXER_FX_LIVE       2    /* the pots' channels: 1 and 2 (0-1), the keys and DEMO */
+#define MIXER_ATTACK_STEPS \
+    5500                /* attack at the top: ~0.3 s on the piano, ~2 s on the growl (2 timecents a step) */
+#define MIXER_FX_LIVE 2 /* the pots' channels: 1 and 2 (0-1), the keys and DEMO */
 
 typedef enum {
     MIXER_BEAT,
@@ -66,8 +70,8 @@ typedef enum {
     MIXER_FILTER,
     MIXER_REVERB,
     MIXER_METRO,
-    MIXER_RES, /* ADS1115 A0 */
-    MIXER_DETUNE,
+    MIXER_PLUCK, /* ADS1115 A0 */
+    MIXER_ATTACK,
     MIXER_RELEASE,
     MIXER_TREMOLO, /* A3 */
 } mixer_pot_t;
@@ -79,11 +83,12 @@ typedef struct {
     int64_t moved_us[MIXER_POTS];   /* when it was last turned; 0: not since boot */
     int64_t changed_us[MIXER_POTS]; /* when its level last changed */
     uint8_t rest[MIXER_POTS];       /* level at the last turn: moved_us needs MIXER_TURN from it */
-    uint8_t beat, click, keys, filter, reverb, metro, res, detune, release, tremolo;
+    uint8_t beat, click, keys, filter, reverb, metro, pluck, attack, release, tremolo;
+    int8_t shape_sent; /* the live channels' pluck envelope: 1 on, 0 off, -1 unknown (resend) */
     uint8_t layer_filter[LOOPER_LAYERS], layer_reverb[LOOPER_LAYERS]; /* frozen when added */
     uint8_t layer_keys[LOOPER_LAYERS];                                /* pot 3's fader, frozen the same way */
-    uint8_t layer_res[LOOPER_LAYERS], layer_release[LOOPER_LAYERS], layer_tremolo[LOOPER_LAYERS],
-        layer_detune[LOOPER_LAYERS];
+    uint8_t layer_pluck[LOOPER_LAYERS], layer_release[LOOPER_LAYERS], layer_tremolo[LOOPER_LAYERS],
+        layer_attack[LOOPER_LAYERS];
 } mixer_t;
 
 void mixer_init(mixer_t *m);
@@ -98,15 +103,16 @@ uint8_t mixer_scale(uint8_t velocity, uint8_t level);
  * the length to send: 0 for a note on at level 0, which is left out. */
 size_t mixer_apply(const uint8_t *msg, size_t len, uint8_t level, uint8_t *out);
 
-/* Sends pot 2's, 3's, 4's, 5's, resonance's, detune's, release's or tremolo's setting to the live channels (what: for the log, once). */
-void mixer_send_fx(const mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx);
+/* Sends pot 2's, 3's, 4's, 5's, pluck's, attack's, release's or tremolo's setting to the live channels (what: for the log, once). */
+void mixer_send_fx(mixer_t *m, mixer_pot_t pot, midi_send_fn send, void *ctx);
 
-/* The filter at level (0-127, as pot 4) on one channel: the chicks' Rise and Tape (fx.h). */
-void mixer_send_filter_to(uint8_t ch, uint8_t level, midi_send_fn send, void *ctx);
+/* The filter at level (0-127, as pot 4) on one channel, lowered by a pluck (its level): the chicks' Rise and Tape (fx.h). */
+void mixer_send_filter_to(uint8_t ch, uint8_t level, uint8_t pluck, midi_send_fn send, void *ctx);
 
 /* What the keys fader, filter or reverb pot sends at level, on one channel (a loop
- * layer playing back a recorded move). */
-void mixer_send_pot_to(uint8_t ch, mixer_pot_t pot, uint8_t level, midi_send_fn send, void *ctx);
+ * layer playing back a recorded move; pluck: the layer's, for the filter). */
+void mixer_send_pot_to(uint8_t ch, mixer_pot_t pot, uint8_t level, uint8_t pluck, midi_send_fn send,
+                       void *ctx);
 
 /* A loop layer just added: it keeps pot 3's fader, the filter and the reverb as they are now
  * (the fader: the user heard a layer recorded quiet come back at full, 2026-11-06). */

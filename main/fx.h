@@ -4,7 +4,7 @@
  *
  * Top row (chicks 1-4, from the left as the user counts them), each press on / off:
  *   Echo     each note comes back fx_echo_repeats() times, each fx_echo_decay() % of the one before, a dotted
- *            8th apart (on FX_ECHO_CH); how much: f->echo, FX_ECHO_LEVEL (its pot became Detune, 2026-11-09)
+ *            8th apart (on FX_ECHO_CH); how much: f->echo, FX_ECHO_LEVEL (its pot became Detune, 2026-11-09, then Attack)
  *   Hold     sustain (CC64): notes ring after the key is let go
  *   Octave   each key plays an octave higher too
  *   Arp      held keys play one at a time, lowest to highest, on every 16th of the grid
@@ -65,6 +65,7 @@ typedef struct {
     bool on[FX_COUNT];                    /* toggles; Rise and Tape: running; Stutter: held */
     int64_t grid_origin_us, sixteenth_us; /* 16th lines for Arp and Stutter; 0: FX_STEP_US from the press */
     uint8_t filter;                       /* pot 4's level: where Rise and Tape start from */
+    uint8_t pluck;                        /* the Pluck pot's level: Rise and Tape keep it */
     uint8_t echo;                         /* the Echo pot's level, 0-127 */
     int64_t ramp_start_us, ramp_len_us, ramp_sent_us;
     bool restore;                                 /* a ramp just ended: main.c sends the pots' filter again */

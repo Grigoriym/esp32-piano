@@ -461,7 +461,8 @@ void looper_tick(looper_t *l, int64_t now_us, midi_send_fn send, void *ctx)
             l->due_us = l->start_us + e->t_us;
             int pot = pot_of(e->msg);
             if (pot >= 0) {
-                mixer_send_pot_to(e->msg[0] & 0x0f, (mixer_pot_t)pot, e->msg[2], send, ctx);
+                mixer_send_pot_to(e->msg[0] & 0x0f, (mixer_pot_t)pot, e->msg[2], l->pluck[e->layer], send,
+                                  ctx);
                 continue;
             }
             if (is_note(e->msg)) {
