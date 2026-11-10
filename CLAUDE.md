@@ -249,7 +249,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   chords, arpeggio, hook; the clap roll was dropped at the user's ask, pad layers still
   work) #5 Riddim Drop (2026-11-05, rewritten for the growl "E": ROCK/DUBSTEP, a Riddim stutter on key 1 with a hole on the snare, an Answer in that hole, a high Screech, a build-up with Rise (chick 5; was a snare-pad Build); the user likes "heaviest dubstep drops" and Skrillex; page synth has a `growl` voice for pieces with `sound: 'growl'`; `render_riffs.py` takes each piece's program from its button) and #4 Bunker (2026-11-05, replaced #4 Sunset, which is in git at `e514df5`; SLOW ROCK/TECHNO, the user wanted something heavier, Berlin style, "let's experiment": key 1 rumbling after every kick, then "aggressive": a 16th-note sequence around key 8, a stab on every offbeat, built by layers and pots) and #3 Warehouse (2026-11-05, SLOW ROCK/TECHNO 130 bpm, Am Am Dm Em: a bass rolling on the 16ths after each kick, offbeat stabs, a one-bar hook moved up on bars 3-4) and #6 Cosmic (2026-11-06, SLOW ROCK/TECHNO: the user's keys 5 3 1 found with the filter pot; layers Melody (the user's rhythm: 5 a bar, 3 and 1 half a bar), Echo and Taps (picked from an audition, `build-host/audition/cosmic/`), Pulse and Bass (the user's own, read off MIDI captures; the bass one octave down, `songs/2026-11-06-cosmic-bass.mid`)) and #7 Song #1 (2026-11-06, the user's own four-layer loop (layer 4 Riff on 19/20/22, fader 105, filter 69, added later), read off `songs/2026-11-06-song-1.mid`: Cosmic's bass, an offbeat pulse on 12/10/8, a high A on 22/24 at the keys fader ~89) and #8 Song #2 (2026-11-08, the user's three layers read off `songs/2026-11-08-song-2.mid`: bass 1/5/3 an octave down, stabs on 8/10, a melody on 10/12/13; layers 1-2 were played with Echo + Octave on, the notes are only the pressed keys) and #9 Song #3 (2026-11-09, four layers read off
   `songs/2026-11-09-song-3.mid` and the log: the 1/5/3 bass with Echo an octave down, stabs 8/7/5, the 12/13 melody, a
-  15/17/19 figure an octave up with Echo) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
+  15/17/19 figure an octave up with Echo) and #10 Song #4 (2026-11-10, four layers read off `songs/2026-11-10-song-4.mid`
+  and the log: a plucked 1/3/5 bass an octave down, a 10 -> 12 glide pad, a plucked 22/24/25 figure with Echo, a top-keys
+  figure with Echo and tremolo) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
   its `button` and `beat` (#1 DISCO/EDM, #2 MARCH/BREAKS); the page synth's `BEATS`
   copies main/rhythm.c's patterns (change both), the clips read rhythm.c. After changing a chord or `matrix_diodes`: `tools/check_riff_chords.py`
   (some key sets are held back and would never sound). Its Listen buttons play
@@ -593,7 +595,7 @@ preset has a slow one); the electric piano barely plucks (dark already). **Fluid
 notes by default**: `tools/fluidsynth.cmd` (run by `pc_synth.sh -f`) sets each-note mode on all 16 channels;
 rendered, short separate notes glide then. Detune was an Attack (attackVolEnv) for an hour first: the user heard
 nothing on the pot's low half and the top silenced short notes (an attack longer than the note never gets loud;
-FluidR3's saw lead already swells by itself). Pluck and Glide not yet heard by the user.
+FluidR3's saw lead already swells by itself). The user tried both and made a loop with them, saved as riffs #10 Song #4 (`songs/2026-11-10-song-4.mid`).
 
 **State 2026-11-09 (late, end of session):** flashed `69913f0`. Fixed: the NRPN cache from `3090806` (filter dead,
 reverb's top silent; Traps). The 4th effect pot is a tremolo (was vibrato "wobble", the user disliked it), the 2nd is

@@ -41,3 +41,8 @@ in front, so they're what the song was played with, not read from it.
   reverb 75; layer 3 filter 127, reverb 75; layer 4 Echo on, octave +1 (69/72/76 = keys 15/17/19), filter 127, reverb
   127. The Echo repeats are in the capture (velocity 35/22/14/8 after the pressed 55). Written out as `#9 Song #3` in
   `docs/riffs.html`. No mp3.
+- `2026-11-10-song-4`: "Song #4" (riffs #10), four loop layers (channels 3-6) over SLOW ROCK's TECHNO beat at 130 bpm
+  with the metronome (channel 9). 2 bars, 3692 ms a pass, ten passes captured, all the same. Sounds from the toy's log:
+  saw lead (81) on every layer; layer 1 (keys 1/3/5, octave −1) pluck 59, release 107, reverb 127; layer 2 (10 → 12)
+  glide 110, pluck 85; layer 3 (22/24/25, Echo on) pluck 127, reverb 57, keys fader 122; layer 4 (27-32, Echo on)
+  tremolo 58, reverb 127. Pluck, glide and tremolo are pot levels (`main/mixer.h`), not in the capture.
