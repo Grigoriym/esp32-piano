@@ -375,6 +375,10 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   comparison runs in the host tests: `test_take.c` plays a real take (Echo + Octave, held notes, 130 bpm) through
   fx -> take -> looper and checks 3 passes; it failed on the 350 ms bug. Add a test case there for each new
   recording bug, from its capture.
+- **Saving a song: the `save-song` skill** (`.claude/skills/save-song/`, 2026-11-10, the user's ask): copy the log,
+  capture, `tools/save_song.py <capture.mid> <log copy>` drafts the piece with each layer's `program`, `octave`,
+  `chicks` and knob levels (`fx`), which the riffs page shows as tiles and `render_riffs.py` plays. The toy logs
+  `LAYER N: program P, octave O, chicks ...` when a layer is added (main.c `log_layer`), next to `layer N keeps ...`.
 - **What the user played: capture it, don't guess it.** 2026-11-06 a riff given as key names got a guessed
   rhythm, wrong ("mine is different"); `arecordmidi` while the user played, then `tools/midi_dump.py`, read it
   right first time (notes against the metronome's beat-1 clicks, 16ths from its tempo). Same for saving a loop:

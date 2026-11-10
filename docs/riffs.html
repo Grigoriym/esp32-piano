@@ -53,6 +53,18 @@ label.slow { display: flex; gap: 6px; align-items: center; font-size: .9rem; col
 .layer-head { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
 .swatch { width: 12px; height: 12px; border-radius: 3px; flex: none; }
 .tip { font-size: .95rem; }
+/* A layer's exact settings on the toy (its `program`, `octave`, `chicks`, `fx`), tiles across like the cheat sheet. */
+.settings { display: flex; flex-wrap: wrap; gap: 8px; }
+.set-group { display: flex; flex-direction: column; gap: 4px; }
+.set-group > span { font: 600 .72rem var(--font-body); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.set-tiles { display: flex; flex-wrap: wrap; gap: 6px; }
+.set-tile { border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; min-width: 76px; display: flex; flex-direction: column; align-items: center; gap: 2px; background: var(--beat); }
+.set-tile b { font: 600 .82rem var(--font-display); }
+.set-tile .val { font: 700 .95rem var(--font-body); }
+.set-tile .word { font-size: .72rem; color: var(--muted); text-align: center; max-width: 90px; }
+.set-tile.off { opacity: .45; }
+.set-tile svg { width: 34px; height: 34px; }
+.song-setup { font-size: .95rem; }
 .plan { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
 .plan b { font-family: var(--font-display); font-weight: 600; }
 .pads-note { font-size: .9rem; color: var(--muted); }
@@ -434,7 +446,7 @@ const PIECES = [
     ],
   },  {
     name: '#10 Song #4',
-    button: 'SLOW ROCK', beat: 'TECHNO',
+    button: 'SLOW ROCK', beat: 'TECHNO', metronome: true,
     about: 'Your own song (2026-11-10), the first with the new Pluck and Glide knobs: four loop layers over the techno beat with the metronome on, saved from what the toy played (songs/2026-11-10-song-4.mid, ten passes, all the same). A two-bar loop: a plucked bass on 1, 3, 5 an octave down, a long pad note on 10 that glides up to 12, a plucked figure high up on 22, 24, 25 in bar 1 whose echoes fill bar 2, and a tremolo figure at the top of the keyboard. The Pluck melody and the High figure were recorded with the chick Echo (1) on, so the loop plays their echoes; the notes below are only the keys you pressed. "As the toy plays it" has each layer\'s echoes, pluck, glide, tremolo and reverb, rendered from the knob levels in the toy\'s log; the page synth plays only the notes. Every layer is the saw lead.',
     bpm: 130,
     bars: 4,
@@ -442,25 +454,29 @@ const PIECES = [
     layers: [
       {
         name: 'Bass', color: 'bass', hand: 'left hand, octave down (TEMPO − once)', octave: -1,
-        fx: { keys: 127, filter: 127, reverb: 127, pluck: 59, release: 107 },
+        program: 81, chicks: [],
+        fx: { keys: 127, filter: 127, reverb: 127, pluck: 59, release: 107, tremolo: 0, glide: 0 },
         tip: 'Layer 1, Echo off, Effects: Pluck a little left of the middle, Release about three quarters right, Reverb all the way up, Filter all the way right. Bar 1: key 1 on the red click (a beat and a half), 3 on the "+" of beat 2, 1 on beat 3, 5 on beat 4 (a beat and a half). Bar 2: 3 on the "+" of beat 1, 1 on the "+" of beat 2, 3 on beat 3, 1 on beat 4.',
         notes: '0:1/6 6:3/2 8:1/4 12:5/6 18:3/4 22:1/2 24:3/4 28:1/4 32:1/6 38:3/2 40:1/4 44:5/6 50:3/4 54:1/2 56:3/4 60:1/4',
       },
       {
         name: 'Glide pad', color: 'chords', hand: 'right hand, octave back up (TEMPO + once)',
-        fx: { keys: 127, filter: 127, reverb: 127, pluck: 85, release: 107, glide: 110 },
+        program: 81, chicks: [],
+        fx: { keys: 127, filter: 127, reverb: 127, pluck: 85, release: 107, tremolo: 0, glide: 110 },
         tip: 'Layer 2, Effects: Glide most of the way right, Pluck about two thirds right. Key 10 on the red click, held; press 12 on beat 4 just before letting 10 go, so it slides up, and hold 12 through bar 2.',
         notes: '0:10/13 12:12/20 32:10/13 44:12/20',
       },
       {
         name: 'Pluck melody', color: 'hook', hand: 'right hand, high',
-        fx: { keys: 122, filter: 127, reverb: 57, pluck: 127, release: 107, echo: true },
+        program: 81, chicks: ['Echo'],
+        fx: { keys: 122, filter: 127, reverb: 57, pluck: 127, release: 107, tremolo: 0, glide: 0 },
         tip: 'Layer 3, chick Echo (1) on, Effects: Glide back to 0, Pluck all the way right, Reverb a little left of the middle, Volume: keys a hair below the top. Bar 1 only: key 24 on the red click, 22 on beat 2, 25 on the "+" of beat 2, 24 on the "+" of beat 3, 22 on beat 4. Leave bar 2 to the echoes.',
         notes: '0:24/2 4:22/1 6:25/2 10:24/2 12:22/2 32:24/2 36:22/1 38:25/2 42:24/2 44:22/2',
       },
       {
         name: 'High', color: 'arp', hand: 'right hand, the top keys',
-        fx: { keys: 127, filter: 127, reverb: 127, release: 107, tremolo: 58, echo: true },
+        program: 81, chicks: ['Echo'],
+        fx: { keys: 127, filter: 127, reverb: 127, pluck: 0, release: 107, tremolo: 58, glide: 0 },
         tip: 'Layer 4, Echo on, Effects: Pluck back to 0, Tremolo a little left of the middle, Reverb all the way up, keys back to the top. Short presses. Bar 1: key 32 on the red click, 31 on beat 4. Bar 2: 27 on the "+" of beat 2, 29 on beat 3, 31 on beat 4.',
         notes: '0:32/1 12:31/2 22:27/1 24:29/1 28:31/1 32:32/1 44:31/2 54:27/1 56:29/1 60:31/1',
       },
@@ -676,6 +692,77 @@ function keyStrip(used, color) {
   return strip;
 }
 
+/* ---- a layer's settings, exactly as the toy had them (tools/save_song.py reads them off its log) ---- */
+const SOUNDS = { 0: 'Piano (after RESET)', 4: 'Electric piano (BLUES)', 12: 'Marimba (SAMBA)', 21: 'Accordion (WALTZ)',
+  38: 'Growl bass (ROCK)', 81: 'Saw lead (SLOW ROCK, DISCO, MARCH)', 88: 'Cat (NEW AGE)' };
+const CHICK_NUM = { Echo: 1, Hold: 2, Octave: 3, Arp: 4, Rise: 5, Tape: 6, Stutter: 7, Wide: 8 };
+/* The knobs as on the box (docs/cheatsheet.html), in the toy's 0-127; neutral: where the knob does nothing. */
+const KNOBS = [
+  ['Volume', [['keys', 'Keys', 127]]],
+  ['Effects', [['filter', 'Filter', 127], ['reverb', 'Reverb', null], ['pluck', 'Pluck', 0], ['glide', 'Glide', 0],
+    ['release', 'Release', 64], ['tremolo', 'Tremolo', 0]]],
+];
+function knobWord(v) {
+  if (v <= 2) return 'all the way left';
+  if (v >= 125) return 'all the way right';
+  if (v >= 60 && v <= 67) return 'middle';
+  const f = v / 127;
+  if (f < 0.2) return 'just past left';
+  if (f < 0.4) return 'a third right';
+  if (f < 0.47) return 'a bit left of middle';
+  if (f < 0.6) return 'a bit right of middle';
+  if (f < 0.8) return 'two thirds right';
+  return 'almost all the way right';
+}
+function dial(v) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', '0 0 40 40');
+  const ang = (-135 + 270 * v / 127) * Math.PI / 180;
+  const arc = document.createElementNS(NS, 'path');
+  arc.setAttribute('d', 'M 9.4 30.6 A 15 15 0 1 1 30.6 30.6'); arc.setAttribute('fill', 'none');
+  arc.setAttribute('stroke', 'var(--line)'); arc.setAttribute('stroke-width', '4'); arc.setAttribute('stroke-linecap', 'round');
+  const cap = document.createElementNS(NS, 'circle'); cap.setAttribute('cx', 20); cap.setAttribute('cy', 20); cap.setAttribute('r', 9);
+  cap.setAttribute('fill', 'var(--panel)'); cap.setAttribute('stroke', 'var(--muted)');
+  const ptr = document.createElementNS(NS, 'line');
+  ptr.setAttribute('x1', 20); ptr.setAttribute('y1', 20);
+  ptr.setAttribute('x2', 20 + 13 * Math.sin(ang)); ptr.setAttribute('y2', 20 - 13 * Math.cos(ang));
+  ptr.setAttribute('stroke', 'var(--ink)'); ptr.setAttribute('stroke-width', '3'); ptr.setAttribute('stroke-linecap', 'round');
+  svg.append(arc, cap, ptr);
+  return svg;
+}
+function settingsPanel(layer, piece) {
+  const box = el('div', 'settings');
+  const group = (title, tiles) => {
+    const g = el('div', 'set-group'); g.append(el('span', null, title));
+    const t = el('div', 'set-tiles'); tiles.forEach(x => t.append(x)); g.append(t); return g;
+  };
+  const tile = (name, val, word, off) => {
+    const t = el('div', 'set-tile' + (off ? ' off' : ''));
+    t.append(el('b', null, name), el('span', 'val', val)); if (word) t.append(el('span', 'word', word)); return t;
+  };
+  const prog = layer.program ?? null;
+  const oct = layer.octave || 0;
+  const octWord = oct === 0 ? 'as after RESET' : `TEMPO ${oct < 0 ? '−' : '+'} ${Math.abs(oct)}×`;
+  const chicks = layer.chicks || [];
+  box.append(group('Keys', [
+    tile('Sound', prog == null ? piece.button : (SOUNDS[prog] || `program ${prog}`).split(' (')[0],
+      prog == null ? '' : (SOUNDS[prog] || '').match(/\((.*)\)/)?.[1] || ''),
+    tile('Octave', (oct > 0 ? '+' : '') + oct, octWord),
+  ]));
+  box.append(group('Chicks', chicks.length
+    ? chicks.map(c => tile(c, CHICK_NUM[c] ? `chick ${CHICK_NUM[c]}` : '', 'on'))
+    : [tile('None', '', 'all off', true)]));
+  for (const [title, knobs] of KNOBS) {
+    box.append(group(title, knobs.map(([key, name, neutral]) => {
+      const v = layer.fx[key] ?? 0;
+      const t = tile(name, String(v), knobWord(v), neutral != null && v === neutral);
+      t.insertBefore(dial(v), t.children[1]);
+      return t;
+    })));
+  }
+  return box;
+}
+
 function renderPiece(piece) {
   const box = el('section', 'piece');
   const head = el('div', 'piece-head');
@@ -684,6 +771,9 @@ function renderPiece(piece) {
   [`${piece.button} beat`, `${piece.bpm} bpm`, `${piece.bars} bars`, piece.chords.join(' – ')].forEach(t => chips.append(el('span', 'chip', t)));
   head.append(chips);
   box.append(head);
+  if (piece.metronome != null && piece.layers.some(l => l.fx)) {
+    box.append(el('p', 'song-setup muted', `Set up: ${piece.button}, then ${piece.metronome ? 'FROG (metronome on), ' : ''}SELECT for the ${piece.beat} beat (${piece.bpm} bpm). Each layer below shows the toy's settings while it was recorded, read off the toy's log: set the knobs and chicks to these before its RECORD.`));
+  }
 
   const controls = el('div', 'controls');
   const slowLabel = el('label', 'slow');
@@ -722,7 +812,9 @@ function renderPiece(piece) {
     const btn = el('button', null, '▶ Listen with the beat');
     btn.onclick = () => play(piece, [layer], btn, slow.checked, mode.value, slug(layer.name));
     lh.append(title, el('span', 'muted', layer.hand), btn);
-    sec.append(lh, el('p', 'tip', layer.tip));
+    sec.append(lh);
+    if (layer.fx) sec.append(settingsPanel(layer, piece));
+    sec.append(el('p', 'tip', layer.tip));
 
     const events = layerEvents(layer);
     if (layer.pads) {
@@ -748,10 +840,13 @@ function renderPiece(piece) {
         c.style.gridColumn = `${i + 1}`; c.style.gridRow = '1';
         steps.append(c); layer.cells.push(c);
       }
-      for (const e of events.filter(e => Math.floor(e.step / 16) === b)) {
-        const n = el('div', 'note', e.pad ? '●' : e.keys.join(' '));
-        const s = e.step % 16;
-        n.style.gridColumn = `${s + 1} / span ${Math.min(e.len, 16 - s)}`;
+      /* A note starting in this bar, or held over from an earlier one (shown again, in brackets). */
+      for (const e of events.filter(e => e.step < 16 * (b + 1) && e.step + e.len > 16 * b)) {
+        const held = e.step < 16 * b;
+        const label = e.pad ? '●' : e.keys.join(' ');
+        const n = el('div', 'note', held ? `(${label})` : label);
+        const s = held ? 0 : e.step % 16;
+        n.style.gridColumn = `${s + 1} / span ${Math.min(e.step + e.len - 16 * b - s, 16 - s)}`;
         n.style.background = cssVar(layer.color);
         steps.append(n);
       }

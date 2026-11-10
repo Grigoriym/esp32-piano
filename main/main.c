@@ -642,6 +642,20 @@ static void on_cell(size_t r, size_t c, bool down, void *ctx)
     loop_marks(was);
 }
 
+/* What a layer just added was played with, for saving a song (tools/save_song.py reads it with the
+ * "layer N keeps ..." line): its sound, the octave and the chicks on. */
+static void log_layer(size_t layer)
+{
+    char chicks[64] = "";
+    for (int i = 0; i < FX_COUNT; i++) {
+        if (!fx.on[i]) continue;
+        size_t n = strlen(chicks);
+        snprintf(chicks + n, sizeof(chicks) - n, "%s%s", n ? " " : "", fx_name((fx_kind_t)i));
+    }
+    printf("LAYER %u: program %u, octave %d, chicks %s\n", (unsigned)layer + 1,
+           (unsigned)looper.program[layer], keymap.octave, chicks[0] ? chicks : "none");
+}
+
 /* The chicks' effects: live, sent as it happens like the keys. */
 static void fx_run(int64_t now)
 {
@@ -769,6 +783,7 @@ void app_main(void)
         for (; frozen < looper.n_layers; frozen++) {
             mixer_freeze_layer(&mixer, frozen, send_midi, NULL);
             looper.pluck[frozen] = mixer.layer_pluck[frozen];
+            log_layer(frozen);
         }
         dots_run(t);
         if (t >= next_leds) {

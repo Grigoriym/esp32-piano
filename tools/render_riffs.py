@@ -9,7 +9,8 @@ passes of the piece each, in docs/riffs-audio/ (gitignored). Run after changing 
 piece, a song's beat or the EDM velocities. Needs node, fluidsynth, ffmpeg.
 
 A layer with `fx` (the toy's pot levels it was recorded with, 0-127: keys, filter, reverb,
-pluck, glide, release, tremolo; `echo: true` for the Echo chick) plays on its own channel
+pluck, glide, release, tremolo; the layer's `chicks`: Echo and Octave are played, the others are
+in its notes already; its `program` if it differs from the button's) plays on its own channel
 with what main/mixer.c's mixer_send_layer_fx sends for those levels, and Echo's repeats as
 main/fx.c makes them; FluidSynth gets pc_synth.sh's reverb room and tools/fluidsynth.cmd
 (glide on every note), as live. A layer without `fx` plays as before: no effects.
@@ -175,12 +176,12 @@ def render(piece, layers, beat, keys, pads, path):
         if "fx" in layer:  # its own channel (not 9, the drums), with what the toy sends it
             ch = i + 1 if i + 1 < 9 else i + 2
             layer["_ch"] = ch
-            ev.append((0, 0, bytes([0xC0 | ch, program])))
+            ev.append((0, 0, bytes([0xC0 | ch, layer.get("program", program)])))
             ev += [(0, 0, m) for m in layer_fx(ch, layer["fx"])]
     for p in range(PASSES):
         for layer in layers:
             ch = layer.get("_ch", 0)
-            fx = layer.get("fx", {})
+            chicks = set(layer.get("chicks", [])) | ({"Echo"} if layer.get("fx", {}).get("echo") else set())
             for tok in layer.get("pads", "").split():  # chick pads: drums, as the toy sends them
                 step, rest = tok.split(":")
                 pad = pads[rest.split("/")[0]]["note"]
@@ -191,15 +192,16 @@ def render(piece, layers, beat, keys, pads, path):
                 step, rest = tok.split(":")
                 ks, length = rest.split("/")
                 for k in map(int, ks.split("+")):
-                    note = root + 12 * ((k - 1) // 7 + layer.get("octave", 0)) + MINOR[(k - 1) % 7]
+                    base = root + 12 * ((k - 1) // 7 + layer.get("octave", 0)) + MINOR[(k - 1) % 7]
                     on = int(step) + p * bar_steps
-                    ev.append((on, 2, bytes([0x90 | ch, note, kvel])))
-                    ev.append((on + int(length), 1, bytes([0x80 | ch, note, 0])))
-                    if fx.get("echo"):
-                        for k, v in echo_repeats(kvel):
-                            at = on + k * FX["FX_ECHO_STEPS"]
-                            ev.append((at, 2, bytes([0x90 | ch, note, v])))
-                            ev.append((at + int(length), 1, bytes([0x80 | ch, note, 0])))
+                    for note in [base, base + 12] if "Octave" in chicks else [base]:
+                        ev.append((on, 2, bytes([0x90 | ch, note, kvel])))
+                        ev.append((on + int(length), 1, bytes([0x80 | ch, note, 0])))
+                        if "Echo" in chicks:
+                            for rep, v in echo_repeats(kvel):
+                                at = on + rep * FX["FX_ECHO_STEPS"]
+                                ev.append((at, 2, bytes([0x90 | ch, note, v])))
+                                ev.append((at + int(length), 1, bytes([0x80 | ch, note, 0])))
     ev = [e for e in ev if e[0] <= total]
     with tempfile.TemporaryDirectory() as d:
         mid, raw = pathlib.Path(d, "x.mid"), pathlib.Path(d, "x.wav")
