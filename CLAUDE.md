@@ -492,7 +492,8 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `file://` (serve `docs/` on 127.0.0.1); `brave-browser --headless` hangs here even on
   about:blank; `firefox --headless --screenshot` worked until 2026-11-05, when it hung twice
   (also with its own `--profile`; the user's Firefox may have been open); on 2026-11-06 it worked again with
-  `--profile <scratchpad dir> --no-remote` (~10 s a shot). It shoots right after load: for a canvas page, feed it data
+  `--profile <scratchpad dir> --no-remote` (~10 s a shot). 2026-11-11 it wrote the PNG but never exited: run it under `timeout 40`, ignore
+  the exit code 144, read the PNG. One section of a long page: shoot a copy with a `display:none` rule for the rest. It shoots right after load: for a canvas page, feed it data
   and call its resize and draw synchronously first, or it catches an empty frame. `docs/live.html` was checked that
   way with a recorded event stream replayed into a copy of the page. A copy of the page with a
   test script appended can POST its results to a small local server. Cheap check that always
@@ -599,6 +600,11 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
+**State 2026-11-11:** the user's loop saved as riffs #11 Song #5 with the `save-song` skill (first real use; it
+worked as written). New: the compact one-screen view on top of a song (the user's ask, now `save_song.py`'s default;
+the older songs #1-#10 don't have it, offered, not answered). The user filmed the toy for an Instagram reel (phone audio
+~-24 LUFS, boosted to -14 with ffmpeg, video copied).
+
 **State 2026-11-10:** two effect pots changed (the user's picks from a list): Resonance -> **Pluck** (each note starts
 at the Filter's cutoff and closes up to 7200 cents in ~200 ms: gen 8 lowered, modEnvToFilterFc opens it back, the
 filter envelope's shape on gens 25-29, sent only when the pluck turns on/off; the Filter pot, a layer's recorded filter
