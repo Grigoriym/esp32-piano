@@ -251,7 +251,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   `songs/2026-11-09-song-3.mid` and the log: the 1/5/3 bass with Echo an octave down, stabs 8/7/5, the 12/13 melody, a
   15/17/19 figure an octave up with Echo) and #10 Song #4 (2026-11-10, four layers read off `songs/2026-11-10-song-4.mid`
   and the log: a plucked 1/3/5 bass an octave down, a 10 -> 12 glide pad, a plucked 22/24/25 figure with Echo, a top-keys
-  figure with Echo and tremolo) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
+  figure with Echo and tremolo) and #11 Song #5 (2026-11-11, the first saved with the `save-song` skill: three layers read off
+  `songs/2026-11-11-song-5.mid` and the log: a 1/5/3 bass an octave down, a 12/10/8 offbeat pulse with some pluck, a
+  32/31/27 high figure with Echo and tremolo) and #2 Night Drive (F G Am Am: a bass on the breakbeat's kicks plus an octave pickup, held chords, hook; its first bass was four-on-the-floor and fought the breakbeat). Each song names
   its `button` and `beat` (#1 DISCO/EDM, #2 MARCH/BREAKS); the page synth's `BEATS`
   copies main/rhythm.c's patterns (change both), the clips read rhythm.c. After changing a chord or `matrix_diodes`: `tools/check_riff_chords.py`
   (some key sets are held back and would never sound). Its Listen buttons play

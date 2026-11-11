@@ -46,3 +46,8 @@ in front, so they're what the song was played with, not read from it.
   saw lead (81) on every layer; layer 1 (keys 1/3/5, octave −1) pluck 59, release 107, reverb 127; layer 2 (10 → 12)
   glide 110, pluck 85; layer 3 (22/24/25, Echo on) pluck 127, reverb 57, keys fader 122; layer 4 (27-32, Echo on)
   tremolo 58, reverb 127. Pluck, glide and tremolo are pot levels (`main/mixer.h`), not in the capture.
+- `2026-11-11-song-5.mid`: riffs #11 Song #5, three layers on SLOW ROCK (TECHNO, 130 bpm) with the metronome
+  (channel 9). 2 bars, 3692 ms a pass, ten passes captured, all the same. Saved with the `save-song` skill; settings
+  from the toy's `LAYER N:` log lines: saw lead (81) on every layer; layer 1 Bass (keys 1/5/3, octave −1) filter,
+  reverb, release 127; layer 2 Pulse (12/10/8) filter 120, reverb 102, pluck 60, release 63; layer 3 High (32/31/27,
+  29+31, Echo on) reverb 117, release 112, tremolo 37.
