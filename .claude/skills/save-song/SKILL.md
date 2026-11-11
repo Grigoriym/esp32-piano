@@ -59,6 +59,9 @@ python3 tools/render_riffs.py          # docs/riffs-audio/ (gitignored)
 ```
 
 - Script check: extract the page's `<script>` and `node --check` it.
+- The piece has `compact: true` (the default, the user, 2026-11-11): the song's view opens with a
+  one-screen summary, a row per layer (keys, sound, octave, chicks, the Volume and Effects knobs) over
+  one pass of the loop. Leave it on; the full layers follow below it.
 - Screenshot the song's view (`#<n>-song-<m>`): serve `docs/` on 127.0.0.1 and use
   `firefox --headless --profile <scratchpad>/ffprof --no-remote --screenshot` (CLAUDE.md: testing
   the pages). Each layer must show its settings tiles.

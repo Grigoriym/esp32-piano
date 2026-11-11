@@ -91,7 +91,7 @@ label.slow { display: flex; gap: 6px; align-items: center; font-size: .9rem; col
 .k.used { color: #fff; }
 .strip-caption { font-size: .8rem; color: var(--muted); }
 /* The compact view (a piece with `compact: true`): every layer in one row, settings + one loop pass. */
-.compact { border-top: 2px solid var(--line); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.compact { border-bottom: 2px solid var(--line); padding-bottom: 14px; display: flex; flex-direction: column; gap: 10px; }
 .compact-head { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; }
 .compact-start { font-size: .9rem; }
 .compact-start b { font-family: var(--font-display); font-weight: 600; }
@@ -1041,7 +1041,7 @@ function renderPiece(piece) {
     box.append(sec);
   }
   all.onclick = () => play(piece, piece.layers, all, slow.checked, mode.value, 'all');
-  if (piece.compact) box.append(compactView(piece, slow, mode));
+  if (piece.compact) head.after(compactView(piece, slow, mode)); /* on top: the song on one screen */
   return box;
 }
 

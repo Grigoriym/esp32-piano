@@ -207,7 +207,7 @@ def main():
         })
     n_piece, n_song = next_numbers()
     piece = {
-        "name": f"#{n_piece} Song #{n_song}", "button": st["button"] or "TODO", "beat": st["beat"] or "TODO",
+        "name": f"#{n_piece} Song #{n_song}", "compact": True, "button": st["button"] or "TODO", "beat": st["beat"] or "TODO",
         "metronome": st["metro"], "about": "TODO", "bpm": bpm, "bars": bars * (4 // bars if 4 % bars == 0 else 1),
         "chords": ["Am"] * 4, "layers": out_layers, "plan": [["TODO", "TODO"]],
     }
