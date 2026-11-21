@@ -247,7 +247,7 @@ header("ads2", [["VDD", "+rail", "power"], ["GND", "−rail", "gnd"], ["SCL", "1
 
 // The dot matrix's IN header, as printed (the OUT end's holes stay empty).
 header("dots", [["VCC", "5Vin", "mx"], ["GND", "−rail", "gnd"], ["DIN", "42", "mx"], ["CS", "40", "mx"], ["CLK", "41", "mx"]],
-  ["VCC on 5Vin, not 3V3. Measure 5Vin first (USB in): ~5 V?", "Standing up, 8 across and 32 tall."]);
+  ["VCC on 5Vin, not 3V3. 5Vin carries USB power only with the", "IN-OUT bridge closed (done 2026-11-21: 4.4 V; open: 0.6 V).", "Open it again before any battery feeds 5Vin.", "Standing up, 8 across and 32 tall."]);
 
 // The LED strip's IN side (the OUT side chains more strips: leave it empty).
 header("strip", [["S", "38", "led"], ["V", "+rail", "power"], ["G", "−rail", "gnd"]],
