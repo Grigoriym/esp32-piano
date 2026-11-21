@@ -296,6 +296,11 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   git at `007f8a5`; D25/D26/D27 are free again. `docs/matrix-ideas.html` (9 picture ideas) stays. Likely successor:
   the 32x8 MAX7219 board (Homebox, both passed `esp32-hw-checks` check 4 on 25/26/27, 2026-11-09), not decided.
 - `docs/how-scan-works.html`: animated explainer of the row-by-row scan and the ghost (local page).
+- **Moving to the ESP32-S3 DevKitC-1** (2026-11-21, Homebox unit `cc:68:c7:97:ee:4c`, all self-tests pass; its XMC
+  flash 20 70 18 needs the bootloader fix from `../esp32-hw-checks` s3-selftest; port `/dev/ttyACM0`, CH343). The
+  wiring doc shows the S3 pins: screen SCL 4 SDA 5 CS 6 DC 7 RES 15, I2C SDA 10 SCL 11, knob 16/17/18, metronome pots
+  1 (volume) and 2 (tempo) on ADC1, strip 38, dot matrix DIN 42 CLK 41 CS 40, VCC on 5Vin. The firmware and
+  `pc_synth.sh`'s `CABLE` still have the DevKit's pins until ported; the pin names below are the DevKit's.
 - `docs/wiring.html`: **the wiring doc**, every DevKit pin and what goes on it
   (local page, open in a browser; not published). Update it with every
   wiring change, in the same step as the wiring (2026-11-07 the matrix went onto the piano without it until the

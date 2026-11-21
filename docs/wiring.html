@@ -72,12 +72,13 @@ li input:checked + span { color: var(--muted); text-decoration: line-through; }
 <div class="wrap">
   <header>
     <h1>Chicco Piano wiring</h1>
-    <p class="muted">With the MCP23017. Toy batteries out.</p>
+    <p class="muted">ESP32-S3 DevKitC-1 (since 2026-11-21; the old DevKit pin names are in git). With the MCP23017. Toy batteries out.</p>
   </header>
 
   <section>
-    <h2>ESP32 DevKit</h2>
-    <div class="box"><svg id="board" viewBox="0 0 760 250" role="img" aria-label="ESP32 DevKit pins and what plugs into each"></svg></div>
+    <h2>ESP32-S3 DevKitC-1</h2>
+    <p class="muted">Pins as printed on the board (just the number). Left empty on purpose: 0, 3, 45, 46 (boot pins), 35-37 (the PSRAM's), 19/20 (USB), TX/RX (the cable's serial), 48 (the board's own RGB LED), 12/13 (shorted on one of the three boards).</p>
+    <div class="box"><svg id="board" viewBox="0 0 1060 250" role="img" aria-label="ESP32-S3 pins and what plugs into each"></svg></div>
     <h2>Toy slot</h2>
     <div class="box"><svg id="slot" viewBox="0 30 760 145" role="img" aria-label="The toy's slot pads and the MCP23017 pin each goes to"></svg></div>
     <h2>MCP23017</h2>
@@ -99,13 +100,13 @@ li input:checked + span { color: var(--muted); text-decoration: line-through; }
     <div class="box"><svg id="pot3" viewBox="0 30 760 145" role="img" aria-label="A1, Volume: keys: ends to the rails, wiper to ADS1115 #2 A1"></svg></div>
     <div class="box"><svg id="pot4" viewBox="0 30 760 145" role="img" aria-label="A2, Effects: filter: ends to the rails, wiper to ADS1115 #2 A2"></svg></div>
     <div class="box"><svg id="pot5" viewBox="0 30 760 145" role="img" aria-label="A3, Effects: reverb: ends to the rails, wiper to ADS1115 #2 A3"></svg></div>
-    <h2>Metronome pots, on the DevKit</h2>
-    <div class="box"><svg id="pot6" viewBox="0 30 760 145" role="img" aria-label="Metronome: tempo: ends to the rails, wiper to VN"></svg></div>
-    <div class="box"><svg id="pot2" viewBox="0 30 760 145" role="img" aria-label="Metronome: volume: ends to the rails, wiper to D33"></svg></div>
+    <h2>Metronome pots, on the S3</h2>
+    <div class="box"><svg id="pot6" viewBox="0 30 760 145" role="img" aria-label="Metronome: tempo: ends to the rails, wiper to pin 2"></svg></div>
+    <div class="box"><svg id="pot2" viewBox="0 30 760 145" role="img" aria-label="Metronome: volume: ends to the rails, wiper to pin 1"></svg></div>
     <h2>Dot matrix (32×8, MAX7219), IN header</h2>
-    <div class="box"><svg id="dots" viewBox="0 30 760 145" role="img" aria-label="The dot matrix's IN header: VCC to VIN, GND, DIN to D25, CS to D27, CLK to D26"></svg></div>
+    <div class="box"><svg id="dots" viewBox="0 30 760 145" role="img" aria-label="The dot matrix's IN header: VCC to 5Vin, GND, DIN to pin 42, CS to pin 40, CLK to pin 41"></svg></div>
     <h2>LED strip (8 × WS2812), IN side</h2>
-    <div class="box"><svg id="strip" viewBox="0 30 760 145" role="img" aria-label="The LED strip's IN side: S to TX2, V to 3V3, G to GND"></svg></div>
+    <div class="box"><svg id="strip" viewBox="0 30 760 145" role="img" aria-label="The LED strip's IN side: S to pin 38, V to 3V3, G to GND"></svg></div>
     <h2>Diode test (temporary)</h2>
     <div class="box"><svg id="diode" viewBox="0 30 760 130" role="img" aria-label="A 1N4148 between the toy's AB0 wire and the MCP23017's A0, stripe toward A0"></svg></div>
   </section>
@@ -124,14 +125,15 @@ const GROUPS = [
 ];
 const WIRE = { white: "#ffffff", green: "#1fa83a", yellow: "#f2c200", black: "#111111" };
 
-// The board: pins from the USB end, the USB end drawn on the right.
-const topRow = ["3V3","GND","D15","D2","D4","RX2","TX2","D5","D18","D19","D21","RX0","TX0","D22","D23"];
-const botRow = ["VIN","GND","D13","D12","D14","D27","D26","D25","D33","D32","D35","D34","VN","VP","EN"];
-const role = { "3V3": ["power", "+rail"], GND: ["gnd", "−rail"], D14: ["tft", "SCL"], D13: ["tft", "SDA"], D4: ["tft", "DC"], D15: ["tft", "CS"], D5: ["tft", "RES"],
-  D21: ["i2c", "SDA"], D22: ["i2c", "SCL"],
-  D18: ["knob", "CLK"], D19: ["knob", "DT"], D23: ["knob", "SW"],
-  D33: ["pot", "CLICK"], VN: ["pot", "TEMPO"], TX2: ["led", "LED"],
-  D25: ["mx", "DIN"], D26: ["mx", "CLK"], D27: ["mx", "CS"], VIN: ["mx", "5V"] };
+// The board: pins from the antenna end (left) to the USB end (right), as in Homebox.
+const topRow = ["3V3","3V3","RST","4","5","6","7","15","16","17","18","8","3","46","9","10","11","12","13","14","5Vin","GND"];
+const botRow = ["GND","TX","RX","1","2","42","41","40","39","38","37","36","35","0","45","48","47","21","20","19","GND","GND"];
+const role = { "3V3": ["power", "+rail"], GND: ["gnd", "−rail"],
+  "4": ["tft", "SCL"], "5": ["tft", "SDA"], "6": ["tft", "CS"], "7": ["tft", "DC"], "15": ["tft", "RES"],
+  "10": ["i2c", "SDA"], "11": ["i2c", "SCL"],
+  "16": ["knob", "CLK"], "17": ["knob", "DT"], "18": ["knob", "SW"],
+  "1": ["pot", "VOL"], "2": ["pot", "TEMPO"], "38": ["led", "LED"],
+  "42": ["mx", "DIN"], "41": ["mx", "CLK"], "40": ["mx", "CS"], "5Vin": ["mx", "5V"] };
 let svg = document.getElementById("board");
 const NS = "http://www.w3.org/2000/svg";
 const el = (name, attrs, text) => {
@@ -141,13 +143,14 @@ const el = (name, attrs, text) => {
   svg.appendChild(e);
   return e;
 };
-const step = 44, right = 680;
-el("rect", { x: 34, y: 62, width: 670, height: 126, rx: 10, fill: "var(--board)" });
-el("rect", { x: 704, y: 106, width: 34, height: 38, rx: 6, fill: "var(--pin)" });
-el("text", { x: 721, y: 166, fill: "var(--muted)", "font-size": 11, "text-anchor": "middle" }, "USB");
+const step = 44, left = 64;
+el("rect", { x: 34, y: 62, width: 21 * step + 60, height: 126, rx: 10, fill: "var(--board)" });
+el("rect", { x: 34 + 21 * step + 60, y: 106, width: 34, height: 38, rx: 6, fill: "var(--pin)" });
+el("text", { x: 51 + 21 * step + 60, y: 166, fill: "var(--muted)", "font-size": 11, "text-anchor": "middle" }, "USB");
+el("text", { x: 20, y: 130, fill: "var(--muted)", "font-size": 11, "text-anchor": "middle", transform: "rotate(-90 20 125)" }, "antenna");
 function row(names, y, labelY, tagY) {
   names.forEach((n, i) => {
-    const x = right - i * step;
+    const x = left + i * step;
     const [kind, tag, wire] = role[n] || ["pin", ""];
     // A known wire colour fills the dot; the ring keeps the group colour.
     el("circle", { cx: x, cy: y, r: 9, fill: wire ? WIRE[wire] : `var(--${kind})`, stroke: wire ? `var(--${kind})` : "none", "stroke-width": 3 });
@@ -198,14 +201,14 @@ function header(id, pins, note) {
 }
 
 // The screen (TFT 1.69", ST7789V2), BLK on the left.
-header("screen", [["BLK", null], ["CS", "D15", "tft"], ["DC", "D4", "tft"], ["RES", "D5", "tft"],
-  ["SDA", "D13", "tft"], ["SCL", "D14", "tft"], ["VCC", "+rail", "power"], ["GND", "−rail", "gnd"]],
+header("screen", [["BLK", null], ["CS", "6", "tft"], ["DC", "7", "tft"], ["RES", "15", "tft"],
+  ["SDA", "5", "tft"], ["SCL", "4", "tft"], ["VCC", "+rail", "power"], ["GND", "−rail", "gnd"]],
   []);
 
 // The MCP23017 board's single row. RESET and A0-A2 have resistors on the board (seller's
 // schematic: RESET up, A0-A2 down, address 0x20); the check confirms them, so they stay empty.
 header("mcp", [["A2", null], ["A1", null], ["A0", null], ["RESET", null], ["NC/SO", null], ["NC/CS", null],
-  ["SDA/SI", "D21", "i2c"], ["SCL/SCK", "D22", "i2c"], ["GND", "−rail", "gnd"], ["VCC", "+rail", "power"]],
+  ["SDA/SI", "10", "i2c"], ["SCL/SCK", "11", "i2c"], ["GND", "−rail", "gnd"], ["VCC", "+rail", "power"]],
   []);
 
 // Its double row, pairs as printed (B0/A0 ...): GPAn takes ABn, GPBn takes EFn.
@@ -213,12 +216,12 @@ header("mcp2", [["VCC/GND", null], ["ITB/ITA", null],
   ...[0, 1, 2, 3, 4, 5, 6, 7].map((n) => [`B${n}/A${n}`, `EF${n}/AB${n}`, "col"])], []);
 
 // The knob, in board order.
-header("knob", [["CLK", "D18", "knob"], ["DT", "D19", "knob"], ["SW", "D23", "knob"], ["+", "+rail", "power"], ["GND", "−rail", "gnd"]],
+header("knob", [["CLK", "16", "knob"], ["DT", "17", "knob"], ["SW", "18", "knob"], ["+", "+rail", "power"], ["GND", "−rail", "gnd"]],
   ["+ goes to 3V3, not 5 V: the board's pull-ups hang from it."]);
 
 // The pots, pins facing you, legs down: end, wiper, end. Left end to GND and right
 // end to 3V3 should make clockwise louder; if it's the other way, swap the two ends.
-[["pot1", "#2 A0", "beat"], ["pot2", "D33", "the metronome"], ["pot3", "#2 A1", "the live keys"], ["pot4", "#2 A2", "the filter"], ["pot5", "#2 A3", "the reverb"], ["pot6", "VN", "the metronome"]].forEach(([id, pin, what]) =>
+[["pot1", "#2 A0", "beat"], ["pot2", "1", "the metronome"], ["pot3", "#2 A1", "the live keys"], ["pot4", "#2 A2", "the filter"], ["pot5", "#2 A3", "the reverb"], ["pot6", "2", "the metronome"]].forEach(([id, pin, what]) =>
   header(id, [["left end", "−rail", "gnd"], ["wiper", pin, "pot"], ["right end", "+rail", "power"]],
     [{ pot1: "A0: Volume: beat.", pot2: "Metronome: volume.", pot3: "A1: Volume: keys.", pot4: "A2: Effects: filter.", pot5: "A3: Effects: reverb.", pot6: "Metronome: tempo." }[id],
      id === "pot4" ? "The filter: clockwise brighter, fully left dark (keys, DEMO and the loop, not the drums). Use a B10K."
@@ -228,12 +231,12 @@ header("knob", [["CLK", "D18", "knob"], ["DT", "D19", "knob"], ["SW", "D23", "kn
      : id === "pot3" ? "The live keys' fader: held notes follow it too (not the loop or the beat)."
      : `Sets the loudness of ${what}.`, "Clockwise the wrong way? Swap the two ends."]));
 
-// The ADS1115, its single row as printed. On the same I2C wires as the MCP23017 (D21/D22);
-// ADDR left open = 0x48 (checked 2026-11-09).
-header("ads", [["VDD", "+rail", "power"], ["GND", "−rail", "gnd"], ["SCL", "D22", "i2c"], ["SDA", "D21", "i2c"],
+// The ADS1115, its single row as printed. On the same I2C wires as the MCP23017 (pins 10/11);
+// ADDR left open = 0x48 (checked 2026-11-09). On the S3: SDA 10, SCL 11.
+header("ads", [["VDD", "+rail", "power"], ["GND", "−rail", "gnd"], ["SCL", "11", "i2c"], ["SDA", "10", "i2c"],
   ["ADDR", null], ["ALRT", null], ["A0", "pluck", "pot"], ["A1", "glide", "pot"], ["A2", "release", "pot"], ["A3", "tremolo", "pot"]],
-  ["ADDR empty. SCL and SDA share D22 and D21", "with the MCP23017 and #2. VDD on 3V3, not 5 V."]);
-header("ads2", [["VDD", "+rail", "power"], ["GND", "−rail", "gnd"], ["SCL", "D22", "i2c"], ["SDA", "D21", "i2c"],
+  ["ADDR empty. SCL and SDA share 11 and 10", "with the MCP23017 and #2. VDD on 3V3, not 5 V."]);
+header("ads2", [["VDD", "+rail", "power"], ["GND", "−rail", "gnd"], ["SCL", "11", "i2c"], ["SDA", "10", "i2c"],
   ["ADDR", "+rail", "power"], ["ALRT", null], ["A0", "beat", "pot"], ["A1", "keys", "pot"], ["A2", "filter", "pot"], ["A3", "reverb", "pot"]],
   ["ADDR to 3V3: that makes it 0x49.", "Same SCL, SDA, VDD, GND as #1."]);
 
@@ -243,12 +246,12 @@ header("ads2", [["VDD", "+rail", "power"], ["GND", "−rail", "gnd"], ["SCL", "D
     [`A${i}: ${name}. Use a B10K.`, "Clockwise the wrong way? Swap the two ends."]));
 
 // The dot matrix's IN header, as printed (the OUT end's holes stay empty).
-header("dots", [["VCC", "VIN", "mx"], ["GND", "−rail", "gnd"], ["DIN", "D25", "mx"], ["CS", "D27", "mx"], ["CLK", "D26", "mx"]],
-  ["VCC on VIN (5 V from USB), not 3V3.", "Standing up, 8 across and 32 tall."]);
+header("dots", [["VCC", "5Vin", "mx"], ["GND", "−rail", "gnd"], ["DIN", "42", "mx"], ["CS", "40", "mx"], ["CLK", "41", "mx"]],
+  ["VCC on 5Vin, not 3V3. Measure 5Vin first (USB in): ~5 V?", "Standing up, 8 across and 32 tall."]);
 
 // The LED strip's IN side (the OUT side chains more strips: leave it empty).
-header("strip", [["S", "TX2", "led"], ["V", "+rail", "power"], ["G", "−rail", "gnd"]],
-  ["The IN side's S, V, G; the OUT side (for chaining) stays empty.", "TX2 is on the top row, between RX2 and D5.",
+header("strip", [["S", "38", "led"], ["V", "+rail", "power"], ["G", "−rail", "gnd"]],
+  ["The IN side's S, V, G; the OUT side (for chaining) stays empty.", "38 is on the bottom row, between 39 and 37.",
    "V on 3V3, not 5 V: the data is 3.3 V; the firmware keeps", "the LEDs dim (full white would be ~480 mA)."]);
 
 // Diode test: keys 1-8 through a 1N4148 in the AB0 wire. The row pulls current in,
