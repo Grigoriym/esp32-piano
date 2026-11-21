@@ -12,9 +12,9 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 
-#define DIN            GPIO_NUM_25
-#define CLK            GPIO_NUM_26
-#define CS             GPIO_NUM_27
+#define DIN            GPIO_NUM_42
+#define CLK            GPIO_NUM_41
+#define CS             GPIO_NUM_40
 #define MODULES        4
 #define BRIGHTNESS     1 /* of 15: 256 LEDs at 15 is ~1 A, too much for USB */
 #define DOTS_IN_AT_TOP 0 /* 1: the IN header's end is up */

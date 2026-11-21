@@ -7,14 +7,14 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 
-// HSPI's own IO_MUX pins for clock/data/CS, so 40 MHz works as on mukklet
-// (which uses VSPI's; the key scan has those). BLK open: backlight always on.
+// ESP32-S3 pins (docs/wiring.html), through the GPIO matrix: the S3's SPI2 IO_MUX
+// pins include 12/13, shorted on one of the three boards. BLK open: backlight always on.
 #define SPI_HOST_ID SPI2_HOST
-#define PIN_SCLK    14 // module "SCL"
-#define PIN_MOSI    13 // module "SDA"
-#define PIN_CS      15
-#define PIN_RST     5
-#define PIN_DC      4
+#define PIN_SCLK    4 // module "SCL"
+#define PIN_MOSI    5 // module "SDA"
+#define PIN_CS      6
+#define PIN_RST     15
+#define PIN_DC      7
 #define PCLK_HZ     (40 * 1000 * 1000)
 #define Y_GAP       20 // controller RAM is 240x320, the panel shows rows 20..299
 // The panel's picture is upside down with the pin header at the bottom;

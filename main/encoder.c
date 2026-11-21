@@ -7,9 +7,9 @@
 #include "freertos/task.h"
 
 /* From mukklet, without its press gestures: nothing here needs them yet. */
-#define ENC_CLK_GPIO    GPIO_NUM_18
-#define ENC_DT_GPIO     GPIO_NUM_19
-#define ENC_SW_GPIO     GPIO_NUM_23
+#define ENC_CLK_GPIO    GPIO_NUM_16
+#define ENC_DT_GPIO     GPIO_NUM_17
+#define ENC_SW_GPIO     GPIO_NUM_18
 #define BTN_POLL_MS     10
 #define BTN_DEBOUNCE_MS 30
 

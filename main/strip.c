@@ -4,7 +4,7 @@
 
 #include "driver/rmt_tx.h"
 
-#define STRIP_GPIO GPIO_NUM_17
+#define STRIP_GPIO GPIO_NUM_38
 #define RES_HZ     10000000 /* 0.1 us a tick */
 
 static rmt_channel_handle_t chan;

@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.."
 SF2=${SF2:-/usr/share/sounds/sf2/FluidR3_GM.sf2}
 # The toy's DevKit on the USB cable (CP2102): MIDI comes that way too when plugged
 # in. The bridge holds it exclusively: stop the service to flash.
-CABLE=${CABLE:-/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0}
+CABLE=${CABLE:-/dev/serial/by-id/usb-1a86_USB_Single_Serial_5D33081582-if00}
 
 if [ ! -x build-host/piano_bridge ] || [ tools/piano_bridge.c -nt build-host/piano_bridge ]; then
     mkdir -p build-host

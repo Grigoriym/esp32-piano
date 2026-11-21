@@ -1,6 +1,10 @@
-# 4 MB flash on every board here (DevKit and mini); the IDF default assumes 2 MB.
+# ESP32-S3 DevKitC-1 clone (Binghe N16R8, since 2026-11-21): 16 MB flash, DIO (its XMC
+# flash fails QIO; bootloader_components/ is the patched bootloader it needs, from
+# esp32-hw-checks/s3-selftest). The octal PSRAM stays off (not needed).
+CONFIG_IDF_TARGET="esp32s3"
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_ESPTOOLPY_FLASHMODE_DIO=y
 # Large single app partition (1.5 MB): WiFi alone is close to the default 1 MB.
-CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
 CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
 # One tick = 1 ms: the key scan runs every 2 ms (MIDI latency)
 CONFIG_FREERTOS_HZ=1000
@@ -10,5 +14,8 @@ CONFIG_FREERTOS_HZ=1000
 CONFIG_ESP_CONSOLE_UART_CUSTOM=y
 CONFIG_ESP_CONSOLE_UART_CUSTOM_NUM_0=y
 CONFIG_ESP_CONSOLE_UART_BAUDRATE=921600
+# No copy of the log on the S3's native USB port (unused).
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 # Each core's load on the Debug screen (main/stats.c): the idle tasks' run time.
 CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y

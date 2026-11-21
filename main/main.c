@@ -64,8 +64,8 @@
 
 /* The MCP23017 (address 0x20: A0-A2 pulled down on the board). IOCON.BANK = 0,
  * the reset default: each A register is followed by its B twin. */
-#define I2C_SDA    GPIO_NUM_21
-#define I2C_SCL    GPIO_NUM_22
+#define I2C_SDA    GPIO_NUM_10
+#define I2C_SCL    GPIO_NUM_11
 #define I2C_HZ     400000
 #define MCP_ADDR   0x20
 #define MCP_IODIRA 0x00 /* 1 = input */
@@ -104,8 +104,8 @@ static const struct {
     mixer_pot_t pot;
     adc_channel_t ch;
 } ADC_POT[ADC_POTS] = {
-    {MIXER_CLICK, ADC_CHANNEL_5}, /* D33 */
-    {MIXER_METRO, ADC_CHANNEL_3}, /* VN (GPIO39) */
+    {MIXER_CLICK, ADC_CHANNEL_0}, /* GPIO1 */
+    {MIXER_METRO, ADC_CHANNEL_1}, /* GPIO2 */
 };
 /* Each ADS1115's A0-A3. */
 static const mixer_pot_t ADS_POT[ADS_N][4] = {

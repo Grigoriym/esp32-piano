@@ -6,7 +6,7 @@ Run with the IDF python env (has pyserial):
   ~/.espressif/python_env/idf6.2_py3.14_env/bin/python tools/serial_log.py \
       [seconds] [grep-regex]
 
-Port /dev/ttyUSB0 (the DevKit, CP2102); PORT=... in the environment picks another one.
+Port /dev/ttyACM0 (the ESP32-S3, CH343); PORT=... in the environment picks another one.
 
 Retries once if nothing matching comes back -- the first read after a flash
 or USB re-enumeration is sometimes empty. SIGTERM/SIGINT end the capture
@@ -20,7 +20,7 @@ import time
 
 import serial
 
-PORT = os.environ.get("PORT", "/dev/ttyUSB0")  # the DevKit (CP2102)
+PORT = os.environ.get("PORT", "/dev/ttyACM0")  # the ESP32-S3 (CH343)
 BAUD = 921600  # the console (sdkconfig.defaults); the ROM boot lines are at 115200 and look garbled
 MAX_BYTES = 2_000_000  # 921600 baud can't legitimately produce more in ~20s
 stopped = False
