@@ -619,13 +619,18 @@ battery compartment on the left: the only empty space. **The user's call:** the 
 the cassette deck stays as a deck (green board, mechanism, speaker, socket panel) for **lo-fi: the PC's sound recorded
 onto tape through its `IN/OUT` DIN socket and played back** (no ESP32 needed for that; later it could switch the
 motor through a MOSFET or read the 5 cassette keys). Nothing removed yet; the deck is untested (no tapes, ordered).
-Next: test it as it is on the user's new **PeakTech 6080A** bench supply (0-15 V 0-3 A; set 6.00 V and a 0.50 A
-limit with the leads shorted before connecting; find `+` on the battery contacts first): RADIO tuned to a station
-(amp + speaker), TAPE + PLAY without a cassette (the motor), then the same at **5.0 V**: if the tape speed is the
-same, it runs off the box's 5 V with no module. Else the candidate is an MT3608 boost ("DC-DC Step Up 2V-24V to
-5V-28V", LAOMAO, pack of 10, Amazon; check the trimmer and the `MT3608` marking), set to 6.0 V. Not running: check
-the belt first (likely soft or snapped at this age). Before ordering the DIN-to-3.5 mm cable, check which DIN pins
-are the input. Offered, not answered: the PeakTech's Homebox entry. Ideas from the outside photos: screen behind
+**Tested 2026-11-21 on the PeakTech 6080A** (0-15 V 0-3 A), 6.00 V, 0.50 A limit, clipped onto the battery box:
+power goes in at the end plate that carries the wires: its centre button (red wire, a cell's tip) is `+`, the plate
+and its spring (white wire) `-`, the two don't beep to each other; the two contacts at the other end beep to each
+other (the series link). RADIO: a station came in (hard to tune with the back off), 22 mA idle, 24-50 mA playing.
+TAPE + PLAY without a cassette: hiss in the speaker, 0.1+ A, the motor's brass pulley spun but **the belt slipped**
+(stretched; the flywheel turns freely by hand); with a household rubber band the mechanism and spindles turned, at
+6 V and at **5.0 V**. Tape speed not judged (no cassettes yet): play a known song at 6 V and at 5 V. **Next: a new
+belt**: take the old one off, measure it laid flat (length x 2), flat or round/square, thickness; then German-shop
+keywords. Green board read `TX-126D` on a second photo (photo read). Neither the boom box nor the PeakTech is in
+Homebox (offer the entries; boom box with the `Salvage` tag). If the speed at 5 V is off, the candidate is an MT3608 boost ("DC-DC Step Up 2V-24V to
+5V-28V", LAOMAO, pack of 10, Amazon; check the trimmer and the `MT3608` marking), set to 6.0 V. Before ordering the DIN-to-3.5 mm cable, check which DIN pins
+are the input. Ideas from the outside photos: screen behind
 the cassette window, the 32x8 matrix behind the dial window, the Volume/Tone sliders as pots, the side knob as the
 KY-040. Mains parts out before any 3.3 V part goes in.
 
