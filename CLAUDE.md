@@ -299,8 +299,9 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 - **Moving to the ESP32-S3 DevKitC-1** (2026-11-21, Homebox unit `cc:68:c7:97:ee:4c`, all self-tests pass; its XMC
   flash 20 70 18 needs the bootloader fix from `../esp32-hw-checks` s3-selftest; port `/dev/ttyACM0`, CH343). The
   wiring doc shows the S3 pins: screen SCL 4 SDA 5 CS 6 DC 7 RES 15, I2C SDA 10 SCL 11, knob 16/17/18, metronome pots
-  1 (volume) and 2 (tempo) on ADC1, strip 38, dot matrix DIN 42 CLK 41 CS 40, VCC on 5Vin. The firmware and
-  `pc_synth.sh`'s `CABLE` still have the DevKit's pins until ported; the pin names below are the DevKit's.
+  1 (volume) and 2 (tempo) on ADC1, strip 38, dot matrix DIN 42 CLK 41 CS 40, VCC on 5Vin. Ported and flashed
+  2026-11-21 (`efbe2c9`): MCP23017, both ADS1115s, WiFi, the cable link (CH343, the bridge's open doesn't reset it)
+  all came up; core 0 ~45-48% idle (was ~60%). The pin names further down are still the DevKit's: read the wiring doc.
 - `docs/wiring.html`: **the wiring doc**, every DevKit pin and what goes on it
   (local page, open in a browser; not published). Update it with every
   wiring change, in the same step as the wiring (2026-11-07 the matrix went onto the piano without it until the
