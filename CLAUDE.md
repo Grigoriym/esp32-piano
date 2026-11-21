@@ -78,11 +78,12 @@ milestones.
   drives them high.
 
 ## Build
-ESP-IDF project at the repo root, `sdkconfig.defaults` from `../esp32-hw-checks`
-(4 MB flash, large single app partition) plus a 1000 Hz tick (the key scan aims to run
+ESP-IDF project at the repo root, target **esp32s3** since 2026-11-21 (`sdkconfig.defaults`: 16 MB flash in DIO,
+large single app partition, PSRAM off; `bootloader_components/` = the patched bootloader the board's XMC flash needs,
+copied from `../esp32-hw-checks/s3-selftest`, must match the IDF version) plus a 1000 Hz tick (the key scan aims to run
 every 2 ms). First build in a fresh checkout: `cp main/wifi_secrets.h.example
 main/wifi_secrets.h` (fill in, gitignored; same network as mukklet), then
-`. ~/esp/esp-idf/export.sh && idf.py set-target esp32 && idf.py build`. Flash
+`. ~/esp/esp-idf/export.sh && idf.py set-target esp32s3 && idf.py build`. Flash
 with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
 `rm sdkconfig` and build again.
 - `main/display.c`, `canvas.c`, `font.c`, `font_data.c` (+ `tools/gen_font.py`)
@@ -301,8 +302,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   wiring doc shows the S3 pins: screen SCL 4 SDA 5 CS 6 DC 7 RES 15, I2C SDA 10 SCL 11, knob 16/17/18, metronome pots
   1 (volume) and 2 (tempo) on ADC1, strip 38, dot matrix DIN 42 CLK 41 CS 40, VCC on 5Vin. Ported and flashed
   2026-11-21 (`efbe2c9`): MCP23017, both ADS1115s, WiFi, the cable link (CH343, the bridge's open doesn't reset it)
-  all came up; core 0 ~45-48% idle (was ~60%). The pin names further down are still the DevKit's: read the wiring doc.
-- `docs/wiring.html`: **the wiring doc**, every DevKit pin and what goes on it
+  all came up; core 0 ~45-48% idle (was ~60%); the user saw the matrix work. The pin names further down are still the
+  DevKit's: read the wiring doc. So are `/dev/ttyUSB0` and "CP2102" in the Traps: now `/dev/ttyACM0`, CH343 (both
+  `tools/serial_log.py` and `pc_synth.sh` default to it). **The matrix's 5 V needs the board's `IN-OUT` solder bridge
+  closed** (closed 2026-11-21; open, 5Vin read 0.6 V and the matrix stayed dark with no error; Homebox has it). Open
+  it again before any battery or supply feeds 5Vin. Spare S3s (two more in Homebox) ship with it open.
+- `docs/wiring.html`: **the wiring doc**, every ESP32-S3 pin and what goes on it
   (local page, open in a browser; not published). Update it with every
   wiring change, in the same step as the wiring (2026-11-07 the matrix went onto the piano without it until the
   user asked "did you add the matrix in our wiring?"). 2026-10-22: the 16 toy lines on the MCP23017 (`EFn` → `Bn`,
@@ -606,11 +611,23 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
-**2026-11-21, idea:** the parts may move into a 1970s-80s cassette radio, a "Tokyo Flipper TR-404AL" (the user's,
-mains 220 V inside + 4 C cells): it would replace the printed box. The user keeps the cassette player working (maybe
-something with it later). Next: the user takes it apart and sends inside photos, we go through it together. Ideas from
-the outside photos only: screen behind the cassette window, the 32x8 matrix behind the dial window, its Volume/Tone
-sliders as pots, side knob as the KY-040, the DIN socket as MIDI. Mains part out before any 3.3 V part goes in.
+**2026-11-21, the boom box:** the parts may move into a cassette radio, a "Tokyo Flipper TR-404AL" (the user's;
+label: AC 220 V 8 W, BATT 6 V = 4 C cells): it would replace the printed box. Opened (back off, photo in the chat
+only): mains transformer top left, radio board (brown) + tuning gang + ferrite antenna on the right half, the cassette
+board (green, `TX-N26D`?, photo read) in the middle, the mechanism at the bottom (motor + belt bottom left), the
+battery compartment on the left: the only empty space. **The user's call:** the radio parts and the transformer go;
+the cassette deck stays as a deck (green board, mechanism, speaker, socket panel) for **lo-fi: the PC's sound recorded
+onto tape through its `IN/OUT` DIN socket and played back** (no ESP32 needed for that; later it could switch the
+motor through a MOSFET or read the 5 cassette keys). Nothing removed yet; the deck is untested (no tapes, ordered).
+Next: test it as it is on the user's new **PeakTech 6080A** bench supply (0-15 V 0-3 A; set 6.00 V and a 0.50 A
+limit with the leads shorted before connecting; find `+` on the battery contacts first): RADIO tuned to a station
+(amp + speaker), TAPE + PLAY without a cassette (the motor), then the same at **5.0 V**: if the tape speed is the
+same, it runs off the box's 5 V with no module. Else the candidate is an MT3608 boost ("DC-DC Step Up 2V-24V to
+5V-28V", LAOMAO, pack of 10, Amazon; check the trimmer and the `MT3608` marking), set to 6.0 V. Not running: check
+the belt first (likely soft or snapped at this age). Before ordering the DIN-to-3.5 mm cable, check which DIN pins
+are the input. Offered, not answered: the PeakTech's Homebox entry. Ideas from the outside photos: screen behind
+the cassette window, the 32x8 matrix behind the dial window, the Volume/Tone sliders as pots, the side knob as the
+KY-040. Mains parts out before any 3.3 V part goes in.
 
 **State 2026-11-11:** the user's loop saved as riffs #11 Song #5 with the `save-song` skill (first real use; it
 worked as written). New: the compact one-screen view on top of a song (the user's ask, now `save_song.py`'s default;
