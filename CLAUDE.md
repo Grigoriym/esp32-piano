@@ -605,6 +605,12 @@ with the `esp32-flash-verify` skill. After changing `sdkconfig.defaults`:
   (MCP23017 at the toy, 4 wires to the box, the free ESP32 mini, amp left out).
 
 ## Next step
+**2026-11-21, idea:** the parts may move into a 1970s-80s cassette radio, a "Tokyo Flipper TR-404AL" (the user's,
+mains 220 V inside + 4 C cells): it would replace the printed box. The user keeps the cassette player working (maybe
+something with it later). Next: the user takes it apart and sends inside photos, we go through it together. Ideas from
+the outside photos only: screen behind the cassette window, the 32x8 matrix behind the dial window, its Volume/Tone
+sliders as pots, side knob as the KY-040, the DIN socket as MIDI. Mains part out before any 3.3 V part goes in.
+
 **State 2026-11-11:** the user's loop saved as riffs #11 Song #5 with the `save-song` skill (first real use; it
 worked as written). New: the compact one-screen view on top of a song (the user's ask, now `save_song.py`'s default;
 the older songs #1-#10 don't have it, offered, not answered). The user filmed the toy for an Instagram reel (phone audio
