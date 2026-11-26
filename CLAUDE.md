@@ -640,7 +640,11 @@ inlet and a DIN socket with the tape symbol, 7 pins (the user counted). The user
 tape; ordered for that (2026-11-26, in Homebox, arrived 2026-11-26): 3 PCM5102 I2S DAC boards (a tape ESP making line-level audio) and 4 solder DIN 5-pin plugs (a 5-pin 180-degree plug normally fits a 7-pin socket; pins 6/7 of the SL 53 unknown). Ideas: `docs/tape-ideas.html`. "automatic" likely means automatic recording level (not checked).
 Idea discussed: an ESP32 can't read a beat off tape (sound only) and tape speed drifts, so to follow a tape it would
 listen to the deck's signal electrically (before its volume, not a microphone: the live keys don't get in) and track
-the kicks.
+the kicks. The user's plan: a second ESP (a spare S3) with a PCM5102 "controls the recording". **Next, once the user
+has a tape (the user, 2026-11-26: later):** push a DIN plug into the SL 53's socket unsoldered (does it seat?), then a
+sharp straight-on photo of the plug's pin end to map plug pins to socket holes; measure the record input's level
+before feeding it (DIN inputs usually want far less than line level: a divider). The PCM5102 boards: check the back
+jumpers (H1L-H4L) on a real board, then `esp32-hw-checks` first. First recording test needs no ESP: idea 1 on the page.
 
 **State 2026-11-11:** the user's loop saved as riffs #11 Song #5 with the `save-song` skill (first real use; it
 worked as written). New: the compact one-screen view on top of a song (the user's ask, now `save_song.py`'s default;
