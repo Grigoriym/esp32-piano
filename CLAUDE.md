@@ -625,7 +625,13 @@ and its spring (white wire) `-`, the two don't beep to each other; the two conta
 other (the series link). RADIO: a station came in (hard to tune with the back off), 22 mA idle, 24-50 mA playing.
 TAPE + PLAY without a cassette: hiss in the speaker, 0.1+ A, the motor's brass pulley spun but **the belt slipped**
 (stretched; the flywheel turns freely by hand); with a household rubber band the mechanism and spindles turned, at
-6 V and at **5.0 V**. Tape speed not judged (no cassettes yet): play a known song at 6 V and at 5 V. **Next: a new
+6 V and at **5.0 V**. **With tapes (2026-11-26):** PLAY pulled tape out of the cassette (spilled). The cassette sits **upside down** in
+this deck (open edge up, head and roller at the top), so in PLAY the tape runs right to left and the **left** spindle
+winds; the drive runs **with the band crossed** (figure 8, as the user had it): PLAY turns the left spindle, REW the
+right, a paper strip between capstan and roller is pulled left (checked). Uncrossed, the right spindle turned in PLAY
+(wrong). I first gave the open-edge-down rule (tape left to right, right spindle winds) and had the band uncrossed:
+check the cassette's orientation in a deck before naming spindles. The spill = the left (take-up) spindle too weak:
+the rubber band slips. Tape speed not judged: play a known song at 6 V and at 5 V. **Next: a new
 belt**: take the old one off, measure it laid flat (length x 2), flat or round/square, thickness; then German-shop
 keywords. Green board read `TX-126D` on a second photo (photo read). Neither the boom box nor the PeakTech is in
 Homebox (offer the entries; boom box with the `Salvage` tag). If the speed at 5 V is off, the candidate is an MT3608 boost ("DC-DC Step Up 2V-24V to
