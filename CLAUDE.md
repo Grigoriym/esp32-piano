@@ -637,7 +637,7 @@ KY-040. Mains parts out before any 3.3 V part goes in.
 portable cassette recorder with a built-in speaker; label `7,5V === 110-150V/200-240V ~ 5W`, `5331 22 21`; keys
 rewind, REC., STOP, START, fast forward, a VOLUME wheel, a green key and a CASS. button (eject?); on the side a mains
 inlet and a DIN socket with the tape symbol, 7 pins (the user counted). The user will adapt it to record the songs onto
-tape; ordered for that (2026-11-26, in Homebox, not arrived): 3 PCM5102 I2S DAC boards (a tape ESP making line-level audio) and 4 solder DIN 5-pin plugs (a 5-pin 180-degree plug normally fits a 7-pin socket; pins 6/7 of the SL 53 unknown). Ideas: `docs/tape-ideas.html`. "automatic" likely means automatic recording level (not checked).
+tape; ordered for that (2026-11-26, in Homebox, arrived 2026-11-26): 3 PCM5102 I2S DAC boards (a tape ESP making line-level audio) and 4 solder DIN 5-pin plugs (a 5-pin 180-degree plug normally fits a 7-pin socket; pins 6/7 of the SL 53 unknown). Ideas: `docs/tape-ideas.html`. "automatic" likely means automatic recording level (not checked).
 Idea discussed: an ESP32 can't read a beat off tape (sound only) and tape speed drifts, so to follow a tape it would
 listen to the deck's signal electrically (before its volume, not a microphone: the live keys don't get in) and track
 the kicks.
