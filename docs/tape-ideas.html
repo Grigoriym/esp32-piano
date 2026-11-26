@@ -77,7 +77,7 @@ header, section { display: flex; flex-direction: column; gap: 12px; }
   <h2>What we have</h2>
   <div class="parts">
     <div class="part"><b>Boom box</b><span>Tokyo Flipper TR-404AL</span><small>Radio and transformer go; cassette deck stays. Motor belt slips (new belt needed). Runs at 5-6 V.</small></div>
-    <div class="part"><b>Cassette recorder</b><span>ITT Schaub-Lorenz SL 53 automatic</span><small>Mono, own speaker, 7.5 V DC or mains. DIN socket on the side (pins not counted yet). "Automatic" = probably auto record level.</small></div>
+    <div class="part"><b>Cassette recorder</b><span>ITT Schaub-Lorenz SL 53 automatic</span><small>Mono, own speaker, 7.5 V DC or mains. 7-pin DIN socket on the side. "Automatic" = probably auto record level.</small></div>
     <div class="part"><b>PCM5102 DAC</b><span>3 boards, I2S in, 3.5 mm out</span><small>Turns the ESP's digital audio into line-level sound (2.1 V rms, 3.3-5.5 V supply, per the listing). Pins SCK, BCK, DIN, LCK, GND, VIN; jumpers H1L-H4L on the back (FLT, DEMP, XSMT, FMT). Ordered.</small></div>
     <div class="part"><b>DIN 5-pin plugs</b><span>4, solder type</span><small>For a cable into the recorder's DIN socket. Ordered.</small></div>
     <div class="part"><b>Spare ESP32-S3s</b><span>2 in Homebox</span><small>One could become the "tape ESP".</small></div>
@@ -160,7 +160,7 @@ header, section { display: flex; flex-direction: column; gap: 12px; }
   <h2>Before any of it</h2>
   <div class="checks">
     <ol>
-      <li>Count the SL 53's DIN socket pins on the socket itself. On the standard 5-pin tape socket, 1 = record in, 2 = ground, 3 = playback out, 4 / 5 = the right channel's in / out <span class="tag">standard, not checked on this recorder</span>. The plugs you ordered are 5-pin: they fit only if the socket is.</li>
+      <li>The SL 53's DIN socket has 7 pins (you counted). A 5-pin plug with its pins in a half circle (180&deg;) normally fits a 7-pin socket; pins 6 and 7 stay unused <span class="tag">usual for DIN, check with the plug</span>. On the standard tape socket, 1 = record in, 2 = ground, 3 = playback out, 4 / 5 = the right channel's in / out <span class="tag">standard, not checked on this recorder</span>. What 6 and 7 do on the SL 53: unknown, measure before connecting anything there.</li>
       <li>The DIN record input expects a much smaller signal than line level <span class="tag">usual for DIN, to measure</span>: a PCM5102 or PC output needs a divider in front of it, or the recording distorts.</li>
       <li>A cassette that plays: hear the SL 53 and the boom box (after its belt) play a known song.</li>
       <li>The PCM5102 boards: check the back's jumpers H1L-H4L are bridged (XSMT unbridged = muted, the usual "no sound" on this board) and SCK goes to GND <span class="tag">listing photos + common for this board, check on yours</span>.</li>
