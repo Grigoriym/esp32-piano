@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tape Ideas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+:root {
+  --bg: #f6f7fb; --panel: #ffffff; --ink: #1c2240; --muted: #5b6283; --line: #d9dcea;
+  --rec: #d8343a; --tape: #b8862b; --esp: #2e6bd8; --box: #2f9e57; --pc: #7a52c7;
+  --font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558;
+    --rec: #ff6b70; --tape: #e0b45a; --esp: #77a4ff; --box: #5fd18a; --pc: #b394f0; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12152a; --panel: #1b1f3a; --ink: #e8eaf6; --muted: #a2a8c8; --line: #2f3558;
+  --rec: #ff6b70; --tape: #e0b45a; --esp: #77a4ff; --box: #5fd18a; --pc: #b394f0; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--font-body); }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 28px 16px 56px; display: flex; flex-direction: column; gap: 34px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; line-height: 1.15; text-wrap: balance; }
+h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); }
+h2 { font-size: 1.4rem; display: flex; align-items: center; gap: 10px; }
+h3 { font-size: 1.05rem; }
+p { margin: 0; max-width: 70ch; }
+.lede { color: var(--muted); }
+header, section { display: flex; flex-direction: column; gap: 12px; }
+.mono { font-family: var(--font-mono); }
+.dot { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+
+.parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.part { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.part b { font-family: var(--font-display); font-weight: 600; }
+.part small { color: var(--muted); }
+
+.flow { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px; overflow-x: auto; }
+.flow svg { display: block; min-width: 760px; width: 100%; height: auto; }
+.flow text { font-family: var(--font-body); fill: var(--ink); }
+.flow .sub { fill: var(--muted); font-size: 11px; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-top: 5px solid var(--c, var(--line)); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.tile .num { font: 700 .8rem var(--font-mono); color: var(--muted); }
+.tile p { font-size: .94rem; }
+.tile .need { font-size: .85rem; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+.chip { font: 600 .72rem var(--font-body); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; color: var(--muted); }
+.chip.s { border-color: var(--box); color: var(--box); }
+.chip.m { border-color: var(--tape); color: var(--tape); }
+.chip.l { border-color: var(--rec); color: var(--rec); }
+
+.checks { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; }
+.checks ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
+.checks li { max-width: 80ch; }
+.tag { font: 600 .72rem var(--font-body); color: var(--muted); border: 1px dashed var(--line); border-radius: 6px; padding: 0 5px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Tape ideas</h1>
+  <p class="lede">What the boom box, the cassette recorder, a second ESP32-S3 and the new parts could do together. Pick what you like; nothing here is decided. Effort: <span class="chip s">small</span> <span class="chip m">medium</span> <span class="chip l">big</span>.</p>
+</header>
+
+<section>
+  <h2>What we have</h2>
+  <div class="parts">
+    <div class="part"><b>Boom box</b><span>Tokyo Flipper TR-404AL</span><small>Radio and transformer go; cassette deck stays. Motor belt slips (new belt needed). Runs at 5-6 V.</small></div>
+    <div class="part"><b>Cassette recorder</b><span>ITT Schaub-Lorenz SL 53 automatic</span><small>Mono, own speaker, 7.5 V DC or mains. DIN socket on the side (pins not counted yet). "Automatic" = probably auto record level.</small></div>
+    <div class="part"><b>PCM5102 DAC</b><span>3 boards, I2S in, 3.5 mm out</span><small>Turns the ESP's digital audio into line-level sound (2.1 V rms, 3.3-5.5 V supply, per the listing). Pins SCK, BCK, DIN, LCK, GND, VIN; jumpers H1L-H4L on the back (FLT, DEMP, XSMT, FMT). Ordered.</small></div>
+    <div class="part"><b>DIN 5-pin plugs</b><span>4, solder type</span><small>For a cable into the recorder's DIN socket. Ordered.</small></div>
+    <div class="part"><b>Spare ESP32-S3s</b><span>2 in Homebox</span><small>One could become the "tape ESP".</small></div>
+  </div>
+</section>
+
+<section>
+  <h2>The whole loop, at a glance</h2>
+  <div class="flow">
+    <svg viewBox="0 0 900 230" role="img" aria-label="Signal flow: PC or tape ESP into the recorder's DIN record input, tape plays back out of DIN into the toy's ESP, which follows the beat">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+      </defs>
+      <g stroke-width="2" fill="var(--panel)">
+        <rect x="10" y="20" width="150" height="60" rx="10" stroke="var(--pc)"/>
+        <rect x="10" y="140" width="150" height="60" rx="10" stroke="var(--esp)"/>
+        <rect x="250" y="80" width="150" height="70" rx="10" stroke="var(--esp)"/>
+        <rect x="490" y="80" width="160" height="70" rx="10" stroke="var(--rec)"/>
+        <rect x="740" y="80" width="150" height="70" rx="10" stroke="var(--esp)"/>
+      </g>
+      <text x="85" y="46" text-anchor="middle" font-weight="700">PC (FluidSynth)</text>
+      <text x="85" y="64" text-anchor="middle" class="sub">the song as you hear it now</text>
+      <text x="85" y="166" text-anchor="middle" font-weight="700">Toy's ESP</text>
+      <text x="85" y="184" text-anchor="middle" class="sub">beat, keys, loop (MIDI)</text>
+      <text x="325" y="108" text-anchor="middle" font-weight="700">Tape ESP + PCM5102</text>
+      <text x="325" y="126" text-anchor="middle" class="sub">makes the audio, runs</text>
+      <text x="325" y="140" text-anchor="middle" class="sub">the motor, writes a count-in</text>
+      <text x="570" y="108" text-anchor="middle" font-weight="700">SL 53 recorder</text>
+      <text x="570" y="126" text-anchor="middle" class="sub">DIN: record in / play out</text>
+      <text x="815" y="108" text-anchor="middle" font-weight="700">Toy's ESP</text>
+      <text x="815" y="126" text-anchor="middle" class="sub">listens, finds the kicks,</text>
+      <text x="815" y="140" text-anchor="middle" class="sub">follows the tape's beat</text>
+      <g stroke="var(--muted)" stroke-width="2" fill="none" marker-end="url(#ar)">
+        <path d="M160,50 C210,50 210,100 248,105"/>
+        <path d="M160,170 C210,170 210,130 248,125"/>
+        <path d="M400,115 L488,115"/>
+        <path d="M650,115 L738,115"/>
+        <path d="M160,40 C350,0 480,20 540,78" stroke-dasharray="5 5"/>
+      </g>
+      <text x="200" y="88" class="sub">audio (USB or WiFi)</text>
+      <text x="196" y="150" class="sub">MIDI</text>
+      <text x="410" y="105" class="sub">line, through a divider</text>
+      <text x="660" y="105" class="sub">playback, to the ADC</text>
+      <text x="360" y="14" class="sub">or skip the tape ESP: PC headphone out straight to DIN (idea 1)</text>
+    </svg>
+  </div>
+</section>
+
+<section>
+  <h2><span class="dot" style="background:var(--rec)"></span>Getting a song onto tape</h2>
+  <div class="tiles">
+    <div class="tile" style="--c:var(--pc)"><span class="num">1</span><h3>PC straight to tape</h3><p>PC headphone out, a resistor divider, a DIN plug into the recorder. You press REC + START by hand. No ESP at all.</p><p class="need">Needs: one DIN plug, a 3.5 mm cable, 2 resistors.</p><div class="chips"><span class="chip s">small</span><span class="chip">first test</span></div></div>
+    <div class="tile" style="--c:var(--esp)"><span class="num">2</span><h3>Tape ESP as a USB sound card</h3><p>The S3 has real USB: the PC sees a "Tape" sound device, FluidSynth plays to it, the ESP passes it to the PCM5102 and on to the recorder. No PC headphone cable, and the ESP knows exactly when the song starts.</p><p class="need">Needs: PCM5102, DIN plug, USB audio code on the S3.</p><div class="chips"><span class="chip l">big</span></div></div>
+    <div class="tile" style="--c:var(--esp)"><span class="num">3</span><h3>Tape ESP plays the sound itself</h3><p>The ESP makes the sounds (its own small synth, "direction B" from the start of this project), driven by the toy's MIDI. Works without the PC. Sound is simpler than FluidSynth.</p><p class="need">Needs: PCM5102, a synth on the ESP.</p><div class="chips"><span class="chip l">big</span></div></div>
+    <div class="tile" style="--c:var(--rec)"><span class="num">4</span><h3>Start recording on a bar line</h3><p>You press REC + START with the motor's power held off; the tape ESP switches the motor on (MOSFET) exactly at the next bar, so the tape starts with the song, not with silence.</p><p class="need">Needs: open the recorder, a MOSFET in the motor wire.</p><div class="chips"><span class="chip m">medium</span></div></div>
+    <div class="tile" style="--c:var(--rec)"><span class="num">5</span><h3>Count-in on the tape</h3><p>Before the song, the ESP records 4 short clicks at the song's tempo. Played back later, the toy hears them and knows tempo and bar 1 before the music starts, then follows the kicks.</p><p class="need">Needs: idea 2 or 3 (the ESP makes the audio).</p><div class="chips"><span class="chip s">small</span><span class="chip">once 2/3 work</span></div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="dot" style="background:var(--tape)"></span>Playing it back</h2>
+  <div class="tiles">
+    <div class="tile" style="--c:var(--tape)"><span class="num">6</span><h3>The toy follows the tape</h3><p>The deck's playback signal (DIN, or inside before the volume) goes into the ESP's ADC. It finds the kicks and moves the beat, metronome, looper and fireworks along with the tape, drift included. Your live keys don't get in: they never pass through that wire.</p><p class="need">Needs: a cap + 2 resistors to the ADC, beat-finding code.</p><div class="chips"><span class="chip m">medium</span></div></div>
+    <div class="tile" style="--c:var(--tape)"><span class="num">7</span><h3>Tape as a backing track</h3><p>Record a beat + bass to tape, play keys and loops live over it. With idea 6 the new layers line up with the tape; without it, only for short parts (tape drifts 1-3%).</p><p class="need">Needs: idea 1, better with 6.</p><div class="chips"><span class="chip s">small</span></div></div>
+    <div class="tile" style="--c:var(--tape)"><span class="num">8</span><h3>Real tape stop</h3><p>The Tape chick (6) fakes a slowdown with a pitch bend. With the motor on a MOSFET, the ESP really slows the motor down: the actual tape groans to a halt.</p><p class="need">Needs: MOSFET on the playback deck's motor.</p><div class="chips"><span class="chip m">medium</span></div></div>
+    <div class="tile" style="--c:var(--tape)"><span class="num">9</span><h3>Wow on a knob</h3><p>Same MOSFET, the motor's speed wobbled slightly with PWM: real lo-fi warble on whatever plays from tape, its depth on an Effects pot.</p><p class="need">Needs: idea 8's wiring; test if the motor likes PWM.</p><div class="chips"><span class="chip m">medium</span></div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="dot" style="background:var(--box)"></span>The boom box as the toy's box</h2>
+  <div class="tiles">
+    <div class="tile" style="--c:var(--box)"><span class="num">10</span><h3>Screen and matrix in the windows</h3><p>The TFT behind the cassette window, the 32x8 dot matrix behind the radio dial window.</p><p class="need">Needs: radio parts out, measure the windows.</p><div class="chips"><span class="chip m">medium</span></div></div>
+    <div class="tile" style="--c:var(--box)"><span class="num">11</span><h3>Its controls as ours</h3><p>The Volume / Tone sliders as pots, the side tuning knob replaced by the KY-040, the 5 cassette keys read as buttons (e.g. REC = loop RECORD).</p><p class="need">Needs: check what each slider is (value, linear or not).</p><div class="chips"><span class="chip m">medium</span></div></div>
+    <div class="tile" style="--c:var(--box)"><span class="num">12</span><h3>Its speaker, without the PC</h3><p>A PCM5102 on the toy's ESP into the boom box's own amp and speaker. With idea 3's synth the whole thing plays alone, no PC.</p><p class="need">Needs: the boom box amp kept and fed at 5-6 V.</p><div class="chips"><span class="chip l">big</span></div></div>
+  </div>
+</section>
+
+<section>
+  <h2>Before any of it</h2>
+  <div class="checks">
+    <ol>
+      <li>Count the SL 53's DIN socket pins on the socket itself. On the standard 5-pin tape socket, 1 = record in, 2 = ground, 3 = playback out, 4 / 5 = the right channel's in / out <span class="tag">standard, not checked on this recorder</span>. The plugs you ordered are 5-pin: they fit only if the socket is.</li>
+      <li>The DIN record input expects a much smaller signal than line level <span class="tag">usual for DIN, to measure</span>: a PCM5102 or PC output needs a divider in front of it, or the recording distorts.</li>
+      <li>A cassette that plays: hear the SL 53 and the boom box (after its belt) play a known song.</li>
+      <li>The PCM5102 boards: check the back's jumpers H1L-H4L are bridged (XSMT unbridged = muted, the usual "no sound" on this board) and SCK goes to GND <span class="tag">listing photos + common for this board, check on yours</span>.</li>
+      <li>The PCM5102 goes through <span class="mono">esp32-hw-checks</span> first, like every new module, and gets a Homebox entry (your OK).</li>
+    </ol>
+  </div>
+</section>
+
+</div>
+</body>
+</html>
