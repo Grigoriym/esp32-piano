@@ -76,7 +76,7 @@ header, section { display: flex; flex-direction: column; gap: 12px; }
 <section>
   <h2>What we have</h2>
   <div class="parts">
-    <div class="part"><b>Boom box</b><span>Tokyo Flipper TR-404AL</span><small>Radio and transformer go; cassette deck stays. Motor belt slips (new belt needed). Runs at 5-6 V.</small></div>
+    <div class="part"><b>Boom box</b><span>Tokyo Flipper TR-404AL</span><small>All old electronics go; the cassette mechanism stays, run by an ESP + a head preamp module. Takes the cassette upside down. Belt slips (new belt needed). Runs at 5-6 V.</small></div>
     <div class="part"><b>Cassette recorder</b><span>ITT Schaub-Lorenz SL 53 automatic</span><small>Mono, own speaker, 7.5 V DC or mains. 7-pin DIN socket on the side. "Automatic" = probably auto record level.</small></div>
     <div class="part"><b>PCM5102 DAC</b><span>3 boards, I2S in, 3.5 mm out</span><small>Turns the ESP's digital audio into line-level sound (2.1 V rms, 3.3-5.5 V supply, per the listing). Pins SCK, BCK, DIN, LCK, GND, VIN; jumpers H1L-H4L on the back (FLT, DEMP, XSMT, FMT). Ordered.</small></div>
     <div class="part"><b>DIN 5-pin plugs</b><span>4, solder type</span><small>For a cable into the recorder's DIN socket. Ordered.</small></div>
@@ -152,7 +152,7 @@ header, section { display: flex; flex-direction: column; gap: 12px; }
   <div class="tiles">
     <div class="tile" style="--c:var(--box)"><span class="num">10</span><h3>Screen and matrix in the windows</h3><p>The TFT behind the cassette window, the 32x8 dot matrix behind the radio dial window.</p><p class="need">Needs: radio parts out, measure the windows.</p><div class="chips"><span class="chip m">medium</span></div></div>
     <div class="tile" style="--c:var(--box)"><span class="num">11</span><h3>Its controls as ours</h3><p>The Volume / Tone sliders as pots, the side tuning knob replaced by the KY-040, the 5 cassette keys read as buttons (e.g. REC = loop RECORD).</p><p class="need">Needs: check what each slider is (value, linear or not).</p><div class="chips"><span class="chip m">medium</span></div></div>
-    <div class="tile" style="--c:var(--box)"><span class="num">12</span><h3>Its speaker, without the PC</h3><p>A PCM5102 on the toy's ESP into the boom box's own amp and speaker. With idea 3's synth the whole thing plays alone, no PC.</p><p class="need">Needs: the boom box amp kept and fed at 5-6 V.</p><div class="chips"><span class="chip l">big</span></div></div>
+    <div class="tile" style="--c:var(--box)"><span class="num">12</span><h3>Its speaker, without the PC</h3><p>A PCM5102 on the toy's ESP into a small amp module (PAM8403) and the boom box's speaker. With idea 3's synth the whole thing plays alone, no PC.</p><p class="need">Needs: an amp module (the old electronics go, 2026-11-26).</p><div class="chips"><span class="chip l">big</span></div></div>
   </div>
 </section>
 

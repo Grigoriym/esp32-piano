@@ -639,6 +639,21 @@ Homebox (offer the entries; boom box with the `Salvage` tag). If the speed at 5 
 are the input. Ideas from the outside photos: screen behind
 the cassette window, the 32x8 matrix behind the dial window, the Volume/Tone sliders as pots, the side knob as the
 KY-040. Mains parts out before any 3.3 V part goes in.
+**Updated plan (the user, 2026-11-26):** the boom box is only a box for the piano's knobs and parts; **all its old
+electronics go** (radio board, green cassette board, transformer), the cassette mechanism stays, run by an ESP: motor
+through a MOSFET, the cassette keys read, the sound listened to. Playback only (recording is on the SL 53). An ESP
+can't read the head itself (~1 mV, needs a preamp with tape EQ), so modules replace the boards: a head preamp
+(LA3161 / TA7668 boards, "Tonkopf Vorverstärker"; check: for a tape head, its supply, often 9-12 V) and a PAM8403
+amp for the speaker (or the Freenove I2S module's L/G/R line input, if free). Order told the user: the deck plays a
+tape properly with the new belt and the old boards first, then strip; bag the green board as a fallback. Not checked:
+which board the speaker wires go to (where the power amp is).
+**Belt:** the crossed band's path measured 27.6 cm (thread, the user) -> a belt of ~26 cm around (~13 cm laid flat,
+"Faltlänge"; ~83 mm diameter). Flywheel rim flat or grooved: not looked at yet (decides flat vs round/square). Seen
+listings: a 180-piece flat set, Faltlänge 4.5-13.5 cm, 1/1.2/2/3 mm wide (borderline: our size at its top end);
+a 50-piece 40-135 mm 4 mm set (too wide for the brass pulley, photo read). Not ordered yet.
+**Boost:** the MT3608 listing above (LAOMAO, 10 pcs) is the user's candidate "just in case": 6 V for the boom box,
+7.5 V for the SL 53, or 9-12 V for a preamp, from 5 V. Set it with the meter before connecting; may whine into the
+audio. Not ordered yet; Homebox entry when it arrives.
 **The recorder (2026-11-26, the user's photos, read off them):** an ITT Schaub-Lorenz **SL 53 automatic**, mono
 portable cassette recorder with a built-in speaker; label `7,5V === 110-150V/200-240V ~ 5W`, `5331 22 21`; keys
 rewind, REC., STOP, START, fast forward, a VOLUME wheel, a green key and a CASS. button (eject?); on the side a mains
