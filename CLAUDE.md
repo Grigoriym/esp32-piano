@@ -633,6 +633,14 @@ Homebox (offer the entries; boom box with the `Salvage` tag). If the speed at 5 
 are the input. Ideas from the outside photos: screen behind
 the cassette window, the 32x8 matrix behind the dial window, the Volume/Tone sliders as pots, the side knob as the
 KY-040. Mains parts out before any 3.3 V part goes in.
+**The recorder (2026-11-26, the user's photos, read off them):** an ITT Schaub-Lorenz **SL 53 automatic**, mono
+portable cassette recorder with a built-in speaker; label `7,5V === 110-150V/200-240V ~ 5W`, `5331 22 21`; keys
+rewind, REC., STOP, START, fast forward, a VOLUME wheel, a green key and a CASS. button (eject?); on the side a mains
+inlet and a DIN socket with the tape symbol (pin count not read). The user will adapt it to record the songs onto
+tape; parts for that are ordered (not yet shared). "automatic" likely means automatic recording level (not checked).
+Idea discussed: an ESP32 can't read a beat off tape (sound only) and tape speed drifts, so to follow a tape it would
+listen to the deck's signal electrically (before its volume, not a microphone: the live keys don't get in) and track
+the kicks. An ideas page for the boom box parts is asked for, after the user shares the orders.
 
 **State 2026-11-11:** the user's loop saved as riffs #11 Song #5 with the `save-song` skill (first real use; it
 worked as written). New: the compact one-screen view on top of a song (the user's ask, now `save_song.py`'s default;
