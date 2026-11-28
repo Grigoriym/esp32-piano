@@ -638,7 +638,11 @@ crossed rule above held for the rubber band's path only. Uncrossed, PLAY turns t
 with the flywheel out). The 11-28 photos show a second, thin black belt from the capstan/flywheel to the small white
 wheel with the red dot (the take-up drive): replaced with a new one from the set (2026-11-28), the tape still spilled;
 then one tape played, sound quiet and uneven (the user: maybe luck). Next: clean head, capstan, roller (isopropyl);
-the take-up spindle's strength (light-touch test) not done yet.
+without a cassette the left spindle turns steadily; with one it stops and slows now and then, and the wheel
+that stops is the big beige one under the flywheel that the motor belt turns (photo `2026-11-28-back-new-belt.jpg`,
+lower right of the flywheel; it looks like the take-up's drive, inferred from the layout); the small white wheel with
+the red dot keeps turning. Then a tape ran without spilling. To do: clean that wheel's groove and the belt, and the
+head, capstan and roller (isopropyl).
 Tape speed not judged: play a known song at 6 V and at 5 V. **Next: a new
 belt**: take the old one off, measure it laid flat (length x 2), flat or round/square, thickness; then German-shop
 keywords. Green board read `TX-126D` on a second photo (photo read). Neither the boom box nor the PeakTech is in
