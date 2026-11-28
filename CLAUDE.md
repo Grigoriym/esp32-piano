@@ -654,7 +654,10 @@ photos only): "Ticha TA7668 Tape Drive Preamp" (Amazon.de): TA7668 + bridge rect
 Plan told the user: the MT3608 boost set to ~15 V from 5 V (the DC goes through the board's rectifier, ~1.4 V lost).
 **Ordered 2026-11-28:** the TA7668 board and the MT3608 10-pack (LAOMAO, "2V-24V to 5V-28V"). On arrival: Homebox
 entries (user's OK), `esp32-hw-checks`-style first test, set the boost with the meter before connecting. Next topic
-(the user): checking two old cassette recorders of theirs.
+(the user): checking two old cassette recorders of theirs, both untested: the SL 53 and a **Nordmende MC 3060**
+(model no. 981.402 H, label `6V = 4x1,5V R6` = 4 AA; keys CASS. (eject), record, PLAY, REW/REV, F.F./CUE, PAUSE;
+built-in mic, BATT/REC lamp, tape counter, AUTO STOP; battery box looks clean on the photo). The SL 53's box takes 5
+cells (7.5 V) and has a pull ribbon. Photos: `docs/teardown/recorders/`. The user starts with the Nordmende.
 Tape speed not judged: play a known song at 6 V and at 5 V. **Next: a new
 belt**: take the old one off, measure it laid flat (length x 2), flat or round/square, thickness; then German-shop
 keywords. Green board read `TX-126D` on a second photo (photo read). Neither the boom box nor the PeakTech is in
