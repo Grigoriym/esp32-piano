@@ -643,7 +643,9 @@ that stops is the big beige one under the flywheel that the motor belt turns (ph
 lower right of the flywheel; it looks like the take-up's drive, inferred from the layout); the small white wheel with
 the red dot keeps turning. Then a tape ran without spilling. To do: clean that wheel's groove and the belt, and the
 head, capstan and roller (isopropyl). After cleaning (the user): the left spindle no longer stops, sound the same (quiet, uneven);
-the user suspects the electronics.
+the user suspects the electronics. The radio sounds about the same (not clean; a few stations a bit
+better, 2026-11-28), so the fault is likely in the part radio and tape share (volume control, amplifier, speaker), not
+the tape path alone (inference). The tape transport itself now runs.
 Tape speed not judged: play a known song at 6 V and at 5 V. **Next: a new
 belt**: take the old one off, measure it laid flat (length x 2), flat or round/square, thickness; then German-shop
 keywords. Green board read `TX-126D` on a second photo (photo read). Neither the boom box nor the PeakTech is in
