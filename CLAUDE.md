@@ -662,7 +662,12 @@ left end beep to each other (the series link, 2026-11-28), so supply goes on the
 spring `-` (box markings). On the PeakTech at 6.0 V (0.5 A limit) with a cassette in PLAY: it turns, some noise
 from the speaker, no sound from the tape (2026-11-28). Side panel (photo `nordmende-mc3060-side-panel.jpg`): `6V`
 round DC socket, a jack with a symbol (not read), `MIC` jack, a smaller jack (unlabelled), TONE wheel, VOLUME wheel
-(`+` toward TONE, `-` at the end).
+(`+` toward TONE, `-` at the end). Tests 2026-11-28: the noise comes from the speaker, the same at any
+VOLUME and in PAUSE; no tape sound; a fingertip on the head in PLAY (no cassette) gives no hum: the signal is lost
+between the head and the power amp (head wires, preamp, play/record switch or volume control; not narrowed down).
+Opened from the back (photo `nordmende-mc3060-inside-back.jpg`): motor top left, belt to the flywheel and a gear
+wheel, the main board mostly under a metal shield (`660-500-0`); the head and its wires are on the other side, not
+visible.
 Tape speed not judged: play a known song at 6 V and at 5 V. **Next: a new
 belt**: take the old one off, measure it laid flat (length x 2), flat or round/square, thickness; then German-shop
 keywords. Green board read `TX-126D` on a second photo (photo read). Neither the boom box nor the PeakTech is in
