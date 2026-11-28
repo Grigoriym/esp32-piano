@@ -694,9 +694,11 @@ cell's `-` beep (the link), so `+` = the bottom cell's `+` contact (left end of 
 at the far right. At 7.5 V / 0.5 A: 0 A with no key down. START wouldn't latch fully; opened from the back (photo
 `sl53-inside-back.jpg`; mains transformer `5584-40110`, keep mains unplugged): a bit of belt in black goo (the drive
 belt rotted, likely), thrown away. Belt path and the rest of the goo not looked at; no motor or sound test.
-**The user's call (2026-11-28):** stop testing; reuse the smaller recorder's mechanism and record onto tape with our
-own parts. Told the user: recording needs an AC bias (~50-100 kHz) mixed into the head current and an erase head
-driven or a magnet, which none of the owned/ordered parts make (the TA7668 is playback only); open.
+**The user's call (2026-11-28):** stop testing; record on the **Nordmende** (the smaller one) the way planned for the
+SL 53: a PCM5102 into the recorder's own record input, its own electronics making the bias and erasing. Its playback
+signal is lost (above) and cheap recorders often share one amp for record and play (not checked here), so its
+electronics likely need fixing first; its inputs are the `MIC` jack and an unread one (no DIN). The SL 53 needs only a
+belt for that plan (its record side untested). Our own bias oscillator: only if both fail.
 
 **State 2026-11-11:** the user's loop saved as riffs #11 Song #5 with the `save-song` skill (first real use; it
 worked as written). New: the compact one-screen view on top of a song (the user's ask, now `save_song.py`'s default;
