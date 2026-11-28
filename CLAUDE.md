@@ -645,7 +645,9 @@ the red dot keeps turning. Then a tape ran without spilling. To do: clean that w
 head, capstan and roller (isopropyl). After cleaning (the user): the left spindle no longer stops, sound the same (quiet, uneven);
 the user suspects the electronics. The radio sounds about the same (not clean; a few stations a bit
 better, 2026-11-28), so the fault is likely in the part radio and tape share (volume control, amplifier, speaker), not
-the tape path alone (inference). The tape transport itself now runs.
+the tape path alone (inference). The tape transport itself now runs. **The user's call (2026-11-28): stop
+repairing the old electronics; remove all of them, keep only the cassette mechanism** (head, motor, keys). Told: the
+head still needs a preamp module (an ESP can't read ~1 mV directly). The user dislikes the box's musty smell.
 Tape speed not judged: play a known song at 6 V and at 5 V. **Next: a new
 belt**: take the old one off, measure it laid flat (length x 2), flat or round/square, thickness; then German-shop
 keywords. Green board read `TX-126D` on a second photo (photo read). Neither the boom box nor the PeakTech is in
