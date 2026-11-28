@@ -699,6 +699,13 @@ SL 53: a PCM5102 into the recorder's own record input, its own electronics makin
 signal is lost (above) and cheap recorders often share one amp for record and play (not checked here), so its
 electronics likely need fixing first; its inputs are the `MIC` jack and an unread one (no DIN). The SL 53 needs only a
 belt for that plan (its record side untested). Our own bias oscillator: only if both fail.
+**Nordmende playback fixed (2026-11-28):** the volume control (solder side, the blobs above its window) reads ~8 kΩ to
+near 0 middle-to-bottom, jumpy at the `-` end; touching it in PLAY changed nothing. Main board `CS-660` (NEC
+`uPC1350C`, no datasheet found), motor board with `uPC1447H` and a 500 Ω trimmer (likely speed). In PLAY the built-in
+mic came through the headphones (blowing into it), so the long slide switch on `CS-660` (likely record/play) sat in
+its record position; the user moved it by hand and both test tapes play. Not cleaned with contact cleaner yet: may come
+back. REC is locked by a cassette's open protection slots (bought tapes; tape over them); REC + PLAY not yet tested.
+Photos in `docs/teardown/recorders/`. The user resoldered some wires to get the board out (which: not noted).
 
 **State 2026-11-11:** the user's loop saved as riffs #11 Song #5 with the `save-song` skill (first real use; it
 worked as written). New: the compact one-screen view on top of a song (the user's ask, now `save_song.py`'s default;
