@@ -627,50 +627,25 @@ TAPE + PLAY without a cassette: hiss in the speaker, 0.1+ A, the motor's brass p
 (stretched; the flywheel turns freely by hand); with a household rubber band the mechanism and spindles turned, at
 6 V and at **5.0 V**. **With tapes (2026-11-26):** PLAY pulled tape out of the cassette (spilled). The cassette sits **upside down** in
 this deck (open edge up, head and roller at the top), so in PLAY the tape runs right to left and the **left** spindle
-winds; the drive runs **with the band crossed** (figure 8, as the user had it): PLAY turns the left spindle, REW the
-right, a paper strip between capstan and roller is pulled left (checked). Uncrossed, the right spindle turned in PLAY
-(wrong). I first gave the open-edge-down rule (tape left to right, right spindle winds) and had the band uncrossed:
-check the cassette's orientation in a deck before naming spindles. The spill = the left (take-up) spindle too weak:
-the rubber band slips. **New belt (2026-11-28, fits well): the spill stayed.** Crossed, the paper strip went
-**right** (capstan backwards); uncrossed, left (right way). So with the real belt it runs **uncrossed**; the
-crossed rule above held for the rubber band's path only. Uncrossed, PLAY turns the left spindle (seen); a tape still spills at random and plays very quietly now and then.
-**Photos: `docs/teardown/boombox/`** (front bay, door, whole back, mechanism with the rubber band, with the new belt,
-with the flywheel out). The 11-28 photos show a second, thin black belt from the capstan/flywheel to the small white
-wheel with the red dot (the take-up drive): replaced with a new one from the set (2026-11-28), the tape still spilled;
-then one tape played, sound quiet and uneven (the user: maybe luck). Next: clean head, capstan, roller (isopropyl);
-without a cassette the left spindle turns steadily; with one it stops and slows now and then, and the wheel
-that stops is the big beige one under the flywheel that the motor belt turns (photo `2026-11-28-back-new-belt.jpg`,
-lower right of the flywheel; it looks like the take-up's drive, inferred from the layout); the small white wheel with
-the red dot keeps turning. Then a tape ran without spilling. To do: clean that wheel's groove and the belt, and the
-head, capstan and roller (isopropyl). After cleaning (the user): the left spindle no longer stops, sound the same (quiet, uneven);
-the user suspects the electronics. The radio sounds about the same (not clean; a few stations a bit
-better, 2026-11-28), so the fault is likely in the part radio and tape share (volume control, amplifier, speaker), not
-the tape path alone (inference). The tape transport itself now runs. **The user's call (2026-11-28): stop
-repairing the old electronics; remove all of them, keep only the cassette mechanism** (head, motor, keys). Told: the
-head still needs a preamp module (an ESP can't read ~1 mV directly). The user dislikes the box's musty smell. Owned modules can't read the head (PCM5102/Freenove are outputs,
-ADS1115 too slow); the Freenove module's amp can drive the speaker after a preamp. Candidate preamp (2026-11-28, listing
-photos only): "Ticha TA7668 Tape Drive Preamp" (Amazon.de): TA7668 + bridge rectifier KBP206 + a TO-220 regulator, a
-2-screw supply terminal, `L GND R IN` / `R GND L OUT` JST connectors, a 4-pin connector (label unread). Listing: "AC 8-16 V or DC 12-22 V".
-Plan told the user: the MT3608 boost set to ~15 V from 5 V (the DC goes through the board's rectifier, ~1.4 V lost).
-**Ordered 2026-11-28:** the TA7668 board and the MT3608 10-pack (LAOMAO, "2V-24V to 5V-28V"). On arrival: Homebox
-entries (user's OK), `esp32-hw-checks`-style first test, set the boost with the meter before connecting. Next topic
-(the user): checking two old cassette recorders of theirs, both untested: the SL 53 and a **Nordmende MC 3060**
-(model no. 981.402 H, label `6V = 4x1,5V R6` = 4 AA; keys CASS. (eject), record, PLAY, REW/REV, F.F./CUE, PAUSE;
-built-in mic, BATT/REC lamp, tape counter, AUTO STOP; battery box looks clean on the photo). The SL 53's box takes 5
-cells (7.5 V) and has a pull ribbon. Photos: `docs/teardown/recorders/`. The user starts with the Nordmende. Its battery box: the two contacts at the
-left end beep to each other (the series link, 2026-11-28), so supply goes on the right end: top contact `+`, bottom
-spring `-` (box markings). On the PeakTech at 6.0 V (0.5 A limit) with a cassette in PLAY: it turns, some noise
-from the speaker, no sound from the tape (2026-11-28). Side panel (photo `nordmende-mc3060-side-panel.jpg`): `6V`
-round DC socket, a jack with a symbol (not read), `MIC` jack, a smaller jack (unlabelled), TONE wheel, VOLUME wheel
-(`+` toward TONE, `-` at the end). Tests 2026-11-28: the noise comes from the speaker, the same at any
-VOLUME and in PAUSE; no tape sound; a fingertip on the head in PLAY (no cassette) gives no hum: the signal is lost
-between the head and the power amp (head wires, preamp, play/record switch or volume control; not narrowed down).
-Opened from the back (photo `nordmende-mc3060-inside-back.jpg`): motor top left, belt to the flywheel and a gear
-wheel, the main board mostly under a metal shield (`660-500-0`); the head and its wires are on the other side, not
-visible.
-Tape speed not judged: play a known song at 6 V and at 5 V. **Next: a new
-belt**: take the old one off, measure it laid flat (length x 2), flat or round/square, thickness; then German-shop
-keywords. Green board read `TX-126D` on a second photo (photo read). Neither the boom box nor the PeakTech is in
+winds. Check the cassette's orientation in a deck before naming spindles (I first gave the open-edge-down rule).
+**New belts (2026-11-28):** the main belt (motor -> flywheel and the big beige wheel under it) runs **uncrossed**:
+crossed it turned the capstan backwards (a paper strip between capstan and roller went right; it must go left). The
+crossed rubber band of 11-26 was right only for its own path. The thin take-up belt (flywheel -> small white wheel with
+a red dot) was replaced too; neither fixed the spill. With a cassette, the big beige wheel stopped now and then and
+the left spindle with it; **cleaning that wheel's groove, the belt, head, capstan and roller with isopropyl ended the
+stalls** (the user). Sound stayed quiet and uneven, the radio no better (not clean; a few stations a bit better), so the
+fault is likely in the shared part (volume, amp, speaker; inference). **The user's call: stop repairing the old
+electronics; strip them all, keep only the cassette mechanism.** Photos: `docs/teardown/boombox/` (front bay, door,
+whole back, mechanism with the rubber band, with the new belt, with the flywheel out).
+**Ordered 2026-11-28 for it:** a TA7668 tape-head preamp board ("Ticha TA7668 Tape Drive Preamp", Amazon.de; listing
+photos: TA7668 + KBP206 rectifier + a TO-220 regulator, 2-screw supply terminal, `L GND R IN` / `R GND L OUT` JST
+connectors, a 4-pin connector (label unread); listing: "AC 8-16 V or DC 12-22 V") and the MT3608 10-pack (LAOMAO,
+"2V-24V to 5V-28V"), to make ~15 V from 5 V for the preamp (the DC goes through the board's rectifier, ~1.4 V lost).
+On arrival: Homebox entries (user's OK), a first test, set the boost with the meter before connecting anything; the
+15 V shares only GND with the ESP. Chain told the user: head -> preamp -> the Freenove module's PAM8403 -> speaker;
+for the ESP to *listen* (follow a beat) a `PCM1808` I2S ADC later. Owned modules can't read the head (PCM5102 and
+Freenove are outputs, ADS1115 too slow). The user dislikes the box's musty smell (told: wash the empty case, bin the
+foam, charcoal/baking soda). Tape speed not judged: play a known song at 6 V and at 5 V. Green board read `TX-126D` on a second photo (photo read). Neither the boom box nor the PeakTech is in
 Homebox (offer the entries; boom box with the `Salvage` tag). If the speed at 5 V is off, the candidate is an MT3608 boost ("DC-DC Step Up 2V-24V to
 5V-28V", LAOMAO, pack of 10, Amazon; check the trimmer and the `MT3608` marking), set to 6.0 V. Before ordering the DIN-to-3.5 mm cable, check which DIN pins
 are the input. Ideas from the outside photos: screen behind
@@ -687,10 +662,10 @@ which board the speaker wires go to (where the power amp is).
 **Belt:** the crossed band's path measured 27.6 cm (thread, the user) -> a belt of ~26 cm around (~13 cm laid flat,
 "Faltlänge"; ~83 mm diameter). Flywheel rim flat or grooved: not looked at yet (decides flat vs round/square). Seen
 listings: a 180-piece flat set, Faltlänge 4.5-13.5 cm, 1/1.2/2/3 mm wide (borderline: our size at its top end);
-a 50-piece 40-135 mm 4 mm set (too wide for the brass pulley, photo read). Not ordered yet.
+a 50-piece 40-135 mm 4 mm set (too wide for the brass pulley, photo read). Bought a set, in use since 2026-11-28.
 **Boost:** the MT3608 listing above (LAOMAO, 10 pcs) is the user's candidate "just in case": 6 V for the boom box,
 7.5 V for the SL 53, or 9-12 V for a preamp, from 5 V. Set it with the meter before connecting; may whine into the
-audio. Not ordered yet; Homebox entry when it arrives.
+audio. Ordered 2026-11-28; Homebox entry when it arrives.
 **The recorder (2026-11-26, the user's photos, read off them):** an ITT Schaub-Lorenz **SL 53 automatic**, mono
 portable cassette recorder with a built-in speaker; label `7,5V === 110-150V/200-240V ~ 5W`, `5331 22 21`; keys
 rewind, REC., STOP, START, fast forward, a VOLUME wheel, a green key and a CASS. button (eject?); on the side a mains
@@ -703,6 +678,18 @@ has a tape (the user, 2026-11-26: later):** push a DIN plug into the SL 53's soc
 sharp straight-on photo of the plug's pin end to map plug pins to socket holes; measure the record input's level
 before feeding it (DIN inputs usually want far less than line level: a divider). The PCM5102 boards: check the back
 jumpers (H1L-H4L) on a real board, then `esp32-hw-checks` first. First recording test needs no ESP: idea 1 on the page.
+
+**The Nordmende MC 3060 (2026-11-28, the user's second recorder; next session continues here):** model no.
+981.402 H, `6V = 4x1,5V R6` (4 AA); keys CASS. (eject), record, PLAY, REW/REV, F.F./CUE, PAUSE; built-in mic,
+BATT/REC lamp, tape counter, AUTO STOP; side panel: `6V` round DC socket, a jack with a symbol (not read), `MIC`, a
+smaller unlabelled jack, TONE and VOLUME wheels. Photos: `docs/teardown/recorders/` (both recorders). Battery box: the
+two contacts at the left end beep to each other (series link), so the supply goes on the right end: top contact `+`,
+bottom spring `-`. On the PeakTech at 6.0 V / 0.5 A: the motor and a cassette turn; a noise from the speaker, the same
+at any VOLUME and in PAUSE; no tape sound (the tape played in the boom box); a fingertip on the head in PLAY gives no
+hum: **the signal is lost between the head and the power amp** (head wires, preamp, play/record switch or volume
+control; not narrowed down). Head cleaning not done yet. Opened from the back: motor, belts, the main board mostly
+under a metal shield (`660-500-0`); the head and its wires are on the other side (board out to reach them). **Open
+question to the user: test the SL 53 first (my suggestion) or keep going on the Nordmende.**
 
 **State 2026-11-11:** the user's loop saved as riffs #11 Song #5 with the `save-song` skill (first real use; it
 worked as written). New: the compact one-screen view on top of a song (the user's ask, now `save_song.py`'s default;
