@@ -642,7 +642,7 @@ without a cassette the left spindle turns steadily; with one it stops and slows 
 that stops is the big beige one under the flywheel that the motor belt turns (photo `2026-11-28-back-new-belt.jpg`,
 lower right of the flywheel; it looks like the take-up's drive, inferred from the layout); the small white wheel with
 the red dot keeps turning. Then a tape ran without spilling. To do: clean that wheel's groove and the belt, and the
-head, capstan and roller (isopropyl). After cleaning (the user): spills better, sound the same (quiet, uneven);
+head, capstan and roller (isopropyl). After cleaning (the user): the left spindle no longer stops, sound the same (quiet, uneven);
 the user suspects the electronics.
 Tape speed not judged: play a known song at 6 V and at 5 V. **Next: a new
 belt**: take the old one off, measure it laid flat (length x 2), flat or round/square, thickness; then German-shop
