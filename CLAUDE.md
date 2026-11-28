@@ -636,7 +636,9 @@ the rubber band slips. **New belt (2026-11-28, fits well): the spill stayed.** C
 crossed rule above held for the rubber band's path only. Uncrossed, PLAY turns the left spindle (seen); a tape still spills at random and plays very quietly now and then.
 **Photos: `docs/teardown/boombox/`** (front bay, door, whole back, mechanism with the rubber band, with the new belt,
 with the flywheel out). The 11-28 photos show a second, thin black belt from the capstan/flywheel to the small white
-wheel with the red dot (the take-up drive): not yet known whether it's old.
+wheel with the red dot (the take-up drive): replaced with a new one from the set (2026-11-28), the tape still spilled;
+then one tape played, sound quiet and uneven (the user: maybe luck). Next: clean head, capstan, roller (isopropyl);
+the take-up spindle's strength (light-touch test) not done yet.
 Tape speed not judged: play a known song at 6 V and at 5 V. **Next: a new
 belt**: take the old one off, measure it laid flat (length x 2), flat or round/square, thickness; then German-shop
 keywords. Green board read `TX-126D` on a second photo (photo read). Neither the boom box nor the PeakTech is in
