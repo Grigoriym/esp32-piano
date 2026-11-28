@@ -659,7 +659,8 @@ entries (user's OK), `esp32-hw-checks`-style first test, set the boost with the 
 built-in mic, BATT/REC lamp, tape counter, AUTO STOP; battery box looks clean on the photo). The SL 53's box takes 5
 cells (7.5 V) and has a pull ribbon. Photos: `docs/teardown/recorders/`. The user starts with the Nordmende. Its battery box: the two contacts at the
 left end beep to each other (the series link, 2026-11-28), so supply goes on the right end: top contact `+`, bottom
-spring `-` (box markings).
+spring `-` (box markings). On the PeakTech at 6.0 V (0.5 A limit) with a cassette in PLAY: it turns, some noise
+from the speaker, no sound from the tape (2026-11-28).
 Tape speed not judged: play a known song at 6 V and at 5 V. **Next: a new
 belt**: take the old one off, measure it laid flat (length x 2), flat or round/square, thickness; then German-shop
 keywords. Green board read `TX-126D` on a second photo (photo read). Neither the boom box nor the PeakTech is in
