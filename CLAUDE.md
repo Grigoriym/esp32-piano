@@ -650,8 +650,8 @@ repairing the old electronics; remove all of them, keep only the cassette mechan
 head still needs a preamp module (an ESP can't read ~1 mV directly). The user dislikes the box's musty smell. Owned modules can't read the head (PCM5102/Freenove are outputs,
 ADS1115 too slow); the Freenove module's amp can drive the speaker after a preamp. Candidate preamp (2026-11-28, listing
 photos only): "Ticha TA7668 Tape Drive Preamp" (Amazon.de): TA7668 + bridge rectifier KBP206 + a TO-220 regulator, a
-2-screw supply terminal, `L GND R IN` / `R GND L OUT` JST connectors, a 4-pin connector (label unread). Supply voltage
-not in the photos (the regulator suggests ~12 V AC or DC: inference); the boom box runs on 6 V.
+2-screw supply terminal, `L GND R IN` / `R GND L OUT` JST connectors, a 4-pin connector (label unread). Listing: "AC 8-16 V or DC 12-22 V".
+Plan told the user: the MT3608 boost set to ~15 V from 5 V (the DC goes through the board's rectifier, ~1.4 V lost).
 Tape speed not judged: play a known song at 6 V and at 5 V. **Next: a new
 belt**: take the old one off, measure it laid flat (length x 2), flat or round/square, thickness; then German-shop
 keywords. Green board read `TX-126D` on a second photo (photo read). Neither the boom box nor the PeakTech is in
