@@ -647,7 +647,11 @@ the user suspects the electronics. The radio sounds about the same (not clean; a
 better, 2026-11-28), so the fault is likely in the part radio and tape share (volume control, amplifier, speaker), not
 the tape path alone (inference). The tape transport itself now runs. **The user's call (2026-11-28): stop
 repairing the old electronics; remove all of them, keep only the cassette mechanism** (head, motor, keys). Told: the
-head still needs a preamp module (an ESP can't read ~1 mV directly). The user dislikes the box's musty smell.
+head still needs a preamp module (an ESP can't read ~1 mV directly). The user dislikes the box's musty smell. Owned modules can't read the head (PCM5102/Freenove are outputs,
+ADS1115 too slow); the Freenove module's amp can drive the speaker after a preamp. Candidate preamp (2026-11-28, listing
+photos only): "Ticha TA7668 Tape Drive Preamp" (Amazon.de): TA7668 + bridge rectifier KBP206 + a TO-220 regulator, a
+2-screw supply terminal, `L GND R IN` / `R GND L OUT` JST connectors, a 4-pin connector (label unread). Supply voltage
+not in the photos (the regulator suggests ~12 V AC or DC: inference); the boom box runs on 6 V.
 Tape speed not judged: play a known song at 6 V and at 5 V. **Next: a new
 belt**: take the old one off, measure it laid flat (length x 2), flat or round/square, thickness; then German-shop
 keywords. Green board read `TX-126D` on a second photo (photo read). Neither the boom box nor the PeakTech is in
