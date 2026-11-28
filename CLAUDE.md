@@ -631,7 +631,10 @@ winds; the drive runs **with the band crossed** (figure 8, as the user had it): 
 right, a paper strip between capstan and roller is pulled left (checked). Uncrossed, the right spindle turned in PLAY
 (wrong). I first gave the open-edge-down rule (tape left to right, right spindle winds) and had the band uncrossed:
 check the cassette's orientation in a deck before naming spindles. The spill = the left (take-up) spindle too weak:
-the rubber band slips. Tape speed not judged: play a known song at 6 V and at 5 V. **Next: a new
+the rubber band slips. **New belt (2026-11-28, fits well): the spill stayed.** Crossed, the paper strip went
+**right** (capstan backwards); uncrossed, left (right way). So with the real belt it runs **uncrossed**; the
+crossed rule above held for the rubber band's path only. Spindles and a tape on the uncrossed belt: not yet tried.
+Tape speed not judged: play a known song at 6 V and at 5 V. **Next: a new
 belt**: take the old one off, measure it laid flat (length x 2), flat or round/square, thickness; then German-shop
 keywords. Green board read `TX-126D` on a second photo (photo read). Neither the boom box nor the PeakTech is in
 Homebox (offer the entries; boom box with the `Salvage` tag). If the speed at 5 V is off, the candidate is an MT3608 boost ("DC-DC Step Up 2V-24V to
