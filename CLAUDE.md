@@ -704,7 +704,8 @@ near 0 middle-to-bottom, jumpy at the `-` end; touching it in PLAY changed nothi
 `uPC1350C`, no datasheet found), motor board with `uPC1447H` and a 500 Ω trimmer (likely speed). In PLAY the built-in
 mic came through the headphones (blowing into it), so the long slide switch on `CS-660` (likely record/play) sat in
 its record position; the user moved it by hand and both test tapes play. Not cleaned with contact cleaner yet: may come
-back. REC is locked by a cassette's open protection slots (bought tapes; tape over them); REC + PLAY not yet tested.
+back. REC is locked by a cassette's open protection slots (bought tapes; tape over them). Recording through the
+built-in mic and playing it back works (the user, 2026-11-28).
 Photos in `docs/teardown/recorders/`. The user resoldered some wires to get the board out (which: not noted).
 
 **State 2026-11-11:** the user's loop saved as riffs #11 Song #5 with the `save-song` skill (first real use; it
