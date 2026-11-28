@@ -688,8 +688,15 @@ bottom spring `-`. On the PeakTech at 6.0 V / 0.5 A: the motor and a cassette tu
 at any VOLUME and in PAUSE; no tape sound (the tape played in the boom box); a fingertip on the head in PLAY gives no
 hum: **the signal is lost between the head and the power amp** (head wires, preamp, play/record switch or volume
 control; not narrowed down). Head cleaning not done yet. Opened from the back: motor, belts, the main board mostly
-under a metal shield (`660-500-0`); the head and its wires are on the other side (board out to reach them). **Open
-question to the user: test the SL 53 first (my suggestion) or keep going on the Nordmende.**
+under a metal shield (`660-500-0`); the head and its wires are on the other side (board out to reach them).
+**The SL 53 (2026-11-28):** supply on the battery box from the PeakTech: 5 cells; the top row's `+` and the bottom
+cell's `-` beep (the link), so `+` = the bottom cell's `+` contact (left end of the ribbon's slot), `-` = the big spring
+at the far right. At 7.5 V / 0.5 A: 0 A with no key down. START wouldn't latch fully; opened from the back (photo
+`sl53-inside-back.jpg`; mains transformer `5584-40110`, keep mains unplugged): a bit of belt in black goo (the drive
+belt rotted, likely), thrown away. Belt path and the rest of the goo not looked at; no motor or sound test.
+**The user's call (2026-11-28):** stop testing; reuse the smaller recorder's mechanism and record onto tape with our
+own parts. Told the user: recording needs an AC bias (~50-100 kHz) mixed into the head current and an erase head
+driven or a magnet, which none of the owned/ordered parts make (the TA7668 is playback only); open.
 
 **State 2026-11-11:** the user's loop saved as riffs #11 Song #5 with the `save-song` skill (first real use; it
 worked as written). New: the compact one-screen view on top of a song (the user's ask, now `save_song.py`'s default;
