@@ -707,6 +707,16 @@ its record position; the user moved it by hand and both test tapes play. Not cle
 back. REC is locked by a cassette's open protection slots (bought tapes; tape over them). Recording through the
 built-in mic and playing it back works (the user, 2026-11-28).
 Photos in `docs/teardown/recorders/`. The user resoldered some wires to get the board out (which: not noted).
+Ruled out on the way: the supply. The BAT/REC lamp flickered with the speaker's noise, but the PeakTech held 6.00 V
+and 0.141-0.147 A, and wiggling the clips and the PLAY key changed nothing; the lamp seems to follow the audio
+(inference). **The clue that found it: the mic heard in PLAY** (blowing into it, headphones in the earphone jack) =
+the record/play switch in its record position. After the fix the same tapes play; ~0.17 A in PLAY.
+**Next (the user, for 2026-11-29): record onto the Nordmende from another ESP** (a spare S3 + a PCM5102). Open first:
+the user's level test, phone into `MIC` at 1 / 3 / 6 volume steps (a first recording that way sounded distorted;
+likely overload, not checked), and a bought tape played at the same VOLUME to rule out playback. Then a divider for
+the PCM5102 into `MIC` (sized from that test), the PCM5102's `esp32-hw-checks` check and back jumpers first. The small
+jack beside `MIC` is likely REMOTE (motor on/off; usual layout, not checked). A cassette's leader (first ~5-10 s)
+takes no recording.
 
 **State 2026-11-11:** the user's loop saved as riffs #11 Song #5 with the `save-song` skill (first real use; it
 worked as written). New: the compact one-screen view on top of a song (the user's ask, now `save_song.py`'s default;
