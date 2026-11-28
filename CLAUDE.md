@@ -633,7 +633,10 @@ right, a paper strip between capstan and roller is pulled left (checked). Uncros
 check the cassette's orientation in a deck before naming spindles. The spill = the left (take-up) spindle too weak:
 the rubber band slips. **New belt (2026-11-28, fits well): the spill stayed.** Crossed, the paper strip went
 **right** (capstan backwards); uncrossed, left (right way). So with the real belt it runs **uncrossed**; the
-crossed rule above held for the rubber band's path only. Spindles and a tape on the uncrossed belt: not yet tried.
+crossed rule above held for the rubber band's path only. Uncrossed, PLAY turns the left spindle (seen); a tape still spills at random and plays very quietly now and then.
+**Photos: `docs/teardown/boombox/`** (front bay, door, whole back, mechanism with the rubber band, with the new belt,
+with the flywheel out). The 11-28 photos show a second, thin black belt from the capstan/flywheel to the small white
+wheel with the red dot (the take-up drive): not yet known whether it's old.
 Tape speed not judged: play a known song at 6 V and at 5 V. **Next: a new
 belt**: take the old one off, measure it laid flat (length x 2), flat or round/square, thickness; then German-shop
 keywords. Green board read `TX-126D` on a second photo (photo read). Neither the boom box nor the PeakTech is in
